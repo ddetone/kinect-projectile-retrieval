@@ -12,7 +12,7 @@ control_c()
 {
   echo ""
   echo "killing panda..."
-  $BOTLAB_HOME/scripts/killPanda.sh panda
+  $FINALLAB_HOME/scripts/killPanda.sh panda
   echo "panda is dead"
   exit $?
 }
@@ -24,8 +24,8 @@ clear
 
 echo "Starting procman on panda..."
 
-LCM_LOGFILE="\$BOTLAB_HOME/data/$(date -u +%m"."%d"."%g"."%H"."%M)"
-PROCMAN_CMD="/home/panda-user/botlab/runproc_panda.sh"
+LCM_LOGFILE="\$FINALLAB_HOME/data/$(date -u +%m"."%d"."%g"."%H"."%M)"
+PROCMAN_CMD="/home/panda-user/finallab/runproc_panda.sh"
 #PROCMAN_CMD="bash -e \$BOTLAB_HOME/scripts/runproc_panda.sh"
 
 set -x

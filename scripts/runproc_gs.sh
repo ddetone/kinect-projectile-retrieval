@@ -20,7 +20,7 @@ export JAVA_OPTS_128="-ea -server -Xmx128m"
 export JAVA_OPTS_64="-ea -server -Xmx64m"
 
 # Assuming that there is a file here...
-PROC_CONFIG="$BOTLAB_HOME/config/procman/gs.proc"
+PROC_CONFIG="$FINALLAB_HOME/config/procman/gs.proc"
 
 # Step 1: start ProcManDaemons
 export DAEMON_CMD="$JAVA $JAVA_OPTS_64 april.procman.ProcManDaemon -n gs"

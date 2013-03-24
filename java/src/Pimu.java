@@ -1,4 +1,4 @@
-package botlab;
+package finallab;
 
 import java.io.*;
 import java.util.*;
@@ -14,7 +14,7 @@ import april.vis.*;
 import april.image.*;
 import april.jmat.geom.*;
 
-import botlab.lcmtypes.*;
+import finallab.lcmtypes.*;
 
 import lcm.lcm.*;
 

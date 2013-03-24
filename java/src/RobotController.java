@@ -1,4 +1,4 @@
-package botlab;
+package finallab;
 
 import java.io.*;
 import java.util.*;

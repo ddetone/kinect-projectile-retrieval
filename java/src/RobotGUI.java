@@ -1,4 +1,4 @@
-package botlab;
+package finallab;
 
 import java.io.*;
 import java.util.*;
@@ -14,7 +14,7 @@ import april.vis.*;
 import april.image.*;
 import april.jmat.geom.*;
 
-import botlab.lcmtypes.*;
+import finallab.lcmtypes.*;
 
 import lcm.lcm.*;
 
@@ -54,11 +54,9 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		}
 		lcm.subscribe("6_POSE",this);
 		lcm.subscribe("6_BATTERY",this);
-		lcm.subscribe("6_MAP",this);
 		lcm.subscribe("6_GOAL",this);
 		lcm.subscribe("6_WAYPOINT", this);
-		lcm.subscribe("6_SLAM_POSES",this);
-		lcm.subscribe("6_ASTAR",this);
+
 
 		jf.setLayout(new BorderLayout());
 		jf.add(vc, BorderLayout.CENTER);
@@ -119,7 +117,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		}else return false;
 	}
 
-
+/*
 	public void drawMap(map_t map)
 	{
 		//System.out.println("drawMap");
@@ -169,7 +167,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		vb.swap();
 	}
 
-
+*/
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
 	{
 		try
@@ -206,6 +204,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			{
 
 			}
+/*
 			else if(channel.equals("6_MAP"))
 			{
 				map_t map = new map_t(dins);
@@ -216,6 +215,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 				astar_view_t map = new astar_view_t(dins);
 				drawAStar(map);
 			}
+*/
 			else if(channel.equals("6_WAYPOINT"))
 			{
 				xyt_t point = new xyt_t(dins);
@@ -236,6 +236,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 				vb.addBack(vo_pointBox);
 				vb.swap();
 			}
+/*
 			else if(channel.equals("6_SLAM_POSES"))
 			{
 				slam_vector_t slamVec = new slam_vector_t(dins);
@@ -294,6 +295,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 
 
 			}
+*/
 		}
 		catch (IOException e)
 		{

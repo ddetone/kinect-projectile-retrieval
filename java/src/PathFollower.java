@@ -1,4 +1,4 @@
-package botlab;
+package finallab;
 
 import java.io.*;
 import java.util.*;
@@ -14,12 +14,7 @@ import april.vis.*;
 import april.image.*;
 import april.jmat.geom.*;
 
-import botlab.lcmtypes.*;
-import botlab.util.*;
-import botlab.Laser;
-
-import orc.Orc;
-import orc.DigitalOutput;
+import finallab.lcmtypes.*;
 
 import lcm.lcm.*;
 
@@ -27,7 +22,6 @@ import lcm.lcm.*;
 public class PathFollower implements LCMSubscriber
 {
 
-	Laser laser;
 	final boolean verbose = true;
 	final boolean verbose2 = true;
 	LCM lcm;
@@ -243,25 +237,7 @@ public class PathFollower implements LCMSubscriber
 		}
 
 	}
-/*
-	void rotateBot(int rotations)
-	{
-		//double curangle = currXYT[2];
 
-		double total_radians = rotations * (2*Math.PI);
-
-		while (true) //counterclockwise is positive
-		{
-			if (currXYT[2] >= total_radians)
-			{
-				stop();
-				return;
-			}
-			setMotorCommand(0.0F,0.5F);
-		}
-
-	}
-*/
 	void setMotorCommand(double left, double right)
 	{
 		diff_drive_t motor = new diff_drive_t();
