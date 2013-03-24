@@ -1,0 +1,37 @@
+//Default arguments, others will inherit there
+:process : object {
+    auto-restart = "true";
+    restart-delay-ms = "500";
+    auto-start = "true";
+    host = "panda";
+ }
+
+proc# : process {
+    cmd = "java botlab.PathFollower";
+    name = "Path Follower";
+}
+
+
+proc# : process {
+    cmd = "java botlab.PoseGenerator";
+    name = "Pose Generator";
+}
+
+//proc# : process {
+//    cmd = "java botlab.Laser";
+//    name = "Laser";
+//}
+
+proc# : process {
+    cmd = "java botlab.ImageProcessing dc1394://b09d0100aea34b";
+    name = "Image Processing";
+}
+proc# : process {
+    cmd = "$ARL_HOME/bin/motordriver -p 6";
+    name = "Motor Driver";
+}
+
+proc# : process {
+    cmd = "$ARL_HOME/bin/pimud -u -c 6_PIMU";
+    name = "Pimu Driver";
+}
