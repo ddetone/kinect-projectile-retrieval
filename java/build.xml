@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 
-<project name="botlab" default="build" basedir=".">
+<project name="finallab" default="build" basedir=".">
 
   <!-- Build everything -->
   <target name="build" depends="generate-lcmtypes,build-java,build-jar"/>
@@ -34,7 +34,7 @@
 
   <!-- Build Jar -->
   <target name="build-jar">
-    <jar destfile="botlab.jar" compress="false">
+    <jar destfile="finallab.jar" compress="false">
 
       <fileset dir="build">
 	<include name="**/*.class" />
@@ -46,10 +46,10 @@
       </fileset>
 
       <manifest>
-	<attribute name="Main-Class" value="botlab.Emptyrepo" />
+	<attribute name="Main-Class" value="finallab.Emptyrepo" />
       </manifest>
     </jar>
-    <copy file="botlab.jar" todir="." />
+    <copy file="finallab.jar" todir="." />
   </target>
 
   <!-- Build java -->
@@ -73,7 +73,7 @@
     <delete>
       <fileset dir="build" includes="**/*.class"/>
       <fileset dir="." includes="**/*~" defaultexcludes="no"/>
-      <fileset dir="." includes="botlab.jar"/>
+      <fileset dir="." includes="finallab.jar"/>
     </delete>
   </target>
 

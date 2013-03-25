@@ -7,25 +7,17 @@
  }
 
 proc# : process {
-    cmd = "java botlab.PathFollower";
+    cmd = "java finallab.PathFollower";
     name = "Path Follower";
 }
 
 
 proc# : process {
-    cmd = "java botlab.PoseGenerator";
+    cmd = "java finallab.PoseGenerator";
     name = "Pose Generator";
 }
 
-//proc# : process {
-//    cmd = "java botlab.Laser";
-//    name = "Laser";
-//}
 
-//proc# : process {
-//    cmd = "java botlab.ImageProcessing dc1394://b09d0100aea34b";
-//    name = "Image Processing";
-//}
 proc# : process {
     cmd = "$ARL_HOME/bin/motordriver -p 6";
     name = "Motor Driver";
