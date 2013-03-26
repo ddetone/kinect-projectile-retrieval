@@ -1,6 +1,8 @@
 package finallab;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.awt.*;
 import java.awt.image.*;
@@ -8,7 +10,6 @@ import java.awt.event.*;
 import javax.swing.*;
 
 import org.openkinect.freenect.*;
-import org.openkinect.freenect.Freenect;
 import org.openkinect.freenect.util.*;
 
 
@@ -30,25 +31,34 @@ public class KinectView
 	Device kinect;
 	
 	JFrame jf;
-	JImage rgbImage;
-	JImage depthImage;
+	JImage rgbJim;
+	JImage depthJim;
+	
+	BufferedImage rgbImg;
+	BufferedImage depthImg;
 
 	LCM lcm;
-
+	
+//	final static short width = 640;
+//	final static short height = 480;
+	
 	final boolean verbose = false;
 
 	KinectView()
 	{
 		jf = new JFrame("KinectView");
-		rgbImage = new JImage();
-		depthImage = new JImage();		
+		rgbJim = new JImage();
+		depthJim = new JImage();
+		
+		rgbImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
+		depthImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
+		
+		jf.setLayout(new GridLayout(1,2));
 
-		jf.setLayout(new GridLayout(2,1));
+		jf.add(rgbJim, 0, 0);
+		jf.add(depthJim, 0, 1);
 
-		jf.add(rgbImage, BorderLayout.EAST);
-		jf.add(depthImage, BorderLayout.WEST);
-
-		jf.setSize(1600,600);
+		jf.setSize(1280,960);
 		jf.setVisible(true);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		ctx = Freenect.createContext();
@@ -61,31 +71,139 @@ public class KinectView
 
 	public static void main(String[] args)
 	{
-		KinectView kv = new KinectView();
-		while(true);
-	}
+		final KinectView kv = new KinectView();
+		kv.kinect.startVideo(new VideoHandler() {
+			
+			@Override
+			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				kv.bufToRGBImage(fm, rgb);
+				kv.rgbJim.setImage(kv.rgbImg);
+			}
+			
+		});
+		kv.kinect.startDepth(new DepthHandler() {
 
-	public void updateImages(byte[] rgbData, byte[] depthData)
-	{
-		BufferedImage rgbIM = null;
-		BufferedImage depthIM = null;
-		DataBufferByte dataBuffer = new DataBufferByte(rgbData, 640*480);
-		Raster raster = Raster.createPackedRaster(dataBuffer, 640, 480, 8, null);
-		rgbIM = new BufferedImage(640, 480, BufferedImage.TYPE_BYTE_GRAY);
-		rgbIM.setData(raster);
+			@Override
+			public void onFrameReceived(FrameMode fm, ByteBuffer depth, int timestamp) {
+				kv.bufToDepthImage(fm, depth);
+				kv.depthJim.setImage(kv.depthImg);
+			}
+			
+		});
+		while(true) {			
+			try {
+				Thread.sleep(100);
+			}
+			catch(Exception e) {
+				
+			}
+		}
+	}
 	
-		// if(rgbData != null)
-  //       {
-  //           // Grab the image, and convert it to gray scale immediately
-  //        	rgbIM = ImageConvert.convertToImage(fmt.format, 640, 480, rgbData);
-		// }
-		// if(depthData != null)
-		// {
-		// 	depthIM = ImageConvert.convertToImage(fmt.format, 640, 480, depthData);
-		// }
-		rgbImage.setImage(rgbIM);
-		//depthImage.setImage(depthIM);
-
+	/*
+	 *  this creates the image by iterating through each byte...
+	 *  we can just use pixelsRGB.get(index) in practice
+	 *  
+	 *  ByteBuffer is 3 * width * height
+	 *  3 bytes per pixel (RGB)
+	 */
+	private void bufToRGBImage(FrameMode fm, ByteBuffer rgb) {
+		int width = fm.getWidth();
+		int height = fm.getHeight();
+		int[] pixelInts = new int[width * height];
+		for(int i = 0; i < width*height; i++) {
+			int rgbVal = 0xFF;
+			for(int j = 0; j < 3; j++) {
+				rgbVal = rgbVal << 8;
+				rgbVal = rgbVal | (rgb.get() & 0xFF);
+			}
+			pixelInts[i] = rgbVal;
+		}
+		rgbImg.setRGB(0, 0, width, height, pixelInts, 0, width);
+		//set position to 0 because ByteBuffer is reused to access byte array of new frame
+		//and get() below increments the iterator
+		rgb.position(0);
+		
 	}
+	
+	/*  
+	 *  ByteBuffer is 2 * width * height
+	 *  10 bit number for distance for each pixel
+	 *  first byte is LSB 7-0
+	 *  second byte is MSB 1-0
+	 */
+	private void bufToDepthImage(FrameMode fm, ByteBuffer depthBuf) {
+		int width = fm.getWidth();
+		int height = fm.getHeight();
+		int[] pixelInts = new int[width * height];
+		for(int i = 0; i < width*height; i++) {
+			
+			int depth = 0;
+			byte byte1 = depthBuf.get();
+			byte byte2 = depthBuf.get();
+			depth = byte2 & 0x3;
+			depth = depth << 8;
+			depth = depth | (byte1 & 0xFF);
+
+			if (i == ((height /2) * width + width/2)) {
+				System.out.println(depth);
+			}
+			/*
+			 * color scaled depth
+			 * closest -> farthest
+			 * black -> red -> yellow -> green
+			 * (depth starts registering ~390 or ~ .5m)
+			 */
+			int r = 0x0000;
+			int g = 0x0000;
+			int b = 0x0000;
+			depth = Math.abs(depth - 390);
+			int interval = (1023 - 350) / 3;
+			double step = 255.0 / (double)interval;
+			if (depth <= (interval)) {				
+				r = (int)(depth * step) & 0xFF;
+			}
+			else if (depth <= (2*interval)) {
+				r = 0xFF;
+				g = (int)((depth - interval) * step) & 0xFF;
+			}
+			else if (depth <= (3*interval)) {
+				r = (int)((interval - (depth % interval)) * step) & 0xFF;
+				g = 0xFF;
+			}
+			else {
+				g = 0xFF;
+			}
+					
+			int depthColor = 0xFF;			
+			depthColor = depthColor << 8;
+			depthColor = depthColor | (r & 0xFF);
+			depthColor = depthColor << 8;
+			depthColor = depthColor | (g & 0xFF);
+			depthColor = depthColor << 8;
+			depthColor = depthColor | (b & 0xFF);
+			pixelInts[i] = depthColor;
+		}
+		depthImg.setRGB(0, 0, width, height, pixelInts, 0, width);
+		
+		//set position to 0 because ByteBuffer is reused to access byte array of new frame
+		//and get() below increments the iterator
+		depthBuf.position(0);
+		
+	}
+	
+	
+	
+	//utility functions to copy/paste later	
+	public int getDepth(ByteBuffer bb, int index) {
+		int depth = 0;
+		byte byte1 = bb.get(index * 2);
+		byte byte2 = bb.get(index * 2 + 1);
+		depth = byte2 & 0x3;
+		depth = depth << 8;
+		depth = depth | (byte1 & 0xFF);
+		return depth & 0x3FF;
+	}
+	
 
 }
