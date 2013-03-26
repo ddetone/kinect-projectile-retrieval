@@ -7,6 +7,11 @@ import java.awt.image.*;
 import java.awt.event.*;
 import javax.swing.*;
 
+import org.openkinect.freenect.*;
+import org.openkinect.freenect.Freenect;
+import org.openkinect.freenect.util.*;
+
+
 import april.jcam.*;
 import april.util.*;
 import april.jmat.*;
@@ -18,9 +23,12 @@ import finallab.lcmtypes.*;
 
 import lcm.lcm.*;
 
-public class KinectView implements LCMSubscriber
+public class KinectView
 {
 
+	Context ctx;
+	Device kinect;
+	
 	JFrame jf;
 	JImage rgbImage;
 	JImage depthImage;
@@ -31,12 +39,6 @@ public class KinectView implements LCMSubscriber
 
 	KinectView()
 	{
-		try{
-			this.lcm = new LCM();
-		}catch(IOException e){
-			this.lcm = LCM.getSingleton();
-		}
-		lcm.subscribe("KINECT_STATUS",this);
 		jf = new JFrame("KinectView");
 		rgbImage = new JImage();
 		depthImage = new JImage();		
@@ -49,6 +51,12 @@ public class KinectView implements LCMSubscriber
 		jf.setSize(1600,600);
 		jf.setVisible(true);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		ctx = Freenect.createContext();
+		if (ctx.numDevices() > 0) {
+			kinect = ctx.openDevice(0);
+		} else {
+			System.err.println("WARNING: No kinects detected");
+		}
 	}
 
 	public static void main(String[] args)
@@ -78,23 +86,6 @@ public class KinectView implements LCMSubscriber
 		rgbImage.setImage(rgbIM);
 		//depthImage.setImage(depthIM);
 
-	}
-
-	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
-	{
-		try
-		{
-			if(channel.equals("KINECT_STATUS"))
-			{
-				kinect_status_t kinectData = new kinect_status_t(dins);
-				System.out.println("Got Kinect Image Data");
-				updateImages(kinectData.rgb,kinectData.depth);
-			}
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
 	}
 
 }
