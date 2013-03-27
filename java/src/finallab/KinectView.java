@@ -31,9 +31,13 @@ public class KinectView
 	Device kinect;
 	
 	JFrame jf;
+
 	JImage rgbJim;
 	JImage depthJim;
-	
+
+	ParameterGUI pg;
+
+
 	BufferedImage rgbImg;
 	BufferedImage depthImg;
 
@@ -41,8 +45,19 @@ public class KinectView
 	
 //	final static short width = 640;
 //	final static short height = 480;
+	final boolean colorAnalyze = true;
 	
 	final boolean verbose = false;
+
+// 	int intoDepthX(int x) {
+//     return (double)abs(x - 46)/586*640;
+// }
+
+// int intoDepthY(int y) {
+//     return (double)abs(y - 37)/436*480;
+// }
+
+
 
 	KinectView()
 	{
@@ -52,13 +67,33 @@ public class KinectView
 		
 		rgbImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
 		depthImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
+
+		if(colorAnalyze)
+		{
+			jf.setLayout(new GridLayout(2,2));
+			pg = new ParameterGUI();
+			pg.addIntSlider("redValMin","Red Min",0,255,0);
+			pg.addIntSlider("redValMax","Red Max",0,255,255);
+			pg.addIntSlider("greenValMin","Blue Min",0,255,0);
+			pg.addIntSlider("greenValMax","Blue Max",0,255,255);
+			pg.addIntSlider("blueValMin","Green Min",0,255,0);
+			pg.addIntSlider("blueValMax","Green Max",0,255,255);
+			jf.add(pg, 1,0);
+			jf.add(rgbJim, 0, 0);
+			jf.add(depthJim, 0, 1);
+			jf.setSize(1280,960);
+		}
+		else
+		{
+			jf.setLayout(new GridLayout(1,2));
+			jf.add(rgbJim, 0, 0);
+			jf.add(depthJim, 0, 1);
+			jf.setSize(1280,480);
+		}
+
 		
-		jf.setLayout(new GridLayout(1,2));
 
-		jf.add(rgbJim, 0, 0);
-		jf.add(depthJim, 0, 1);
-
-		jf.setSize(1280,960);
+		
 		jf.setVisible(true);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		ctx = Freenect.createContext();
@@ -108,20 +143,60 @@ public class KinectView
 	 *  3 bytes per pixel (RGB)
 	 */
 	private void bufToRGBImage(FrameMode fm, ByteBuffer rgb) {
+		BallTracker tracker;
 		int width = fm.getWidth();
 		int height = fm.getHeight();
 		int[] pixelInts = new int[width * height];
+		int redMin = pg.gi("redValMin");
+		int greenMin = pg.gi("greenValMin");
+		int blueMin = pg.gi("blueValMin");
+		int redMax = pg.gi("redValMax");
+		int greenMax = pg.gi("greenValMax");
+		int blueMax = pg.gi("blueValMax");
+
+		boolean[] validImageValue = new boolean[width*height];
+
+		int red = 0;
+		int green = 0;
+		int blue = 0;
+
 		for(int i = 0; i < width*height; i++) {
 			int rgbVal = 0xFF;
 			for(int j = 0; j < 3; j++) {
+				int data = rgb.get() & 0xFF;
 				rgbVal = rgbVal << 8;
-				rgbVal = rgbVal | (rgb.get() & 0xFF);
+				rgbVal = rgbVal | (data);
+
+				if(j == 0)
+					red = data;
+				else if(j==1)
+					green = data;
+				else
+					blue = data;
 			}
 			pixelInts[i] = rgbVal;
+			if(redMin >= red || redMax <= red || greenMin >= green || greenMax <= green || blueMin >= blue || blueMax <= blue)
+				pixelInts[i] = 0xFFFFFFFF;
+			else
+				validImageValue[i] = true;
 		}
-		rgbImg.setRGB(0, 0, width, height, pixelInts, 0, width);
+		
+
 		//set position to 0 because ByteBuffer is reused to access byte array of new frame
 		//and get() below increments the iterator
+		rgbImg.setRGB(0, 0, width, height, pixelInts, 0, width);
+
+		//create ball tracker with map of valid ball pixels
+		tracker = new BallTracker(validImageValue,width,height);
+		//color center of image white
+		// for(int y = (height/2)-5; y < (height/2)+5; y++)
+		// 	for(int x = (width/2)-5; x < (width/2)+5;x++)
+		// 		pixelInts[y*width+x] = 0xFFFFFFFF;
+
+		//get slider values for r g & b
+
+
+
 		rgb.position(0);
 		
 	}
@@ -184,6 +259,9 @@ public class KinectView
 			depthColor = depthColor | (b & 0xFF);
 			pixelInts[i] = depthColor;
 		}
+		for(int y = (height/2)-5; y < (height/2)+5; y++)
+			for(int x = (width/2)-5; x < (width/2)+5;x++)
+				pixelInts[y*width+x] = 0xFFFFFFFF;
 		depthImg.setRGB(0, 0, width, height, pixelInts, 0, width);
 		
 		//set position to 0 because ByteBuffer is reused to access byte array of new frame

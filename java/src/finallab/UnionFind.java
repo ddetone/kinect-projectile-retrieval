@@ -1,85 +1,47 @@
 package finallab;
 
-import java.io.*;
-import java.util.*;
-
-public class UnionFind
+public class UnionFind 
 {
+	private int[] data;
 
-	public int N;			//number of pixels
-	public int[] parent;
-	public int[] rank;
-
-	public UnionFind(int N)	//constructor
+	public UnionFind(int size)
 	{
-		parent = new int[N];	//initialize parent array
-		rank = new int[N];		//initialize rank array
-		for (int i=0; i<N; i++) 
-		{	
-			parent[i] = i;		//parent index is initially pixel number
-			rank[i] = 0;
+		data = new int[size];
+		//A value of -1 indicates this element is a root node.
+		for(int i=0;i<size;i++)
+		{
+			data[i] = -1;
 		}
 	}
-	
-	public int getRepresentative(int x)
+
+	public void join(int a, int b)
 	{
-		if (parent[x] != x)
-			parent[x] = getRepresentative(parent[x]);
-		return parent[x];
-	}
-	
-	public void connectNodes(int x, int y)
-	{
-		int xRoot = getRepresentative(x);
-		int yRoot = getRepresentative(y);
-		if (xRoot == yRoot)
+		//Get the root nodes of the requested values.
+		int roota = find(a);
+		int rootb = find(b);
+		
+		//Check if two indices are already part of the same union.
+		if(roota == rootb)
 			return;
-			
-		if (rank[xRoot] < rank[yRoot])
-			parent[xRoot] = yRoot;
-		else if (rank[xRoot] > rank[yRoot])
-			parent[yRoot] = xRoot;	
-		else
+		//Merge the two, actual process of "merging" is put off until a find is run on a member with roota
+		if (data[rootb] < data[roota]) 
 		{
-			parent[yRoot] = xRoot;	
-			++rank[xRoot];	
+      		data[rootb] += data[roota];
+      		data[roota] = rootb;
 		}
+		else 
+		{
+      		data[roota] += data[rootb];
+      		data[rootb] = roota;
+    	}
 	}
 
-	public int[] FindSets(boolean[][] map, int height, int width)
+	public int find(int a)
 	{
-		
-		
-		for (int y=0; y<height; y++)
-		{
-			for (int x=0; x<width; x++)
-			{			
-				if (map[y][x])
-				{
-					if (x<(width-1) && map[y][x+1]) //check right
-						connectNodes(width*y+x,width*y+(x+1));
-					if (y<(height-1) && map[y+1][x]) //check below
-						connectNodes(width*y+x,width*(y+1)+x);
-				}
-			}
-		}
-		return parent;
+		if(data[a] < 0)
+			return a;
+		//Make future accesses quicker by updating the structure values to be that of its root.
+		data[a] = find(data[a]);
+		return data[a];
 	}
-	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
