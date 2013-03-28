@@ -12,11 +12,12 @@ public class Projectile implements LCMSubscriber
 {
 
 	LCM lcm;
-	ArrayList<double[]> balls;
+	ArrayList<double[]> aballs;
+	ArrayList<double[]> pballs;
 	int num_meas;				//number of measurements used in prediction
 	int ball_i;
 	double starttime;
-	double[] v_not; //x,y,z initial velocities, used in model
+	double[] v_not; 			//x,y,z initial velocities, used in model
 	boolean can_calib;
 	boolean released;
 	boolean verbose;		
@@ -26,10 +27,10 @@ public class Projectile implements LCMSubscriber
 		lcm = LCM.getSingleton();
 		lcm.subscribe("6_BALL", this);
 	
-		balls = new ArrayList<double[]>();
-		num_meas = 3;				//number of measurements used in prediction
+		aballs = new ArrayList<double[]>();
+		num_meas = 3;
 		ball_i=-1;
-		v_not = new double[3]; //x,y,z initial velocities, used in model
+		v_not = new double[3];
 		can_calib = false;
 		released = false;
 		verbose = true;		
@@ -49,19 +50,26 @@ public class Projectile implements LCMSubscriber
 				xyzt[2] = curr_ball.z;
 				xyzt[3] = curr_ball.utime;
 
-				balls.add(xyzt);
+				aballs.add(xyzt);
 				ball_i++;
 		
 				if (!can_calib && (ball_i >= num_meas))
 				{
-					starttime = balls.get(ball_i)[3];
+					starttime = aballs.get(ball_i)[3];
 					can_calib = true;
 				} 
 			
 				if (!released && can_calib)
 				{
-					DetermineReleased();
+					if (DetermineReleased())
+					{
+						released = true;
+						starttime = aballs.get(ball_i)[3];
+					}
 				}
+
+				//if (released)
+
 		 	}
 		 }
 		catch (IOException e)
@@ -72,21 +80,19 @@ public class Projectile implements LCMSubscriber
 
 	public boolean DetermineReleased()
 	{
-		double prev_dt = balls.get(ball_i-1)[3] - balls.get(ball_i-2)[3];
-		v_not[0] = (balls.get(ball_i-1)[0] - balls.get(ball_i-2)[0]) / prev_dt;
-		v_not[1] = (balls.get(ball_i-1)[1] - balls.get(ball_i-2)[1]) / prev_dt;
-		v_not[2] = (balls.get(ball_i-1)[2] - balls.get(ball_i-2)[2]) / prev_dt;		
+		double prev_dt = aballs.get(ball_i-1)[3] - aballs.get(ball_i-2)[3];
+		v_not[0] = (aballs.get(ball_i-1)[0] - aballs.get(ball_i-2)[0]) / prev_dt;
+		v_not[1] = (aballs.get(ball_i-1)[1] - aballs.get(ball_i-2)[1]) / prev_dt;
+		v_not[2] = (aballs.get(ball_i-1)[2] - aballs.get(ball_i-2)[2]) / prev_dt;		
 
-		double[] predict_loc = new double[3];
-		double cur_dt = balls.get(ball_i)[3] - balls.get(ball_i-1)[3];
-		predict_loc[0] = balls.get(ball_i)[0] + (v_not[0] * cur_dt); //deltaX = Vo,x * dt
-		predict_loc[1] = balls.get(ball_i)[1] + (v_not[1] * cur_dt) - 0.5*(9806000000000f)*cur_dt*cur_dt;
-		predict_loc[2] = balls.get(ball_i)[2] + (v_not[2] * cur_dt); 		
+		
+		double cur_dt = aballs.get(ball_i)[3] - aballs.get(ball_i-1)[3];
+		double[] predict_loc = Predict(cur_dt);
 		
 		double[] errors = new double[3];
-		errors[0] = predict_loc[0]-balls.get(ball_i)[0];
-		errors[1] = predict_loc[1]-balls.get(ball_i)[1];
-		errors[2] = predict_loc[2]-balls.get(ball_i)[2];
+		errors[0] = predict_loc[0]-aballs.get(ball_i)[0];
+		errors[1] = predict_loc[1]-aballs.get(ball_i)[1];
+		errors[2] = predict_loc[2]-aballs.get(ball_i)[2];
 
 		if (verbose)
 		{
@@ -102,6 +108,15 @@ public class Projectile implements LCMSubscriber
 			return true;
 		else
 			return false;
+	}
+
+	public double[] Predict(double dt)
+	{
+		double[] predict_loc = new double[3];
+		predict_loc[0] = aballs.get(ball_i)[0] + (v_not[0] * dt); //deltaX = Vo,x * dt
+		predict_loc[1] = aballs.get(ball_i)[1] + (v_not[1] * dt) - 0.5*(9806000000000f)*dt*dt;
+		predict_loc[2] = aballs.get(ball_i)[2] + (v_not[2] * dt); 	
+		return predict_loc;
 	}
 
 
