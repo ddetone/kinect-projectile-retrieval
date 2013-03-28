@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 
 import javax.swing.JPanel;
+import java.awt.Dimension;
 import org.openkinect.freenect.Device;
 import org.openkinect.freenect.FrameMode;
 import org.openkinect.freenect.VideoHandler;
@@ -20,6 +21,8 @@ public class KinectRGBVideo extends JPanel {
 	
 	public KinectRGBVideo(Device kinect) {
 		
+		setPreferredSize(new Dimension(WIDTH, HEIGHT));
+		// setFit(true);
 		frame = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
 		
 		kinect.startVideo(new VideoHandler() {
@@ -39,6 +42,7 @@ public class KinectRGBVideo extends JPanel {
 				
 				frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
 				rgb.position(0);
+				repaint();
 			}
 			
 		});

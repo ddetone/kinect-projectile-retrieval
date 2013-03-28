@@ -5,6 +5,8 @@ import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.WindowListener;
+import java.awt.event.WindowEvent;
 import java.io.*;
 
 import javax.swing.JFrame;
@@ -34,6 +36,9 @@ public class CalibrateCam
 	
 	Matrix r;
 	Matrix p;
+
+	int points;
+
 	CalibrateCam()
 	{
 		arr_p_x = new ArrayList<Integer>();
@@ -48,10 +53,15 @@ public class CalibrateCam
 			System.err.println("WARNING: No kinects detected");
 		}
 		window = new JFrame("calibrate camera");
-		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		window.setVisible(true);
 		rgbVideo = new KinectRGBVideo(kinect);
 		rgbVideo.addMouseListener(ml);
+		window.setSize(640, 480);
 		window.setContentPane(rgbVideo);
+		window.addWindowListener(new WindowClose(this));
+
+
 	}
 	
 	MouseListener ml = new MouseAdapter() {
@@ -76,12 +86,61 @@ public class CalibrateCam
 		}
 	};
 	
-	private void createMatrix() {
-//		ArrayList<Integer> r_array = 
+	public class WindowClose implements WindowListener {
+		CalibrateCam cc;
+		public WindowClose(CalibrateCam _cc) {
+			cc = _cc;
+		}
+		public void windowClosing(WindowEvent e) {
+			cc.arr_p_x.addAll(arr_p_y);
+			cc.arr_r_x.addAll(arr_r_y);
+
+			double [][] p_arr = new double[cc.arr_p_x.size()][1];
+			double [][] r_arr = new double[cc.arr_r_x.size()][11];
+
+			for (int i = 0; i < cc.arr_p_x.size(); i++) {
+				p_arr[i][0] = (double)cc.arr_p_x.get(i);
+				for (int j = 0; j < 11; j++) {
+					r_arr[i][j] = (double)cc.arr_r_x.get(i)[j];
+				}
+			}
+			cc.p = new Matrix(p_arr);
+			cc.r = new Matrix(r_arr);
+			Matrix q = (cc.r.transpose().times(cc.r)).inverse().times(cc.r.transpose()).times(cc.p);
+			System.out.println(q.toString());
+		}
+		public void windowOpened(WindowEvent e)        {   }
+      	public void windowClosed(WindowEvent e)         {   }
+	    public void windowActivated(WindowEvent e)     {   }
+	    public void windowDeactivated(WindowEvent e) {   }
+	    public void windowIconified(WindowEvent e)      {   }
+	    public void windowDeiconified(WindowEvent e)   {   }
 	}
+
+	// private void createMatrix() {
+	// 	arr_p_x.addAll(arr_p_y);
+	// 	arr_r_x.addAll(arr_r_y);
+
+	// 	double [][] p_arr = new double[arr_p_x.size()][1];
+	// 	double [][] r_arr = new double[arr_r_x.size()][11];
+
+	// 	for (int i = 0; i < arr_p_x.size(); i++) {
+	// 		p_arr[i][0] = (double)arr_p_x.get(i);
+	// 		for (int j = 0; j < 11; j++) {
+	// 			r_arr[i][j] = (double)arr_r_x.get(i)[j];
+	// 		}
+	// 	}
+	// 	p = new Matrix(p_arr);
+	// 	r = new Matrix(r_arr);
+	// 	Matrix q = (r.transpose().times(r)).inverse().times(r.transpose()).times(p);
+	// 	System.out.println(q.toString());
+	// }
 	
 	public static void main(String [] args) {
 		CalibrateCam cc = new CalibrateCam();
+		// while(true) {
+		// 	try
+		// }
 	}
 	
 	
