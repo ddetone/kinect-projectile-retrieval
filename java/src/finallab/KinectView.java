@@ -162,6 +162,7 @@ public class KinectView
 			}
 			
 		});
+		kv.kinect.setDepthFormat(DepthFormat.D11BIT);
 		kv.kinect.startDepth(new DepthHandler() {
 
 			@Override
