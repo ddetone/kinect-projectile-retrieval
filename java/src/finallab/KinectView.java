@@ -39,15 +39,17 @@ public class KinectView
 	BufferedImage rgbImg;
 	BufferedImage depthImg;
 
-	volatile Statistics BALL;
-	volatile boolean[] validImageValue;
+	Statistics BALL;
+	boolean[] validImageValue;
 	volatile int ballDepth;
 
 	LCM lcm;
 	
 //	final static short width = 640;
 //	final static short height = 480;
-	final boolean colorAnalyze = true;
+	final boolean colorAnalyze = false;
+	final boolean colorAnalyze2 = true;
+	volatile int globalTime = 0;
 	
 	final boolean verbose = false;
 
@@ -55,15 +57,14 @@ public class KinectView
 
 	int width = 640;
 	int height = 480;
-// 	int intoDepthX(int x) {
-//     return (double)abs(x - 46)/586*640;
-// }
 
-// int intoDepthY(int y) {
-//     return (double)abs(y - 37)/436*480;
-// }
+	static int intoDepthX(int x) {
+    	return (int)((double)Math.abs(x - 46)/586*640);
+	}
 
-
+	static int intoDepthY(int y) {
+    	return (int)((double)Math.abs(y - 37)/436*480);
+	}
 
 	KinectView()
 	{
@@ -95,6 +96,22 @@ public class KinectView
 			jf.add(depthJim, 0, 1);
 			jf.setSize(1280,960);
 		}
+		else if(colorAnalyze2)
+		{
+			jf.setLayout(new GridLayout(2,2));
+			pg = new ParameterGUI();
+			pg.addDoubleSlider("HueMin","Hue Min",0,.2,0);
+			pg.addDoubleSlider("HueMax","Hue Max",0,.2,.2);
+			pg.addDoubleSlider("SatMin","Saturation Min",0,3.6,0);
+			pg.addDoubleSlider("SatMax","Saturation Max",0,3.6,3.6);
+			pg.addDoubleSlider("BrightMin","Brightness Min",0,3.6,0);
+			pg.addDoubleSlider("BrightMax","Brightness Max",0,3.6,3.6);
+
+			jf.add(pg, 1,0);
+			jf.add(rgbJim, 0, 0);
+			jf.add(depthJim, 0, 1);
+			jf.setSize(1280,960);
+		}
 		else
 		{
 			jf.setLayout(new GridLayout(1,2));
@@ -118,15 +135,30 @@ public class KinectView
 		BALL = new Statistics();
 	}
 
+	public void publishBall(int timestamp)
+	{
+
+		ball_t ball = new ball_t();
+		ball.utime = timestamp;
+		ball.x = BALL.center_x;
+		ball.y = BALL.center_y;
+		ball.z = 4;
+		lcm.publish("6_BALL",ball);
+
+	}
+
 	public static void main(String[] args)
 	{
 		final KinectView kv = new KinectView();
+		kv.kinect.setDepthFormat(DepthFormat.D11BIT);
+		
 		kv.kinect.startVideo(new VideoHandler() {
 			
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				kv.globalTime = timestamp;
 				kv.bufToRGBImage(fm, rgb, timestamp);
-				kv.rgbJim.setImage(kv.rgbImg);
+				// kv.rgbJim.setImage(kv.rgbImg);
 			}
 			
 		});
@@ -135,35 +167,53 @@ public class KinectView
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer depth, int timestamp) {
 				kv.bufToDepthImage(fm, depth);
-				kv.depthJim.setImage(kv.depthImg);
+				// kv.depthJim.setImage(kv.depthImg);
 			}
 			
 		});
-		BallTracker tracker;
+		BallTracker tracker = new BallTracker(kv.width,kv.height);
 		while(true) 
 		{
 
 			while(!kv.newImage);
 			kv.newImage = false;
-			boolean[] allowedImage = kv.validImageValue;
-			tracker = new BallTracker(kv.validImageValue,kv.width,kv.height);
-			ArrayList<Statistics> blobs = tracker.analyze();
-
+			ArrayList<Statistics> blobs = tracker.analyze2(kv.validImageValue);
+			Statistics BiggestBlob = new Statistics();
 			for(Statistics blob : blobs)
 			{
-				blob.center();
 				if(blob.N > 100)
 				{
-					for(int y = blob.center_y-3; y < blob.center_y+3; y++)
-					for(int x = blob.center_x-3; x < blob.center_y+5;x++)
-						kv.rgbImg.setRGB(x,y,0xFFFF0000);
-					//if(BALL.Cxy() > blob.Cxy());
-						//if(BALL.abs() > blob.abs())
-							// BALL = blob;
+					// if(kv.BALL.Cxy() > blob.Cxy());
+						// if(kv.BALL.abs() > blob.abs())
+							// kv.BALL = blob;
+					if(BiggestBlob.N < blob.N)
+						BiggestBlob = blob;
+					blob.center();
 				}
+				kv.BALL = BiggestBlob;
+				kv.BALL.center();
+				for(int y = kv.BALL.center_y-3; y < kv.BALL.center_y+3; y++)
+					for(int x = kv.BALL.center_x-3; x < kv.BALL.center_x+3;x++)
+						try{
+							kv.rgbImg.setRGB(x,y,0xFFFF0000);
+							// int depthx = intoDepthY(y);
+							// int depthy = intoDepthX(x);
+							// kv.depthImg.setRGB(depthx, depthy, 0xFFFFFFFF);
+						}
+						catch(Exception e){};
 				
 			}
+				//System.println(kv.getDepth(kv.depthImg,kv.BALL.center_y*width+kv.BALL.center_x));
+				ball_t ball = new ball_t();
+				ball.utime = kv.globalTime;
+				ball.x = kv.BALL.center_x;
+				ball.y = kv.BALL.center_y;
+				ball.z = 4;
+				kv.lcm.publish("6_BALL",ball);
 
+
+			kv.rgbJim.setImage(kv.rgbImg);
+			kv.depthJim.setImage(kv.depthImg);
 			// try {
 			// 	Thread.sleep(100);
 			// }
@@ -180,15 +230,39 @@ public class KinectView
 	 *  3 bytes per pixel (RGB)
 	 */
 	private void bufToRGBImage(FrameMode fm, ByteBuffer rgb, int timestamp) {
-		int width = fm.getWidth();
-		int height = fm.getHeight();
+		width = fm.getWidth();
+		height = fm.getHeight();
 		int[] pixelInts = new int[width * height];
-		int redMin = pg.gi("redValMin");
-		int greenMin = pg.gi("greenValMin");
-		int blueMin = pg.gi("blueValMin");
-		int redMax = pg.gi("redValMax");
-		int greenMax = pg.gi("greenValMax");
-		int blueMax = pg.gi("blueValMax");
+		int redMin;
+		int greenMin;
+		int blueMin;
+		int redMax;
+		int greenMax;
+		int blueMax;
+		double hueMin;
+		double hueMax;
+		double brightMin;
+		double brightMax;
+		double satMin;
+		double satMax;
+		if(colorAnalyze)
+		{
+			redMin = pg.gi("redValMin");
+			greenMin = pg.gi("greenValMin");
+			blueMin = pg.gi("blueValMin");
+			redMax = pg.gi("redValMax");
+			greenMax = pg.gi("greenValMax");
+			blueMax = pg.gi("blueValMax");
+		}
+		else if(colorAnalyze2)
+		{
+			hueMin = pg.gd("HueMin");
+			hueMax = pg.gd("HueMax");
+			satMin = pg.gd("SatMin");
+			satMax = pg.gd("SatMax");
+			brightMin = pg.gd("BrightMin");
+			brightMax = pg.gd("BrightMax");
+		}
 
 		int red = 0;
 		int green = 0;
@@ -209,11 +283,34 @@ public class KinectView
 					blue = data;
 			}
 			pixelInts[i] = rgbVal;
-			if(redMin >= red || redMax <= red || greenMin >= green || greenMax <= green || blueMin >= blue || blueMax <= blue)
-				pixelInts[i] = 0xFFFFFFFF;
-			else
-				validImageValue[i] = true;
+			if(colorAnalyze)
+			{
+
+				if(redMin >= red || redMax <= red || greenMin >= green || greenMax <= green || blueMin >= blue || blueMax <= blue)
+				{
+					pixelInts[i] = 0xFFFFFFFF;
+					validImageValue[i] = false;
+				}
+				else
+				{
+					validImageValue[i] = true;
+				}
+			}
+			else if(colorAnalyze2)
+			{
+				float hsb[] = Color.RGBtoHSB(red,green,blue,null);
+				if(hueMin >= hsb[0] || hueMax <= hsb[0] || satMin >=  hsb[1] || satMax <=  hsb[1]|| brightMin >=  hsb[2]|| brightMax <= hsb[2])
+				{
+					pixelInts[i] = 0xFFFFFFFF;
+					validImageValue[i] = false;
+				}
+				else
+				{
+					validImageValue[i] = true;
+				}
+			}	
 		}
+
 		
 
 		//set position to 0 because ByteBuffer is reused to access byte array of new frame
@@ -254,19 +351,20 @@ public class KinectView
 		height = fm.getHeight();
 		int[] pixelInts = new int[width * height];
 
-		ballDepth = getDepth(depthBuf,BALL.center_x*width + BALL.center_y);
+		//ballDepth = getDepth(depthBuf,BALL.center_x*width + BALL.center_y);
 
 		for(int i = 0; i < width*height; i++) {
 			
 			int depth = 0;
 			byte byte1 = depthBuf.get();
 			byte byte2 = depthBuf.get();
-			depth = byte2 & 0x3;
+			depth = byte2 & 0x7;
 			depth = depth << 8;
 			depth = depth | (byte1 & 0xFF);
 
 			if (i == ((height /2) * width + width/2)) {
-				System.out.println(depth);
+			 	System.out.println("Array depth: "+ depth);
+			 	System.out.println("Estimate Meter Depth: " + raw_depth_to_meters(depth));
 			}
 			/*
 			 * color scaled depth
@@ -315,6 +413,15 @@ public class KinectView
 		
 	}
 	
+	public float raw_depth_to_meters(int raw_depth)
+	{
+ 		if (raw_depth < 2047)
+  		{
+   			return (1.0f / (raw_depth * -0.0030711016f + 3.3309495161f))+.05f;
+  		}
+  		return 0;
+	}
+
 	/*
 	public void convertToHSV(){
 		for(int j = height - searchHeight; j < height; j++){
@@ -340,17 +447,6 @@ public class KinectView
 	}
 	*/
 
-	public void publishBall(int timestamp)
-	{
-
-		ball_t ball = new ball_t();
-		ball.utime = timestamp;
-		ball.x = BALL.center_x;
-		ball.y = BALL.center_y;
-		ball.z = ballDepth;
-		lcm.publish("6_BALL",ball);
-
-	}
 	
 	//utility functions to copy/paste later	
 	public int getDepth(ByteBuffer bb, int index) {
