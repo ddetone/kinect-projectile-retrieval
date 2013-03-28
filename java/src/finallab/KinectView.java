@@ -289,7 +289,30 @@ public class KinectView
 		
 	}
 	
-	
+	/*
+	public void convertToHSV(){
+		for(int j = height - searchHeight; j < height; j++){
+			int tempj = j - height + searchHeight;
+			for(int i = 0; i < width; i++){
+				//System.out.println((height - j) * width + i);
+				int aRGB = data[j * width + i];
+				Color.RGBtoHSB(((aRGB & 0x00FF0000) >> 16), ((aRGB & 0x0000FF00) >> 8), (aRGB & 0x000000FF), hsvImage[tempj * width + i]);
+				float temp = hsvImage[tempj * width + i][0];
+				hsvImage[tempj * width + i][0] = (temp - (int)temp) * 360;
+			}
+		}
+	}
+
+
+	public double colorScore(int i, int j, int color){
+
+		//System.out.println((height - (j + 1)) * width + i);
+		float[] pixel = hsvImage[(j - height + searchHeight) * width + i];
+		int distFromColor = Math.max(color, (int)pixel[0]) - Math.min(color, (int)pixel[0]);
+		return(double)(360 - distFromColor);
+
+	}
+	*/
 	
 	//utility functions to copy/paste later	
 	public int getDepth(ByteBuffer bb, int index) {
