@@ -40,6 +40,7 @@ public class KinectView
 	BufferedImage depthImg;
 
 	volatile Statistics BALL;
+	volatile boolean[] validImageValue;
 	volatile int ballDepth;
 
 	LCM lcm;
@@ -50,6 +51,10 @@ public class KinectView
 	
 	final boolean verbose = false;
 
+	volatile boolean newImage = false;
+
+	int width = 640;
+	int height = 480;
 // 	int intoDepthX(int x) {
 //     return (double)abs(x - 46)/586*640;
 // }
@@ -79,6 +84,12 @@ public class KinectView
 			pg.addIntSlider("greenValMax","Blue Max",0,255,255);
 			pg.addIntSlider("blueValMin","Green Min",0,255,0);
 			pg.addIntSlider("blueValMax","Green Max",0,255,255);
+			// pg.addIntSlider("redValMin","Red Min",0,255,86);
+			// pg.addIntSlider("redValMax","Red Max",0,255,233);
+			// pg.addIntSlider("greenValMin","Blue Min",0,255,84);
+			// pg.addIntSlider("greenValMax","Blue Max",0,255,212);
+			// pg.addIntSlider("blueValMin","Green Min",0,255,0);
+			// pg.addIntSlider("blueValMax","Green Max",0,255,51);			
 			jf.add(pg, 1,0);
 			jf.add(rgbJim, 0, 0);
 			jf.add(depthJim, 0, 1);
@@ -100,6 +111,7 @@ public class KinectView
 		} else {
 			System.err.println("WARNING: No kinects detected");
 		}
+		validImageValue = new boolean[width*height];
 
 		lcm = LCM.getSingleton();
 
@@ -127,13 +139,36 @@ public class KinectView
 			}
 			
 		});
-		while(true) {			
-			try {
-				Thread.sleep(100);
-			}
-			catch(Exception e) {
+		BallTracker tracker;
+		while(true) 
+		{
+
+			while(!kv.newImage);
+			kv.newImage = false;
+			boolean[] allowedImage = kv.validImageValue;
+			tracker = new BallTracker(kv.validImageValue,kv.width,kv.height);
+			ArrayList<Statistics> blobs = tracker.analyze();
+
+			for(Statistics blob : blobs)
+			{
+				blob.center();
+				if(blob.N > 100)
+				{
+					for(int y = blob.center_y-3; y < blob.center_y+3; y++)
+					for(int x = blob.center_x-3; x < blob.center_y+5;x++)
+						kv.rgbImg.setRGB(x,y,0xFFFF0000);
+					//if(BALL.Cxy() > blob.Cxy());
+						//if(BALL.abs() > blob.abs())
+							// BALL = blob;
+				}
 				
 			}
+
+			// try {
+			// 	Thread.sleep(100);
+			// }
+			// catch(Exception e) {
+				
 		}
 	}
 	
@@ -145,7 +180,6 @@ public class KinectView
 	 *  3 bytes per pixel (RGB)
 	 */
 	private void bufToRGBImage(FrameMode fm, ByteBuffer rgb, int timestamp) {
-		BallTracker tracker;
 		int width = fm.getWidth();
 		int height = fm.getHeight();
 		int[] pixelInts = new int[width * height];
@@ -155,8 +189,6 @@ public class KinectView
 		int redMax = pg.gi("redValMax");
 		int greenMax = pg.gi("greenValMax");
 		int blueMax = pg.gi("blueValMax");
-
-		boolean[] validImageValue = new boolean[width*height];
 
 		int red = 0;
 		int green = 0;
@@ -187,28 +219,13 @@ public class KinectView
 		//set position to 0 because ByteBuffer is reused to access byte array of new frame
 		//and get() below increments the iterator
 
-		tracker = new BallTracker(validImageValue,width,height);
-		ArrayList<Statistics> blobs = tracker.analyze();
 
-		for(Statistics blob : blobs)
-		{
-			blob.center();
-			if(blob.N > 183)
-			{
-				//if(BALL.Cxy() > blob.Cxy());
-					//if(BALL.abs() > blob.abs())
-						BALL = blob;
-			}
-		}
 
-		publishBall(timestamp);
-
-		for(int y = BALL.center_y-3; y < BALL.center_y+3; y++)
-				for(int x = BALL.center_x-3; x < BALL.center_y+5;x++)
-					pixelInts[y*width+x] = 0xFF0000FF;
+		// publishBall(timestamp);
 
 
 		rgbImg.setRGB(0, 0, width, height, pixelInts, 0, width);
+		newImage = true;
 
 		//create ball tracker with map of valid ball pixels
 
@@ -233,8 +250,8 @@ public class KinectView
 	 *  second byte is MSB 1-0
 	 */
 	private void bufToDepthImage(FrameMode fm, ByteBuffer depthBuf) {
-		int width = fm.getWidth();
-		int height = fm.getHeight();
+		width = fm.getWidth();
+		height = fm.getHeight();
 		int[] pixelInts = new int[width * height];
 
 		ballDepth = getDepth(depthBuf,BALL.center_x*width + BALL.center_y);

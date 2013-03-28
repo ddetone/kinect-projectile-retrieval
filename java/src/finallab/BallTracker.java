@@ -55,7 +55,7 @@ public class BallTracker
 				{
 					if((x != width-1) && thresholdMap[plusX])
 						finder.join(access,plusX);
-					if((y != hieght-1)thresholdMap[plusY])
+					if((y != height-1) && thresholdMap[plusY])
 						finder.join(access,plusY);
 				}
 				if(!thresholdMap[analyze])
