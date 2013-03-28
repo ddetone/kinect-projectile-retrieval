@@ -1,23 +1,11 @@
 package finallab;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.*;
 import java.awt.*;
-import java.awt.image.*;
-import java.awt.event.*;
-import javax.swing.*;
 
-import org.openkinect.freenect.*;
-import org.openkinect.freenect.util.*;
-
-
-import april.jcam.*;
 import april.util.*;
 import april.jmat.*;
-import april.vis.*;
-import april.image.*;
 import april.jmat.geom.*;
 
 import finallab.lcmtypes.*;
@@ -39,7 +27,7 @@ public class BallTracker
 		finder = new UnionFind(size);
 	}
 
-	public void analyze()
+	public ArrayList<Statistics> analyze()
 	{
 		for(int y = 0; y < height-1; y++)
 			for(int x = 0; x < width-1; x++)
@@ -55,5 +43,39 @@ public class BallTracker
 						finder.join(access,plusY);
 				}
 			}
+		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
+		for(int y = 0; y < height; y++)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				int access = y*width+x;
+				if(!thresholdMap[access])
+					continue;
+				if(finder.find(access) == access)
+				{
+					Statistics input = new Statistics();
+					input.update(x,y);
+					map.put(access, input);
+				}
+				else if(map.containsKey(finder.find(access)))
+				{
+					Statistics output = map.get(finder.find(access));
+					output.update(x,y);
+					map.put(finder.find(access),output);
+				}
+			}
+		}
+		Iterator obIter = map.keySet().iterator();
+		ArrayList<Statistics> blobs = new ArrayList<Statistics> ();
+		while(obIter.hasNext())
+		{
+			Integer key = (Integer) obIter.next();
+			Statistics value = (Statistics) map.get(key);
+			if(value.N > 400)
+			{
+				blobs.add(value);
+			}
+		}
+		return blobs;
 	}
 }

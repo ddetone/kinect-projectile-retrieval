@@ -184,10 +184,29 @@ public class KinectView
 
 		//set position to 0 because ByteBuffer is reused to access byte array of new frame
 		//and get() below increments the iterator
+
+		tracker = new BallTracker(validImageValue,width,height);
+		ArrayList<Statistics> blobs = tracker.analyze();
+		Statistics BALL = new Statistics();
+		for(Statistics blob : blobs)
+		{
+			blob.center();
+			if(blob.N > 83)
+			{
+				if(BALL.Cxy() > blob.Cxy());
+					if(BALL.abs() > blob.abs())
+						BALL = blob;
+			}
+		}
+		for(int y = BALL.center_y-3; y < BALL.center_y+3; y++)
+				for(int x = BALL.center_x-3; x < BALL.center_y+5;x++)
+					pixelInts[y*width+x] = 0xFF0000FF;
+
 		rgbImg.setRGB(0, 0, width, height, pixelInts, 0, width);
 
 		//create ball tracker with map of valid ball pixels
-		tracker = new BallTracker(validImageValue,width,height);
+
+
 		//color center of image white
 		// for(int y = (height/2)-5; y < (height/2)+5; y++)
 		// 	for(int x = (width/2)-5; x < (width/2)+5;x++)
