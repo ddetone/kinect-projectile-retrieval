@@ -21,7 +21,6 @@ import april.image.*;
 import april.jmat.geom.*;
 
 import finallab.lcmtypes.*;
-
 import lcm.lcm.*;
 
 public class KinectView
@@ -37,9 +36,11 @@ public class KinectView
 
 	ParameterGUI pg;
 
-
 	BufferedImage rgbImg;
 	BufferedImage depthImg;
+
+	volatile Statistics BALL;
+	volatile int ballDepth;
 
 	LCM lcm;
 	
@@ -91,9 +92,6 @@ public class KinectView
 			jf.setSize(1280,480);
 		}
 
-		
-
-		
 		jf.setVisible(true);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		ctx = Freenect.createContext();
@@ -102,6 +100,10 @@ public class KinectView
 		} else {
 			System.err.println("WARNING: No kinects detected");
 		}
+
+		lcm = LCM.getSingleton();
+
+		BALL = new Statistics();
 	}
 
 	public static void main(String[] args)
@@ -111,7 +113,7 @@ public class KinectView
 			
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
-				kv.bufToRGBImage(fm, rgb);
+				kv.bufToRGBImage(fm, rgb, timestamp);
 				kv.rgbJim.setImage(kv.rgbImg);
 			}
 			
@@ -142,7 +144,7 @@ public class KinectView
 	 *  ByteBuffer is 3 * width * height
 	 *  3 bytes per pixel (RGB)
 	 */
-	private void bufToRGBImage(FrameMode fm, ByteBuffer rgb) {
+	private void bufToRGBImage(FrameMode fm, ByteBuffer rgb, int timestamp) {
 		BallTracker tracker;
 		int width = fm.getWidth();
 		int height = fm.getHeight();
@@ -187,20 +189,24 @@ public class KinectView
 
 		tracker = new BallTracker(validImageValue,width,height);
 		ArrayList<Statistics> blobs = tracker.analyze();
-		Statistics BALL = new Statistics();
+
 		for(Statistics blob : blobs)
 		{
 			blob.center();
-			if(blob.N > 83)
+			if(blob.N > 183)
 			{
-				if(BALL.Cxy() > blob.Cxy());
-					if(BALL.abs() > blob.abs())
+				//if(BALL.Cxy() > blob.Cxy());
+					//if(BALL.abs() > blob.abs())
 						BALL = blob;
 			}
 		}
+
+		publishBall(timestamp);
+
 		for(int y = BALL.center_y-3; y < BALL.center_y+3; y++)
 				for(int x = BALL.center_x-3; x < BALL.center_y+5;x++)
 					pixelInts[y*width+x] = 0xFF0000FF;
+
 
 		rgbImg.setRGB(0, 0, width, height, pixelInts, 0, width);
 
@@ -230,6 +236,9 @@ public class KinectView
 		int width = fm.getWidth();
 		int height = fm.getHeight();
 		int[] pixelInts = new int[width * height];
+
+		ballDepth = getDepth(depthBuf,BALL.center_x*width + BALL.center_y);
+
 		for(int i = 0; i < width*height; i++) {
 			
 			int depth = 0;
@@ -313,6 +322,18 @@ public class KinectView
 
 	}
 	*/
+
+	public void publishBall(int timestamp)
+	{
+
+		ball_t ball = new ball_t();
+		ball.utime = timestamp;
+		ball.x = BALL.center_x;
+		ball.y = BALL.center_y;
+		ball.z = ballDepth;
+		lcm.publish("6_BALL",ball);
+
+	}
 	
 	//utility functions to copy/paste later	
 	public int getDepth(ByteBuffer bb, int index) {
