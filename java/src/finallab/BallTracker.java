@@ -29,40 +29,68 @@ public class BallTracker
 
 	public ArrayList<Statistics> analyze()
 	{
-		for(int y = 0; y < height-1; y++)
-			for(int x = 0; x < width-1; x++)
-			{
-				int access = y*width+x;
-				int plusX = y*width+x+1;
-				int plusY = (y+1)*width+x;
-				if(thresholdMap[access])
-				{
-					if(thresholdMap[plusX])
-						finder.join(access,plusX);
-					if(thresholdMap[plusY])
-						finder.join(access,plusY);
-				}
-			}
 		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
-		for(int y = 0; y < height; y++)
+		for(int x = 0; x < width; x++)
+		{
+			int access = x;
+			int plusX = x+1;
+			int plusY = width+x;
+			if(thresholdMap[access])
+			{
+				if((x != width-1) && thresholdMap[plusX])
+					finder.join(access,plusX);
+				if(thresholdMap[plusY])
+					finder.join(access,plusY);
+			}
+		}
+		for(int y = 1; y < height; y++)
 		{
 			for(int x = 0; x < width; x++)
 			{
-				int access = y*width+x;
-				if(!thresholdMap[access])
+				int analyze = (y-1)*width+x;
+				int access = x;
+				int plusX = x+1;
+				int plusY = width+x;
+				if(thresholdMap[access])
+				{
+					if((x != width-1) && thresholdMap[plusX])
+						finder.join(access,plusX);
+					if((y != hieght-1)thresholdMap[plusY])
+						finder.join(access,plusY);
+				}
+				if(!thresholdMap[analyze])
 					continue;
-				if(finder.find(access) == access)
+				if(finder.find(analyze) == analyze)
 				{
 					Statistics input = new Statistics();
 					input.update(x,y);
-					map.put(access, input);
+					map.put(analyze, input);
 				}
-				else if(map.containsKey(finder.find(access)))
+				else if(map.containsKey(finder.find(analyze)))
 				{
-					Statistics output = map.get(finder.find(access));
+					Statistics output = map.get(finder.find(analyze));
 					output.update(x,y);
-					map.put(finder.find(access),output);
+					map.put(finder.find(analyze),output);
 				}
+			}
+		}
+		int y= height-1;
+		for(int x = 0; x < width; x++)
+		{
+			int access = y*width+x;
+			if(!thresholdMap[access])
+				continue;
+			if(finder.find(access) == access)
+			{
+				Statistics input = new Statistics();
+				input.update(x,y);
+				map.put(access, input);
+			}
+			else if(map.containsKey(finder.find(access)))
+			{
+				Statistics output = map.get(finder.find(access));
+				output.update(x,y);
+				map.put(finder.find(access),output);
 			}
 		}
 		Iterator obIter = map.keySet().iterator();
@@ -71,10 +99,7 @@ public class BallTracker
 		{
 			Integer key = (Integer) obIter.next();
 			Statistics value = (Statistics) map.get(key);
-			if(value.N > 400)
-			{
-				blobs.add(value);
-			}
+			blobs.add(value);
 		}
 		return blobs;
 	}
