@@ -25,12 +25,17 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	boolean can_calib;
 	boolean released;
 	boolean verbose;
+	Queue<double[]> ballsQ = new LinkedList<double[]>();
+
+	//add
+	//poll
 
 	JFrame jf;
 	VisWorld vw;
 	VisLayer vl;
 	VisCanvas vc;
 	ParameterGUI pg;	
+
 	
 	Projectile()
 	{
@@ -152,6 +157,29 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			return false;
 	}
 
+	public void drawPredict()
+	{
+
+		double ball_radius = 0.04; 
+		VisWorld.Buffer vb = vw.getBuffer("Predicted Balls");
+		double[] shift = new double[3];
+
+		for (int i=0; i<pballs.size(); i++)
+		{
+			
+			shift = Predict(pballs.get(i)[3] - starttime);
+			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
+			//vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2],ball));
+
+		}
+
+		
+
+
+
+
+	}
+
 	public double[] Predict(double dt)
 	{
 		double[] predict_loc = new double[3];
@@ -166,6 +194,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	{
 		Projectile p = new Projectile();
 
+
+	
 	}
 }
 
