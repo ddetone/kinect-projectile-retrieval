@@ -11,13 +11,17 @@ public class KinectDepthVideo extends KinectVideo {
 	//from JPanel
 	private static final long serialVersionUID = 2;	
 	
-	public KinectDepthVideo(Device kinect) {
+	VideoTest parent;
+	
+	public KinectDepthVideo(Device kinect, VideoTest vt) {
 		super(kinect);	
+		parent = vt;
 		kinect.setDepthFormat(DepthFormat.D11BIT);
 		kinect.startDepth(new DepthHandler() {
 
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer depthBuf, int timestamp) {
+				frameData = depthBuf;
 				int[] pixelInts = new int[WIDTH * HEIGHT];
 
 				//ballDepth = getDepth(depthBuf,BALL.center_x*width + BALL.center_y);
@@ -40,10 +44,6 @@ public class KinectDepthVideo extends KinectVideo {
 					int r = 0x0000;
 					int g = 0x0000;
 					int b = 0x0000;
-					if (i == ((HEIGHT /2) * WIDTH + WIDTH/2)) {
-					 	System.out.println("depth: "+ depth);
-
-					}
 					//square the depth because it grows much smaller at longer distances
 					depth = depth * depth;
 					int interval = (int)Math.pow(1100, 2d) / 6;
@@ -96,6 +96,7 @@ public class KinectDepthVideo extends KinectVideo {
 				//and get() below increments the iterator
 				depthBuf.position(0);
 				repaint();
+				parent.newImage = true;
 			}			
 		});
 	}	

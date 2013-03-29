@@ -192,4 +192,77 @@ public class BallTracker
 		outputImage.setImage(output);
 		return blobs;
 	}
+	public ArrayList<Statistics> analyzeDepth(ByteBuffer buf) {
+		finder = new UnionFind(size);
+		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
+		for(int y = 0; y < height; y++)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				int access = y*width+x;
+				int plusX = y*width+x+1;
+				int plusY = (y+1)*width+x;
+
+				if((x != width-1)) {
+					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusX)) < 6) {
+						finder.join(access,plusX);
+						output.setRGB(x + 1,y,0xFFFF0000);
+					}
+					else {
+						output.setRGB(x + 1,y,0x00000000);
+					}
+				}
+				if((y != height-1)) {
+					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusX)) < 6) {
+						finder.join(access,plusY);
+						output.setRGB(x,y + 1,0xFFFF0000);
+					}
+					else {
+						output.setRGB(x,y+1,0x00000000);
+					}
+					
+				}
+			}
+
+		}
+		for(int y = 0; y < height; y++)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				int access = y*width+x;
+				if(finder.find(access) == access)
+				{
+					Statistics input = new Statistics();
+					input.update(x,y);
+					map.put(access, input);
+				}
+				else if(map.containsKey(finder.find(access)))
+				{
+					Statistics output = map.get(finder.find(access));
+					output.update(x,y);
+					map.put(finder.find(access),output);
+				}
+			}
+		}
+		Iterator obIter = map.keySet().iterator();
+		ArrayList<Statistics> blobs = new ArrayList<Statistics> ();
+		while(obIter.hasNext())
+		{
+			Integer key = (Integer) obIter.next();
+			Statistics value = (Statistics) map.get(key);
+			blobs.add(value);
+		}
+		outputImage.setImage(output);
+		return blobs;
+	
+	}
+	public int getDepth(ByteBuffer bb, int index) {
+		int depth = 0;
+		byte byte1 = bb.get(index * 2);
+		byte byte2 = bb.get(index * 2 + 1);
+		depth = byte2 & 0x3;
+		depth = depth << 8;
+		depth = depth | (byte1 & 0xFF);
+		return depth & 0x3FF;
+	}
 }

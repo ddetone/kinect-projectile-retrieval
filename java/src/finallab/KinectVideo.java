@@ -3,6 +3,7 @@ package finallab;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.nio.ByteBuffer;
 
 import javax.swing.JPanel;
 
@@ -15,6 +16,7 @@ public abstract class KinectVideo extends JPanel {
 	public final static int HEIGHT = 480;
 	
 	protected BufferedImage frame;
+	protected ByteBuffer frameData;
 	
 	public KinectVideo(Device kinect) {
 		setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -25,6 +27,10 @@ public abstract class KinectVideo extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         g.drawImage(frame, 0, 0, null);           
+    }
+    
+    public ByteBuffer getBuf() {
+    	return frameData;
     }
 
 }

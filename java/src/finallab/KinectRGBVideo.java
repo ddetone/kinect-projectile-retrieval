@@ -14,6 +14,7 @@ public class KinectRGBVideo extends KinectVideo {
 		kinect.startVideo(new VideoHandler() {
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				frameData = rgb;
 				int[] pixelInts = new int[WIDTH * HEIGHT];
 
 				for(int i = 0; i < WIDTH*HEIGHT; i++) {
