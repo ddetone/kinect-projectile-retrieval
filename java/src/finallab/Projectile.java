@@ -2,15 +2,19 @@ package finallab;
 
 import java.util.*;
 import java.io.*;
+import java.awt.*;
+import javax.swing.*;
 
 import april.util.*;
 import april.jmat.*;
+import april.vis.*;
+import april.image.*;
 import lcm.lcm.*;
 import finallab.lcmtypes.*;
 
-public class Projectile implements LCMSubscriber
+public class Projectile extends VisEventAdapter implements LCMSubscriber
 {
-
+ 
 	LCM lcm;
 	ArrayList<double[]> aballs;
 	ArrayList<double[]> pballs;
@@ -20,13 +24,47 @@ public class Projectile implements LCMSubscriber
 	double[] v_not; 			//x,y,z initial velocities, used in model
 	boolean can_calib;
 	boolean released;
-	boolean verbose;		
+	boolean verbose;
+
+	JFrame jf;
+	VisWorld vw;
+	VisLayer vl;
+	VisCanvas vc;
+	ParameterGUI pg;	
 	
 	Projectile()
 	{
-		lcm = LCM.getSingleton();
-		lcm.subscribe("6_BALL", this);
+		//vis initializations
+		jf = new JFrame("RobotGUI");
+		vw = new VisWorld();
+		vl = new VisLayer(vw);
+		vc = new VisCanvas(vl);
+		pg = new ParameterGUI();
+		jf.setLayout(new BorderLayout());
+		jf.add(vc, BorderLayout.CENTER);
+		jf.add(pg, BorderLayout.SOUTH);
+		jf.setSize(800,600);
+		jf.setVisible(true);
+		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		vl.addEventHandler(this);
+		vl.cameraManager.uiLookAt(new double[] {-2.66075, 1.22066, 1.70393 },
+					new double[] {1.75367, -0.06226,  0.00000 },
+					new double[] {0.33377, -0.09695,  0.93766 }, true);
+		VisWorld.Buffer vb = vw.getBuffer("Ground");
+		vb.addBack(new VisChain(LinAlg.translate(0,0,-0.025),new VzBox(30,30,0.05,new VzMesh.Style(Color.darkGray))));
+		vb.swap();
+
+		
+		// try {
+		// 	this.lcm = LCM.getSingleton();
+		// 	this.lcm.subscribe("6_BALL", this);
+		// } catch (Exception ex) {
+  //           System.out.println("Exception: " + ex);
+  //       }
+		
+		
 	
+		//projectile initializations
 		aballs = new ArrayList<double[]>();
 		num_meas = 3;
 		ball_i=-1;
@@ -52,6 +90,10 @@ public class Projectile implements LCMSubscriber
 
 				aballs.add(xyzt);
 				ball_i++;
+
+				for (int i=0; i<4; i++)
+					System.out.printf("balls[%d][%d]:%f\n",ball_i,aballs.get(ball_i)[i],i);
+				System.out.println();
 		
 				if (!can_calib && (ball_i >= num_meas))
 				{
@@ -122,7 +164,7 @@ public class Projectile implements LCMSubscriber
 
 	public static void main(String[] args) throws Exception
 	{
-
+		Projectile p = new Projectile();
 
 	}
 }
