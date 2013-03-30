@@ -29,18 +29,24 @@ public class BallTracker
 	JFrame outputFrame;
 	JImage outputImage;
 
+	ParameterGUI pg;
+
 	public BallTracker(int _width, int _height)
 	{
 		width = _width;
 		height = _height;
 		size = width*height;
 
+		pg = new ParameterGUI();
+		pg.addIntSlider("AbsThres","AbsThres",0,200,0);
+
 		output = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
 		outputFrame = new JFrame("KinectView");
 		outputImage = new JImage();
-		outputFrame.setLayout(new GridLayout(1,1));
+		outputFrame.setLayout(new GridLayout(1,2));
 		outputFrame.add(outputImage, 0, 0);
-		outputFrame.setSize(640,480);
+		outputFrame.add(pg,0,1);
+		outputFrame.setSize(800,480);
 		outputFrame.setVisible(true);
 		outputFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
@@ -192,6 +198,7 @@ public class BallTracker
 		outputImage.setImage(output);
 		return blobs;
 	}
+
 	public ArrayList<Statistics> analyzeDepth(ByteBuffer buf) {
 		finder = new UnionFind(size);
 		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
@@ -250,12 +257,133 @@ public class BallTracker
 		{
 			Integer key = (Integer) obIter.next();
 			Statistics value = (Statistics) map.get(key);
-			blobs.add(value);
+			int absThres = pg.gi("AbsThres");
+			if(value.abs() < absThres)
+				blobs.add(value);
 		}
 		outputImage.setImage(output);
 		return blobs;
 	
 	}
+
+	public ArrayList<Statistics> analyzePartition(boolean[] thresholdMap, Point poi, int length, String pointOfInterest)
+	{
+		int startX;
+		int startY;
+		int endX;
+		int endY;
+
+		if(pointOfInterest.equals("topLeft"))
+		{
+			startX = poi.x;
+			startY = poi.y;
+			endX = poi.x+length;
+			endY = poi.y+length;
+		}
+		else if(pointOfInterest.equals("topRight"))
+		{
+			startX = poi.x-length;
+			startY = poi.y;
+			endX = poi.x;
+			endY = poi.y+length;
+		}
+		else if(pointOfInterest.equals("center"))
+		{
+			startX = poi.x-length/2;
+			startY = poi.y-length/2;
+			endX = poi.x+length/2;
+			endY = poi.y+length/2;
+		}
+		else if(pointOfInterest.equals("bottomLeft"))
+		{
+			startX = poi.x;
+			startY = poi.y-length;
+			endX = poi.x+length;
+			endY = poi.y;
+
+		}
+		else if(pointOfInterest.equals("bottomRight"))
+		{
+			startX = poi.x-length;
+			startY = poi.y-length;
+			endX = poi.x;
+			endY = poi.y;
+		}
+		else
+		{
+			System.out.println("Invalid Option for poi");
+			return null;
+		}
+		
+		finder = new UnionFind(length*length);
+		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
+		for(int y = startY; y < endY; y++)
+		{
+			for(int x = startX; x < endX; x++)
+			{
+				int access = (y-startY)*length+(x-startX);
+				int plusX = (y-startY)*length+(x+1-startX);
+				int plusY = (y-startY+1)*length+(x-startX);
+				// try{
+				if((x < 0) || (x >= width) || (y < 0) || (y >= height))
+					continue;
+
+				if(thresholdMap[y*width+x])
+				{
+					output.setRGB(x,y,0xFFFF0000);
+					if((plusX < length*length) && (x != width-1) && thresholdMap[y*width+x+1])
+						finder.join(access,plusX);
+					if((plusY < length*length) && (y != height-1) && thresholdMap[(y+1)*width+x])
+						finder.join(access,plusY);
+				}
+				else
+				{
+					output.setRGB(x,y,0xFFFFFFFF);
+				}
+			}
+				// catch(Exception e)
+				// {
+				// 	e.printStackTrace();
+				// 	System.out.println("x: "+x+" y: "+ y + " plusY: " + plusY);
+				// }
+		}
+		for(int y = startY; y < endY; y++)
+		{
+			for(int x = startX; x < endX; x++)
+			{
+				if((x < 0) || (x >= width) || (y < 0) || (y >= height))
+					continue;
+				int access = (y-startY)*length+(x-startX);
+				if(!thresholdMap[y*width+x])
+					continue;
+				if(finder.find(access) == access)
+				{
+					Statistics input = new Statistics();
+					input.update(x,y);
+					map.put(access, input);
+				}
+				else if(map.containsKey(finder.find(access)))
+				{
+					Statistics output = map.get(finder.find(access));
+					output.update(x,y);
+					map.put(finder.find(access),output);
+				}
+			}
+		}
+		Iterator obIter = map.keySet().iterator();
+		ArrayList<Statistics> blobs = new ArrayList<Statistics> ();
+		while(obIter.hasNext())
+		{
+			Integer key = (Integer) obIter.next();
+			Statistics value = (Statistics) map.get(key);
+			blobs.add(value);
+		}
+		outputImage.setImage(output);
+		return blobs;
+
+	}
+
+
 	public int getDepth(ByteBuffer bb, int index) {
 		int depth = 0;
 		byte byte1 = bb.get(index * 2);
