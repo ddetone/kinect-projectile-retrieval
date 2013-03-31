@@ -97,31 +97,27 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				xyzt[1] = curr_ball.y;
 				xyzt[2] = curr_ball.z;
 				xyzt[3] = curr_ball.utime;
-
 				
 				ball_i++;
 
-
-		
-
-
-				if (state == "WAIT" && (balls.size() >= 3)) //waits for 3 balls
+				if (state == BallStatus.WAIT && (balls.size() >= 3)) //waits for 3 balls
 				{
-					state = IN_HAND;						
+					state = BallStatus.IN_HAND;
+					starttime = curr_ball.utime;						
 				}
 
-				if (state == IN_HAND)
+				if (state == BallStatus.IN_HAND)
 				{
 					if (DetermineReleased())
 					{
-						state = RELEASED;
-						starttime = balls.get(curr_ball.utime);
+						state = BallStatus.RELEASED;
+						starttime = curr_ball.utime;
 					}
 
 				}
 
 
-				if (state == IN_HAND)
+				if (state == BallStatus.IN_HAND)
 				{
 					balls.set(0, balls.get(1));
 					balls.set(1, balls.get(2));
@@ -129,15 +125,19 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 				}
 
+
 				for (int i=0; i<3; i++)
 				{
 					for (int j=0; j<4; j++)
 					{
 						System.out.printf("balls[%d][%d]:%f\n",i,j,balls.get(i)[j]);
+						System.out.printf("num balls: %d", ball_i);
 						System.out.printf("state:%d", state);
 					}
 				}
 				System.out.println();
+
+				drawPredict();
 
 		 	}
 		 }
@@ -149,14 +149,13 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 	public boolean DetermineReleased()
 	{
-		return false;
+
 		//update the velocity between balls at t-2 and t-1
 		double prev_dt = balls.get(ball_i-1)[3] - balls.get(ball_i-2)[3];
 		v_not[0] = (balls.get(ball_i-1)[0] - balls.get(ball_i-2)[0]) / prev_dt;
 		v_not[1] = (balls.get(ball_i-1)[1] - balls.get(ball_i-2)[1]) / prev_dt;
 		v_not[2] = (balls.get(ball_i-1)[2] - balls.get(ball_i-2)[2]) / prev_dt;		
 
-		
 		double cur_dt = balls.get(ball_i)[3] - balls.get(ball_i-1)[3];
 		double[] predict_loc = Predict(cur_dt);
 		
@@ -171,20 +170,17 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			{
 				System.out.printf("v_not[%d]: %f\n",i,v_not[i]);
 				System.out.printf("predict_loc[%d]: %f\n",i,predict_loc[i]);
-				System.out.printf("errors[%d]: %f\n",i,errors[i]);
+				System.out.printf("errors[%d]: %f\n\n",i,errors[i]);
 			}
 		}
+
+
 
 		if (LinAlg.distance(predict_loc, balls.get(num_meas)) < 0.2)
 			return true;
 		else
 			return false;
-		/*
-		if ((Math.abs(errors[0]) < 0.1) && (Math.abs(errors[1]) < 0.1) && (Math.abs(errors[2]) < 0.1))
-			return true;
-		else
-			return false;
-			*/
+
 	}
 
 	public void drawPredict()
@@ -194,14 +190,16 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		VisWorld.Buffer vb = vw.getBuffer("Predicted Balls");
 		double[] shift = new double[3];
 
-		for (int i=0; i<pballs.size(); i++)
+		for (int i=0; i<balls.size(); i++)
 		{
 			
-			shift = Predict(pballs.get(i)[3] - starttime);
+			shift = Predict(balls.get(i)[3] - starttime);
 			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
-			//vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2],ball));
+			vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),ball));
 
 		}
+
+		vb.swap();
 
 	}
 
