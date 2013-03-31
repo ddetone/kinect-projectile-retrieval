@@ -14,18 +14,24 @@ import finallab.lcmtypes.*;
 
 public class Projectile extends VisEventAdapter implements LCMSubscriber
 {
+
+	public enum BallStatus {
+		WAIT, IN_HAND, RELEASED
+	}
+
  
 	LCM lcm;
-	ArrayList<double[]> aballs;
+	ArrayList<double[]> balls;
 	ArrayList<double[]> pballs;
 	int num_meas;				//number of measurements used in prediction
 	int ball_i;
 	double starttime;
 	double[] v_not; 			//x,y,z initial velocities, used in model
-	boolean can_calib;
-	boolean released;
+	BallStatus state;
 	boolean verbose;
-	Queue<double[]> ballsQ = new LinkedList<double[]>();
+
+
+	//Queue<double[]> ballsQ = new LinkedList<double[]>();
 
 	//add
 	//poll
@@ -70,12 +76,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		
 	
 		//projectile initializations
-		aballs = new ArrayList<double[]>();
-		num_meas = 3;
+		balls = new ArrayList<double[]>();
 		ball_i=-1;
 		v_not = new double[3];
-		can_calib = false;
-		released = false;
+		
+
 		verbose = true;		
 	}
 
@@ -93,29 +98,46 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				xyzt[2] = curr_ball.z;
 				xyzt[3] = curr_ball.utime;
 
-				aballs.add(xyzt);
+				
 				ball_i++;
 
-				for (int i=0; i<4; i++)
-					System.out.printf("balls[%d][%d]:%f\n",ball_i,aballs.get(ball_i)[i],i);
-				System.out.println();
+
 		
-				if (!can_calib && (ball_i >= num_meas))
+
+
+				if (state == "WAIT" && (balls.size() >= 3)) //waits for 3 balls
 				{
-					starttime = aballs.get(ball_i)[3];
-					can_calib = true;
-				} 
-			
-				if (!released && can_calib)
+					state = IN_HAND;						
+				}
+
+				if (state == IN_HAND)
 				{
 					if (DetermineReleased())
 					{
-						released = true;
-						starttime = aballs.get(ball_i)[3];
+						state = RELEASED;
+						starttime = balls.get(curr_ball.utime);
 					}
+
 				}
 
-				//if (released)
+
+				if (state == IN_HAND)
+				{
+					balls.set(0, balls.get(1));
+					balls.set(1, balls.get(2));
+					balls.set(2, xyzt);
+
+				}
+
+				for (int i=0; i<3; i++)
+				{
+					for (int j=0; j<4; j++)
+					{
+						System.out.printf("balls[%d][%d]:%f\n",i,j,balls.get(i)[j]);
+						System.out.printf("state:%d", state);
+					}
+				}
+				System.out.println();
 
 		 	}
 		 }
@@ -127,19 +149,21 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 	public boolean DetermineReleased()
 	{
-		double prev_dt = aballs.get(ball_i-1)[3] - aballs.get(ball_i-2)[3];
-		v_not[0] = (aballs.get(ball_i-1)[0] - aballs.get(ball_i-2)[0]) / prev_dt;
-		v_not[1] = (aballs.get(ball_i-1)[1] - aballs.get(ball_i-2)[1]) / prev_dt;
-		v_not[2] = (aballs.get(ball_i-1)[2] - aballs.get(ball_i-2)[2]) / prev_dt;		
+		return false;
+		//update the velocity between balls at t-2 and t-1
+		double prev_dt = balls.get(ball_i-1)[3] - balls.get(ball_i-2)[3];
+		v_not[0] = (balls.get(ball_i-1)[0] - balls.get(ball_i-2)[0]) / prev_dt;
+		v_not[1] = (balls.get(ball_i-1)[1] - balls.get(ball_i-2)[1]) / prev_dt;
+		v_not[2] = (balls.get(ball_i-1)[2] - balls.get(ball_i-2)[2]) / prev_dt;		
 
 		
-		double cur_dt = aballs.get(ball_i)[3] - aballs.get(ball_i-1)[3];
+		double cur_dt = balls.get(ball_i)[3] - balls.get(ball_i-1)[3];
 		double[] predict_loc = Predict(cur_dt);
 		
 		double[] errors = new double[3];
-		errors[0] = predict_loc[0]-aballs.get(ball_i)[0];
-		errors[1] = predict_loc[1]-aballs.get(ball_i)[1];
-		errors[2] = predict_loc[2]-aballs.get(ball_i)[2];
+		errors[0] = predict_loc[0]-balls.get(ball_i)[0];
+		errors[1] = predict_loc[1]-balls.get(ball_i)[1];
+		errors[2] = predict_loc[2]-balls.get(ball_i)[2];
 
 		if (verbose)
 		{
@@ -151,10 +175,16 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			}
 		}
 
+		if (LinAlg.distance(predict_loc, balls.get(num_meas)) < 0.2)
+			return true;
+		else
+			return false;
+		/*
 		if ((Math.abs(errors[0]) < 0.1) && (Math.abs(errors[1]) < 0.1) && (Math.abs(errors[2]) < 0.1))
 			return true;
 		else
 			return false;
+			*/
 	}
 
 	public void drawPredict()
@@ -173,19 +203,14 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		}
 
-		
-
-
-
-
 	}
 
 	public double[] Predict(double dt)
 	{
 		double[] predict_loc = new double[3];
-		predict_loc[0] = aballs.get(ball_i)[0] + (v_not[0] * dt); //deltaX = Vo,x * dt
-		predict_loc[1] = aballs.get(ball_i)[1] + (v_not[1] * dt) - 0.5*(9806000000000f)*dt*dt;
-		predict_loc[2] = aballs.get(ball_i)[2] + (v_not[2] * dt); 	
+		predict_loc[0] = balls.get(ball_i)[0] + (v_not[0] * dt); //deltaX = Vo,x * dt
+		predict_loc[1] = balls.get(ball_i)[1] + (v_not[1] * dt) - 0.5*(9806000000000f)*dt*dt;
+		predict_loc[2] = balls.get(ball_i)[2] + (v_not[2] * dt); 	
 		return predict_loc;
 	}
 
