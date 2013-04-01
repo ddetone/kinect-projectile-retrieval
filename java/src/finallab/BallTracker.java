@@ -266,6 +266,74 @@ public class BallTracker
 	
 	}
 
+	public ArrayList<Statistics> analyzeDepthPartition(ByteBuffer buf) {
+		finder = new UnionFind(size);
+		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
+		for(int y = 0; y < height; y++)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				int access = y*width+x;
+				int plusX = y*width+x+1;
+				int plusY = (y+1)*width+x;
+
+				if((x != width-1)) {
+					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusX)) < 6) {
+						finder.join(access,plusX);
+						output.setRGB(x + 1,y,0xFFFF0000);
+					}
+					else {
+						output.setRGB(x + 1,y,0x00000000);
+					}
+				}
+				if((y != height-1)) {
+					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusX)) < 6) {
+						finder.join(access,plusY);
+						output.setRGB(x,y + 1,0xFFFF0000);
+					}
+					else {
+						output.setRGB(x,y+1,0x00000000);
+					}
+					
+				}
+			}
+
+		}
+		for(int y = 0; y < height; y++)
+		{
+			for(int x = 0; x < width; x++)
+			{
+				int access = y*width+x;
+				if(finder.find(access) == access)
+				{
+					Statistics input = new Statistics();
+					input.update(x,y);
+					map.put(access, input);
+				}
+				else if(map.containsKey(finder.find(access)))
+				{
+					Statistics output = map.get(finder.find(access));
+					output.update(x,y);
+					map.put(finder.find(access),output);
+				}
+			}
+		}
+		Iterator obIter = map.keySet().iterator();
+		ArrayList<Statistics> blobs = new ArrayList<Statistics> ();
+		while(obIter.hasNext())
+		{
+			Integer key = (Integer) obIter.next();
+			Statistics value = (Statistics) map.get(key);
+			int absThres = pg.gi("AbsThres");
+			if(value.abs() < absThres)
+				blobs.add(value);
+		}
+		outputImage.setImage(output);
+		return blobs;
+	
+	}
+
+
 	public ArrayList<Statistics> analyzePartition(boolean[] thresholdMap, Point poi, int xlength, int ylength, String pointOfInterest)
 	{
 		int startX;
