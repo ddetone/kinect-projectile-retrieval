@@ -31,11 +31,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	boolean verbose;
 
 
-	//Queue<double[]> ballsQ = new LinkedList<double[]>();
-
-	//add
-	//poll
-
 	JFrame jf;
 	VisWorld vw;
 	VisLayer vl;
@@ -65,22 +60,19 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		vb.addBack(new VisChain(LinAlg.translate(0,0,-0.025),new VzBox(30,30,0.05,new VzMesh.Style(Color.darkGray))));
 		vb.swap();
 
-		
-		// try {
-		// 	this.lcm = LCM.getSingleton();
-		// 	this.lcm.subscribe("6_BALL", this);
-		// } catch (Exception ex) {
-  //           System.out.println("Exception: " + ex);
-  //       }
-		
-		
-	
+		try {
+		 	this.lcm = LCM.getSingleton();
+			this.lcm.subscribe("6_BALL", this);
+		} catch (Exception ex) {
+          System.out.println("Exception: " + ex);
+     	}
+			
 		//projectile initializations
 		balls = new ArrayList<double[]>();
+		pballs = new ArrayList<double[]>();
 		ball_i=-1;
 		v_not = new double[3];
-		
-
+	
 		verbose = true;		
 	}
 
@@ -112,32 +104,35 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 					{
 						state = BallStatus.RELEASED;
 						starttime = curr_ball.utime;
+						GeneratePrediction();
 					}
-
 				}
-
 
 				if (state == BallStatus.IN_HAND)
 				{
 					balls.set(0, balls.get(1));
 					balls.set(1, balls.get(2));
 					balls.set(2, xyzt);
-
 				}
-
-
-				for (int i=0; i<3; i++)
+				else if (state == BallStatus.RELEASED)
 				{
-					for (int j=0; j<4; j++)
-					{
-						System.out.printf("balls[%d][%d]:%f\n",i,j,balls.get(i)[j]);
-						System.out.printf("num balls: %d", ball_i);
-						System.out.printf("state:%d", state);
-					}
+					balls.add(xyzt);
 				}
-				System.out.println();
 
-				drawPredict();
+				if (verbose) {
+					for (int i=0; i<3; i++)
+					{
+						for (int j=0; j<4; j++)
+						{
+							System.out.printf("balls[%d][%d]:%f\n",i,j,balls.get(i)[j]);
+							System.out.printf("num balls: %d", ball_i);
+							System.out.printf("state:%d", state);
+						}
+					}
+					System.out.println();
+				}
+
+				DrawBalls();
 
 		 	}
 		 }
@@ -174,8 +169,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			}
 		}
 
-
-
 		if (LinAlg.distance(predict_loc, balls.get(num_meas)) < 0.2)
 			return true;
 		else
@@ -183,7 +176,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 	}
 
-	public void drawPredict()
+	public void DrawBalls()
 	{
 
 		double ball_radius = 0.04; 
@@ -192,15 +185,32 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		for (int i=0; i<balls.size(); i++)
 		{
-			
 			shift = Predict(balls.get(i)[3] - starttime);
 			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
 			vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),ball));
+		}
 
+		for (int i=0; i<pballs.size(); i++)
+		{
+			shift = Predict(pballs.get(i)[3] - starttime);
+			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
+			vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),pball));
 		}
 
 		vb.swap();
 
+	}
+
+	public void GeneratePrediction()
+	{
+
+		double time_aloft = 3; //need to solve for this
+		int num_plotted = 20;
+
+		for (int i=1; i<num_plotted; i++)
+		{
+			pballs.add(Predict((time_aloft/num_plotted)*i));
+		}
 	}
 
 	public double[] Predict(double dt)
@@ -212,13 +222,9 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		return predict_loc;
 	}
 
-
 	public static void main(String[] args) throws Exception
 	{
 		Projectile p = new Projectile();
-
-
-	
 	}
 }
 
