@@ -266,7 +266,7 @@ public class BallTracker
 	
 	}
 
-	public ArrayList<Statistics> analyzePartition(boolean[] thresholdMap, Point poi, int length, String pointOfInterest)
+	public ArrayList<Statistics> analyzePartition(boolean[] thresholdMap, Point poi, int xlength, int ylength, String pointOfInterest)
 	{
 		int startX;
 		int startY;
@@ -277,35 +277,35 @@ public class BallTracker
 		{
 			startX = poi.x;
 			startY = poi.y;
-			endX = poi.x+length;
-			endY = poi.y+length;
+			endX = poi.x+xlength;
+			endY = poi.y+ylength;
 		}
 		else if(pointOfInterest.equals("topRight"))
 		{
-			startX = poi.x-length;
+			startX = poi.x-xlength;
 			startY = poi.y;
 			endX = poi.x;
-			endY = poi.y+length;
+			endY = poi.y+ylength;
 		}
 		else if(pointOfInterest.equals("center"))
 		{
-			startX = poi.x-length/2;
-			startY = poi.y-length/2;
-			endX = poi.x+length/2;
-			endY = poi.y+length/2;
+			startX = poi.x-xlength/2;
+			startY = poi.y-ylength/2;
+			endX = poi.x+xlength/2;
+			endY = poi.y+ylength/2;
 		}
 		else if(pointOfInterest.equals("bottomLeft"))
 		{
 			startX = poi.x;
-			startY = poi.y-length;
-			endX = poi.x+length;
+			startY = poi.y-ylength;
+			endX = poi.x+xlength;
 			endY = poi.y;
 
 		}
 		else if(pointOfInterest.equals("bottomRight"))
 		{
-			startX = poi.x-length;
-			startY = poi.y-length;
+			startX = poi.x-xlength;
+			startY = poi.y-ylength;
 			endX = poi.x;
 			endY = poi.y;
 		}
@@ -315,15 +315,15 @@ public class BallTracker
 			return null;
 		}
 		
-		finder = new UnionFind(length*length);
+		finder = new UnionFind(xlength*ylength);
 		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
 		for(int y = startY; y < endY; y++)
 		{
 			for(int x = startX; x < endX; x++)
 			{
-				int access = (y-startY)*length+(x-startX);
-				int plusX = (y-startY)*length+(x+1-startX);
-				int plusY = (y-startY+1)*length+(x-startX);
+				int access = (y-startY)*xlength+(x-startX);
+				int plusX = (y-startY)*xlength+(x+1-startX);
+				int plusY = (y-startY+1)*xlength+(x-startX);
 				// try{
 				if((x < 0) || (x >= width) || (y < 0) || (y >= height))
 					continue;
@@ -331,9 +331,9 @@ public class BallTracker
 				if(thresholdMap[y*width+x])
 				{
 					output.setRGB(x,y,0xFFFF0000);
-					if((plusX < length*length) && (x != width-1) && thresholdMap[y*width+x+1])
+					if((plusX < xlength*ylength) && (x != width-1) && thresholdMap[y*width+x+1])
 						finder.join(access,plusX);
-					if((plusY < length*length) && (y != height-1) && thresholdMap[(y+1)*width+x])
+					if((plusY < xlength*ylength) && (y != height-1) && thresholdMap[(y+1)*width+x])
 						finder.join(access,plusY);
 				}
 				else
@@ -353,7 +353,7 @@ public class BallTracker
 			{
 				if((x < 0) || (x >= width) || (y < 0) || (y >= height))
 					continue;
-				int access = (y-startY)*length+(x-startX);
+				int access = (y-startY)*xlength+(x-startX);
 				if(!thresholdMap[y*width+x])
 					continue;
 				if(finder.find(access) == access)
