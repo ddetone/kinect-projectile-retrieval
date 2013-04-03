@@ -1,33 +1,20 @@
 package finallab;
 
-import java.awt.Graphics;
-import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 
-import javax.swing.JPanel;
-import java.awt.Dimension;
 import org.openkinect.freenect.Device;
 import org.openkinect.freenect.FrameMode;
 import org.openkinect.freenect.VideoHandler;
 
-public class KinectRGBVideo extends JPanel {
-	//from JPanel
+public class KinectRGBVideo extends KinectVideo {	
 	private static final long serialVersionUID = 1L;
-	
-	public final static int WIDTH = 640;
-	public final static int HEIGHT = 480;
-	
-	private BufferedImage frame;
-	
+
 	public KinectRGBVideo(Device kinect) {
-		
-		setPreferredSize(new Dimension(WIDTH, HEIGHT));
-		// setFit(true);
-		frame = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
-		
+		super(kinect);		
 		kinect.startVideo(new VideoHandler() {
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				frameData = rgb;
 				int[] pixelInts = new int[WIDTH * HEIGHT];
 
 				for(int i = 0; i < WIDTH*HEIGHT; i++) {
@@ -46,13 +33,6 @@ public class KinectRGBVideo extends JPanel {
 			}
 			
 		});
-	}
-	
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        g.drawImage(frame, 0, 0, null);           
-    }
-
+	}	
 	
 }

@@ -28,11 +28,14 @@ public class KinectView
 
 	Context ctx;
 	Device kinect;
-	
+
 	JFrame jf;
 
 	JImage rgbJim;
 	JImage depthJim;
+
+	JButton startTracking;
+	boolean tracking = false;
 
 	ParameterGUI pg;
 
@@ -40,6 +43,7 @@ public class KinectView
 	BufferedImage depthImg;
 
 	Statistics BALL;
+	ArrayList<Statistics> trajectory;
 	boolean[] validImageValue;
 	volatile int ballDepth;
 
@@ -71,6 +75,23 @@ public class KinectView
 		jf = new JFrame("KinectView");
 		rgbJim = new JImage();
 		depthJim = new JImage();
+		startTracking = new JButton("Start Tracking Balls");
+		startTracking.addActionListener(new ActionListener() {
+ 
+            public void actionPerformed(ActionEvent e)
+            {
+            	if(!tracking)
+            	{
+                	tracking = true;
+                	startTracking.setText("Stop Tracking");
+                }
+                else
+                {
+                	tracking = false;
+                	startTracking.setText("Start Tracking Balls");
+                }
+            }
+        });    
 		
 		rgbImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
 		depthImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
@@ -84,13 +105,8 @@ public class KinectView
 			pg.addIntSlider("greenValMin","Blue Min",0,255,0);
 			pg.addIntSlider("greenValMax","Blue Max",0,255,255);
 			pg.addIntSlider("blueValMin","Green Min",0,255,0);
-			pg.addIntSlider("blueValMax","Green Max",0,255,255);
-			// pg.addIntSlider("redValMin","Red Min",0,255,86);
-			// pg.addIntSlider("redValMax","Red Max",0,255,233);
-			// pg.addIntSlider("greenValMin","Blue Min",0,255,84);
-			// pg.addIntSlider("greenValMax","Blue Max",0,255,212);
-			// pg.addIntSlider("blueValMin","Green Min",0,255,0);
-			// pg.addIntSlider("blueValMax","Green Max",0,255,51);			
+			pg.addIntSlider("blueValMax","Green Max",0,255,255);		
+			
 			jf.add(pg, 1,0);
 			jf.add(rgbJim, 0, 0);
 			jf.add(depthJim, 0, 1);
@@ -100,8 +116,8 @@ public class KinectView
 		{
 			jf.setLayout(new GridLayout(2,2));
 			pg = new ParameterGUI();
-			pg.addDoubleSlider("HueMin","Hue Min",0,.2,0);
-			pg.addDoubleSlider("HueMax","Hue Max",0,.2,.2);
+			pg.addDoubleSlider("HueMin","Hue Min",0,3.6,0);
+			pg.addDoubleSlider("HueMax","Hue Max",0,3.6,.2);
 			pg.addDoubleSlider("SatMin","Saturation Min",0,3.6,0);
 			pg.addDoubleSlider("SatMax","Saturation Max",0,3.6,3.6);
 			pg.addDoubleSlider("BrightMin","Brightness Min",0,3.6,0);
@@ -120,6 +136,9 @@ public class KinectView
 			jf.setSize(1280,480);
 		}
 
+		jf.add(startTracking);
+
+
 		jf.setVisible(true);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		ctx = Freenect.createContext();
@@ -133,6 +152,7 @@ public class KinectView
 		lcm = LCM.getSingleton();
 
 		BALL = new Statistics();
+		trajectory = new ArrayList<Statistics>();
 	}
 
 	public void publishBall(int timestamp)
@@ -178,7 +198,10 @@ public class KinectView
 
 			while(!kv.newImage);
 			kv.newImage = false;
-			ArrayList<Statistics> blobs = tracker.analyze2(kv.validImageValue);
+			Point poi = new Point();
+			poi.x = 320;
+			poi.y = 240;
+			ArrayList<Statistics> blobs = tracker.analyzePartition(kv.validImageValue, poi, 640,480, "center");
 			Statistics BiggestBlob = new Statistics();
 			for(Statistics blob : blobs)
 			{
@@ -193,7 +216,7 @@ public class KinectView
 				}
 				kv.BALL = BiggestBlob;
 				kv.BALL.center();
-				for(int y = kv.BALL.center_y-3; y < kv.BALL.center_y+3; y++)
+				/*for(int y = kv.BALL.center_y-3; y < kv.BALL.center_y+3; y++)
 					for(int x = kv.BALL.center_x-3; x < kv.BALL.center_x+3;x++)
 						try{
 							kv.rgbImg.setRGB(x,y,0xFFFF0000);
@@ -201,8 +224,48 @@ public class KinectView
 							// int depthy = intoDepthX(x);
 							// kv.depthImg.setRGB(depthx, depthy, 0xFFFFFFFF);
 						}
-						catch(Exception e){};
+						catch(Exception e){};*/
 				
+			}
+			if(kv.tracking)
+			{
+				kv.trajectory.add(BiggestBlob);
+				//for(Statistics ball : kv.trajectory)
+				Statistics ball = BiggestBlob;
+				if(true)
+				{
+					for(int y = ball.center_y-3; y < ball.center_y+3; y++)
+						for(int x = ball.center_x-3; x < ball.center_x+3;x++)
+							try{
+								kv.rgbImg.setRGB(x,y,0xFFFF0000);
+								// int depthx = intoDepthY(y);
+								// int depthy = intoDepthX(x);
+								// kv.depthImg.setRGB(depthx, depthy, 0xFFFFFFFF);
+								//kv.depthImg.setRGB(x,y,0xFFFFFFFF);
+							}
+							catch(Exception e){};	
+				}
+
+				//draw bounding box to determine if ball will fall in place
+				try
+				{
+					int bound = 100;
+					for(int y = ball.center_y-(bound/2); y < ball.center_y+(bound/2); y++)
+					{
+						kv.depthImg.setRGB(ball.center_x-(bound/2),y,0xFFFFFFFF);
+						kv.depthImg.setRGB(ball.center_x+(bound/2),y,0xFFFFFFFF);
+					}
+					for(int x = ball.center_x-(bound/2); x < ball.center_x+(bound/2); x++)
+					{
+						kv.depthImg.setRGB(x,ball.center_y-(bound/2),0xFFFFFFFF);
+						kv.depthImg.setRGB(x,ball.center_y+(bound/2),0xFFFFFFFF);
+					}
+				}
+				catch(Exception e){};
+			}
+			else
+			{
+				kv.trajectory.clear();
 			}
 				//System.println(kv.getDepth(kv.depthImg,kv.BALL.center_y*width+kv.BALL.center_x));
 				ball_t ball = new ball_t();
@@ -364,8 +427,8 @@ public class KinectView
 			depth = depth | (byte1 & 0xFF);
 
 			if (i == ((height /2) * width + width/2)) {
-			 	System.out.println("Array depth: "+ depth);
-			 	System.out.println("Estimate Meter Depth: " + raw_depth_to_meters(depth));
+			 	//System.out.println("Array depth: "+ depth);
+			 	//System.out.println("Estimate Meter Depth: " + raw_depth_to_meters(depth));
 			}
 			/*
 			 * color scaled depth
@@ -403,9 +466,11 @@ public class KinectView
 			depthColor = depthColor | (b & 0xFF);
 			pixelInts[i] = depthColor;
 		}
-		for(int y = (height/2)-5; y < (height/2)+5; y++)
-			for(int x = (width/2)-5; x < (width/2)+5;x++)
-				pixelInts[y*width+x] = 0xFFFFFFFF;
+		//draw box at center of image
+		// for(int y = (height/2)-5; y < (height/2)+5; y++)
+		// 	for(int x = (width/2)-5; x < (width/2)+5;x++)
+		// 		pixelInts[y*width+x] = 0xFFFFFFFF;
+
 		depthImg.setRGB(0, 0, width, height, pixelInts, 0, width);
 		
 		//set position to 0 because ByteBuffer is reused to access byte array of new frame
