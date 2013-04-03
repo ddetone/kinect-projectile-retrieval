@@ -249,7 +249,7 @@ public class KinectView
 				//draw bounding box to determine if ball will fall in place
 				try
 				{
-					int bound = 100;
+					int bound = 200;
 					for(int y = ball.center_y-(bound/2); y < ball.center_y+(bound/2); y++)
 					{
 						kv.depthImg.setRGB(ball.center_x-(bound/2),y,0xFFFFFFFF);

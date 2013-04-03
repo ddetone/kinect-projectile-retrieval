@@ -220,7 +220,7 @@ public class BallTracker
 					}
 				}
 				if((y != height-1)) {
-					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusX)) < 6) {
+					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusY)) < 6) {
 						finder.join(access,plusY);
 						output.setRGB(x,y + 1,0xFFFF0000);
 					}
@@ -266,20 +266,25 @@ public class BallTracker
 	
 	}
 
-	public ArrayList<Statistics> analyzeDepthPartition(ByteBuffer buf) {
-		finder = new UnionFind(size);
+	public ArrayList<Statistics> analyzeDepthPartition(ByteBuffer buf, Point poi, int bound) {
+		finder = new UnionFind(bound*bound);
+		int startX = poi.x-bound/2;
+		int startY = poi.y-bound/2;
+		int endX = poi.x+bound/2;
+		int endY = poi.y+bound/2;
 		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
-		for(int y = 0; y < height; y++)
+
+		for(int y = startY; y < endY; y++)
 		{
-			for(int x = 0; x < width; x++)
+			for(int x = startX; x < endX; x++)
 			{
-				int access = y*width+x;
-				int plusX = y*width+x+1;
-				int plusY = (y+1)*width+x;
+				int access = (y-startY)*width+(x-startX);
+				int plusX = (y-startY)*width+(x+1-startX);
+				int plusY = (y-startY+1)*width+(x-startX);
 
 				if((x != width-1)) {
-					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusX)) < 6) {
-						finder.join(access,plusX);
+					if (Math.abs(getDepth(buf, (y*width+x)) - getDepth(buf, y*width+(x+1))) < 6) {
+						finder.join(y*width+x,(y*width+x+1));
 						output.setRGB(x + 1,y,0xFFFF0000);
 					}
 					else {
@@ -287,7 +292,7 @@ public class BallTracker
 					}
 				}
 				if((y != height-1)) {
-					if (Math.abs(getDepth(buf, access) - getDepth(buf, plusX)) < 6) {
+					if (Math.abs(getDepth(buf, (y*width+x)) - getDepth(buf, ((y+1)*width+x))) < 6) {
 						finder.join(access,plusY);
 						output.setRGB(x,y + 1,0xFFFF0000);
 					}
