@@ -11,11 +11,10 @@ public class KinectDepthVideo extends KinectVideo {
 	//from JPanel
 	private static final long serialVersionUID = 2;	
 	
-	VideoTest parent;
+	public volatile boolean newImage = false;
 	
-	public KinectDepthVideo(Device kinect, VideoTest vt) {
+	public KinectDepthVideo(Device kinect) {
 		super(kinect);	
-		parent = vt;
 		kinect.setDepthFormat(DepthFormat.D11BIT);
 		kinect.startDepth(new DepthHandler() {
 
@@ -95,8 +94,8 @@ public class KinectDepthVideo extends KinectVideo {
 				//set position to 0 because ByteBuffer is reused to access byte array of new frame
 				//and get() below increments the iterator
 				depthBuf.position(0);
-				repaint();
-				parent.newImage = true;
+				//repaint();
+				newImage = true;
 			}			
 		});
 	}	

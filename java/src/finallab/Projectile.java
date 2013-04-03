@@ -89,7 +89,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				xyzt[0] = curr_ball.x;
 				xyzt[1] = curr_ball.y;
 				xyzt[2] = curr_ball.z;
-				xyzt[3] = curr_ball.utime;
+				xyzt[3] = curr_ball.nanoTime;
 				
 				ball_i++;
 
@@ -99,7 +99,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 					if (balls.size() >=3)
 					{
 						state = BallStatus.IN_HAND;
-						starttime = curr_ball.utime;
+						starttime = curr_ball.nanoTime;
 					}
 					else
 						balls.add(xyzt);
@@ -111,7 +111,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 					if (DetermineReleased())
 					{
 						state = BallStatus.RELEASED;
-						starttime = curr_ball.utime;
+						starttime = curr_ball.nanoTime;
 						GeneratePrediction();
 					}
 					balls.set(0, balls.get(1));

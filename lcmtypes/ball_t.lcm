@@ -1,6 +1,6 @@
 struct ball_t
 {
-	int32_t utime;
+	int64_t nanoTime;
 	double x;
 	double y;
 	double z; 

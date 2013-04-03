@@ -1,6 +1,7 @@
 package finallab;
 
 import java.lang.Math;
+import java.awt.*;
 
 public class Statistics
 {
@@ -8,6 +9,8 @@ public class Statistics
     private static final double DMAX_VALUE = 2147483647.0;
     public double Mxx, Mxy, Myy;
     public double Mx, My;
+    public int closestDepth = 2047;
+    public Point closestPixel;
     int N;
     public int max_x, max_y, min_x, min_y;
     public int center_x, center_y;
@@ -47,6 +50,35 @@ public class Statistics
 
         if(pixelY > max_y)
             max_y = pixelY;
+    }
+
+    public void update(int pixelX, int pixelY, int depth)
+    {
+        Mxx += (pixelX * pixelX);
+        Mxy += (pixelX * pixelY);
+        Myy += (pixelY * pixelY);
+        Mx += pixelX;
+        My += pixelY;
+
+        N++;
+
+        if(pixelX < min_x)
+            min_x = pixelX;
+
+        if(pixelY < min_y)
+            min_y = pixelY;
+
+        if(pixelX > max_x)
+            max_x = pixelX;
+
+        if(pixelY > max_y)
+            max_y = pixelY;
+
+        if(depth < closestDepth)
+        {
+            closestDepth = depth;
+            closestPixel = new Point(pixelX,pixelY);
+        }
     }
 
     public double Ux()

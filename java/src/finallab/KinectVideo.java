@@ -33,4 +33,7 @@ public abstract class KinectVideo extends JPanel {
     	return frameData;
     }
 
+    public BufferedImage getFrame(){
+    	return frame;
+    }
 }

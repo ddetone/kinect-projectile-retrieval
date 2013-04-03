@@ -66,11 +66,11 @@ public class VideoTest {
 
 	}
 	public static void depthUnionFindTest(VideoTest vt) {
-		vt.depthVideo = new KinectDepthVideo(vt.kinect, vt);
+		vt.depthVideo = new KinectDepthVideo(vt.kinect);
 		vt.windowDepth.setSize(640, 480);
 		vt.windowDepth.setContentPane(vt.depthVideo);
 		vt.windowDepth.setVisible(true);
-		BallTracker tracker = new BallTracker(KinectVideo.WIDTH, KinectVideo.HEIGHT);
+		BallTracker tracker = new BallTracker(KinectVideo.WIDTH, KinectVideo.HEIGHT,true);
 		while(vt.depthVideo.getBuf() == null);
 		while(true) 
 		{
