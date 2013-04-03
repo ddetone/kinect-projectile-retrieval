@@ -72,7 +72,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		pballs = new ArrayList<double[]>();
 		ball_i=-1;
 		v_not = new double[3];
-	
+		state = BallStatus.WAIT; 
+
 		verbose = true;		
 	}
 
@@ -92,11 +93,18 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				
 				ball_i++;
 
-				if (state == BallStatus.WAIT && (balls.size() >= 3)) //waits for 3 balls
+				if (state == BallStatus.WAIT) //waits for 3 balls
 				{
-					state = BallStatus.IN_HAND;
-					starttime = curr_ball.utime;						
+					System.out.printf("num balls: %d", balls.size());
+					if (balls.size() >=3)
+					{
+						state = BallStatus.IN_HAND;
+						starttime = curr_ball.utime;
+					}
+					else
+						balls.add(xyzt);
 				}
+
 
 				if (state == BallStatus.IN_HAND)
 				{
@@ -106,10 +114,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 						starttime = curr_ball.utime;
 						GeneratePrediction();
 					}
-				}
-
-				if (state == BallStatus.IN_HAND)
-				{
 					balls.set(0, balls.get(1));
 					balls.set(1, balls.get(2));
 					balls.set(2, xyzt);
@@ -119,17 +123,22 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 					balls.add(xyzt);
 				}
 
-				if (verbose) {
-					for (int i=0; i<3; i++)
+
+				if (verbose)
+				{
+					if (state != BallStatus.WAIT) 
 					{
-						for (int j=0; j<4; j++)
+						for (int i=0; i<3; i++)
 						{
-							System.out.printf("balls[%d][%d]:%f\n",i,j,balls.get(i)[j]);
-							System.out.printf("num balls: %d", ball_i);
-							System.out.printf("state:%d", state);
+							for (int j=0; j<4; j++)
+							{
+								System.out.printf("balls[%d][%d]:%f\n",i,j,balls.get(i)[j]);
+								System.out.printf("num balls: %d", ball_i);
+								System.out.printf("state:%d", state);
+							}
 						}
+						System.out.println();
 					}
-					System.out.println();
 				}
 
 				DrawBalls();
