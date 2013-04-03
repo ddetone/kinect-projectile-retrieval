@@ -45,7 +45,7 @@ public class KinectView
 	Statistics BALL;
 	ArrayList<Statistics> trajectory;
 	boolean[] validImageValue;
-	volatile int ballDepth;
+	
 
 	LCM lcm;
 	
@@ -116,7 +116,7 @@ public class KinectView
 		{
 			jf.setLayout(new GridLayout(2,2));
 			pg = new ParameterGUI();
-			pg.addDoubleSlider("HueMin","Hue Min",0,3.6,0);
+			pg.addDoubleSlider("HueMin","Hue Min",0,.2,0);
 			pg.addDoubleSlider("HueMax","Hue Max",0,3.6,.2);
 			pg.addDoubleSlider("SatMin","Saturation Min",0,3.6,0);
 			pg.addDoubleSlider("SatMax","Saturation Max",0,3.6,3.6);
@@ -155,17 +155,17 @@ public class KinectView
 		trajectory = new ArrayList<Statistics>();
 	}
 
-	public void publishBall(int timestamp)
-	{
+	// public void publishBall(int timestamp)
+	// {
 
-		ball_t ball = new ball_t();
-		ball.nanoTime = timestamp;
-		ball.x = BALL.center_x;
-		ball.y = BALL.center_y;
-		ball.z = 4;
-		lcm.publish("6_BALL",ball);
+	// 	ball_t ball = new ball_t();
+	// 	ball.nanoTime = timestamp;
+	// 	ball.x = BALL.center_x;
+	// 	ball.y = BALL.center_y;
+	// 	// ball.z = ballDepth;
+	// 	lcm.publish("6_BALL",ball);
 
-	}
+	// }
 
 	public static void main(String[] args)
 	{
@@ -209,7 +209,7 @@ public class KinectView
 			Statistics BiggestBlob = new Statistics();
 			for(Statistics blob : blobs)
 			{
-				if(blob.N > 100)
+				if(blob.N > 50)
 				{
 					// if(kv.BALL.Cxy() > blob.Cxy());
 						// if(kv.BALL.abs() > blob.abs())
@@ -270,10 +270,7 @@ public class KinectView
 			catch(Exception e){};
 				//System.println(kv.getDepth(kv.depthImg,kv.BALL.center_y*width+kv.BALL.center_x));
 				
-				ballLCM.x = kv.BALL.center_x;
-				ballLCM.y = kv.BALL.center_y;
-				ballLCM.z = 4;
-				kv.lcm.publish("6_BALL",ballLCM);
+				
 			Point ballCenter = new Point(kv.BALL.center_x,kv.BALL.center_y);
 			// ballCenter.x = ball.x;
 			// ballCenter.y = ball.y;
@@ -298,6 +295,11 @@ public class KinectView
 								//kv.depthImg.setRGB(x,y,0xFFFFFFFF);
 							}
 							catch(Exception e){};
+				
+				ballLCM.x = kv.BALL.center_x;
+				ballLCM.y = kv.BALL.center_y;
+				ballLCM.z = ClosestBall.closestDepth;
+				kv.lcm.publish("6_BALL",ballLCM);
 				System.out.println(ClosestBall.closestDepth);
 			}
 			
