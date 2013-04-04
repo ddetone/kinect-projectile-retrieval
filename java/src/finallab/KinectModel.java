@@ -62,19 +62,23 @@ public class KinectModel
 	public static void drawWorld(KinectModel km)
 	{
 		// VisChain env = new VisChain();
-		VisWorld.Buffer vb = km.vw.getBuffer("Environment");
-		for (int i = 0; i < KinectVideo.WIDTH * KinectVideo.HEIGHT; i += 10) {
+		VisChain world = new VisChain();
+		ArrayList<double[]> worldPoints = new ArrayList<double[]>();
+		for (int i = 0; i < KinectVideo.WIDTH * KinectVideo.HEIGHT; i += 500) {
 			Point currCoord = new Point();
 			currCoord.x = (i % KinectVideo.WIDTH) - KinectVideo.C_X;
 			currCoord.y = KinectVideo.C_Y - (i / KinectVideo.WIDTH);
-			// System.out.println("plotting " + world.x + " " + world.y + " " + world.z);
-			Point3D world = km.kdv.getWorldCoords(currCoord);
-			vb.addBack(new VisChain(LinAlg.translate(world.x, world.y, world.z), new VzSphere(0.01, new VzMesh.Style(Color.pink))));
+			Point3D worldPoint = km.kdv.getWorldCoords(currCoord);
+			if (!(worldPoint.x == 0 && worldPoint.y == 0 && worldPoint.z == 0) && worldPoint.z < 2) {
+				double [] point = {worldPoint.x, worldPoint.y, worldPoint.z};
+				System.out.println("x:" + worldPoint.x + " y:" + worldPoint.y + " z:" + worldPoint.z);
+				worldPoints.add(point);
+			}
 		}
-			System.out.println("plotting");
-
-		// vb.addBack(env);
+		VisWorld.Buffer vb = km.vw.getBuffer("Environment");
+		vb.addBack(new VzPoints(new VisVertexData(worldPoints), new VzPoints.Style(Color.BLUE, 2)));
 		vb.swap();
+			System.out.println("plotting");
 
 	}
 
