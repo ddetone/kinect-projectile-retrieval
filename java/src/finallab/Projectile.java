@@ -30,7 +30,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	int num_meas;				//number of measurements used in prediction
 	double starttime;
 	double[] v_not; 			//x,y,z initial velocities, used in model
-	double g = 9.806/(1000000000*1000000000); //g in meters/nanosecond squared
+	double nano = 1000000000;
+	double g = 9.806; //g in meters/second squared
 	BallStatus state;
 	boolean verbose;
 	final boolean DEFAULT_RELEASED = false;
@@ -115,9 +116,9 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				xyzt[0] = curr_ball.x;
 				xyzt[1] = curr_ball.y;
 				xyzt[2] = curr_ball.z;
-				xyzt[3] = curr_ball.nanoTime;
+				xyzt[3] = curr_ball.nanoTime / nano;
 				
-				if(verbose)System.out.printf("num balls: %d\n", balls.size());
+				PrintState();
 
 				if(fake)
 					if (fake_index > 10)
@@ -129,7 +130,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 					{
 						state = BallStatus.IN_HAND;
 						if (!fake)
-							starttime = curr_ball.nanoTime;
+							starttime = curr_ball.nanoTime / nano;
 						else
 							starttime = fballs.get(fake_index)[3];
 					}
@@ -143,16 +144,18 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 							balls.add(xyzt);
 				}
 
+				PrintState();
+
 				if (state == BallStatus.IN_HAND)
 				{
 					if (DetermineReleased())
 					{
 						state = BallStatus.RELEASED;
 						if (!fake)
-							starttime = curr_ball.nanoTime;
+							starttime = curr_ball.nanoTime / nano;
 						else
 							starttime = fballs.get(fake_index)[3];
-						//GeneratePrediction();
+						GeneratePrediction();
 					}
 
 					balls.set(0, balls.get(1));
@@ -170,7 +173,14 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				}
 				else if (state == BallStatus.RELEASED)
 				{
-					balls.add(xyzt);
+
+						if (fake)
+						{
+							balls.add(fballs.get(fake_index));
+							fake_index++;
+						}
+						else
+							balls.add(xyzt);
 				}
 
 				DrawBalls();
@@ -193,7 +203,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		v_not[2] = (balls.get(1)[2] - balls.get(0)[2]) / prev_dt;		
 
 		double cur_dt = balls.get(2)[3] - balls.get(1)[3];
-		double[] predict_loc = Predict(cur_dt, 2); //predict location of ball 2 (first potentially released ball)
+		double[] predict_loc = Predict(cur_dt, 1); //predict location of ball 1 (first potentially released ball)
 		
 		double[] errors = new double[3];
 		errors[0] = predict_loc[0]-balls.get(2)[0];
@@ -206,19 +216,24 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			System.out.printf("zeroballx: %f\n",balls.get(0)[0]);
 			System.out.printf("zerobally: %f\n",balls.get(0)[1]);
 			System.out.printf("zeroballz: %f\n",balls.get(0)[2]);
+			System.out.printf("zeroballt: %f\n",balls.get(0)[3]);
 			System.out.printf("oneballx: %f\n",balls.get(1)[0]);
 			System.out.printf("onebally: %f\n",balls.get(1)[1]);
 			System.out.printf("oneballz: %f\n",balls.get(1)[2]);
+			System.out.printf("oneballt: %f\n",balls.get(1)[3]);
 			System.out.printf("recentballx: %f\n",balls.get(2)[0]);
 			System.out.printf("recentbally: %f\n",balls.get(2)[1]);
 			System.out.printf("recentballz: %f\n",balls.get(2)[2]);
-			System.out.printf("v_not[x]: %f\n",v_not[0]);
+			System.out.printf("recentballt: %f\n",balls.get(2)[3]);
+			System.out.printf("prev_dt: %f\n", prev_dt);
+			System.out.printf("cur_dt: %f\n", cur_dt);
+			System.out.printf("v_not[x] (m/s): %f\n",v_not[0]);
 			System.out.printf("predict_loc[x]: %f\n",predict_loc[0]);
-			System.out.printf("errors[x]: %f\n\n",errors[0]);
-			System.out.printf("v_not[y]: %f\n",v_not[1]);
+			System.out.printf("errors[x]: %f\n",errors[0]);
+			System.out.printf("v_not[y] (m/s): %f\n",v_not[1]);
 			System.out.printf("predict_loc[y]: %f\n",predict_loc[1]);
-			System.out.printf("errors[y]: %f\n\n",errors[1]);
-			System.out.printf("v_not[z]: %f\n",v_not[2]);
+			System.out.printf("errors[y]: %f\n",errors[1]);
+			System.out.printf("v_not[z] (m/s): %f\n",v_not[2]);
 			System.out.printf("predict_loc[z]: %f\n",predict_loc[2]);
 			System.out.printf("errors[z]: %f\n",errors[2]);						
 		}
@@ -231,7 +246,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		double e = Math.abs(predict_loc[0]-position[0])+Math.abs(predict_loc[1]-position[1])+Math.abs(predict_loc[2]-position[2]);
 		System.out.printf("e:%f\n\n",e) ;
 		//if (LinAlg.distance(predict_loc, balls.get(2)) < 0.2)
-		if (e>0.5)
+		if (e<0.5)
 			return true;
 		else
 			return false;
@@ -241,7 +256,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	public void DrawBalls()
 	{
 
-		double ball_radius = 0.04; 
+		double ball_radius = 0.06; 
 		VisWorld.Buffer vb = vw.getBuffer("Predicted Balls");
 		double[] shift = new double[3];
 
@@ -252,7 +267,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			//vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),ball));
 			
 			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
-			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[2],balls.get(i)[1]),ball));			
+			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0]*0.5,balls.get(i)[2]*0.5,balls.get(i)[1]*0.5),ball));			
 		}
 /*
 		for (int i=0; i<pballs.size(); i++)
@@ -260,6 +275,13 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			shift = Predict(pballs.get(i)[3] - starttime, i);
 			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
 			vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),pball));
+		}*/
+/*
+		for (int i=0; i<fballs.size(); i++)
+		{
+			//shift = Predict(pballs.get(i)[3] - starttime, i);
+			VzSphere fball = new VzSphere(ball_radius, new VzMesh.Style(Color.blue));
+			vb.addBack(new VisChain(LinAlg.translate(fballs.get(i)[0],fballs.get(i)[2],fballs.get(i)[1]),fball));
 		}*/
 
 		vb.addBack(new VzAxes());
@@ -271,21 +293,40 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	public void GeneratePrediction()
 	{
 
-		double time_aloft = 3; //need to solve for this
+
+		double a = -0.5*g;
+		double b = v_not[1];
+		double c = balls.get(1)[1]; //last in hand position
+
+		b = b / a;
+		c = c / a;
+
+		double discriminant = b*b - 4.0*c;
+        double sqroot =  Math.sqrt(discriminant);
+
+        double root1 = (-b + sqroot) / 2.0;
+        double root2 = (-b - sqroot) / 2.0;
+
+
+        if (verbose) {
+        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
+        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
+		System.out.printf("root1:%f root2:%f\n", root1, root2); }
+
 		int num_plotted = 20;
 
+/*
 		for (int i=1; i<num_plotted; i++)
 		{
 			pballs.add(Predict((time_aloft/num_plotted)*(double)i, 1)); //use last held position as initial position
-		}
+		}*/
 	}
 
 	public double[] Predict(double dt, int ballindex)
 	{
 		double[] predict_loc = new double[3]; 
-		//predict_loc[0] = balls.get(ballindex)[0] + (v_not[0] * dt); //deltaX = Vo,x * dt
+		predict_loc[0] = balls.get(ballindex)[0] + (v_not[0] * dt); //deltaX = Vo,x * dt
 		predict_loc[1] = balls.get(ballindex)[1] + (v_not[1] * dt) - 0.5*g*dt*dt;
-		predict_loc[1] = balls.get(ballindex)[1] + (v_not[1] * dt);
 		predict_loc[2] = balls.get(ballindex)[2] + (v_not[2] * dt); 	
 		return predict_loc;
 	}
@@ -294,74 +335,95 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	{
 		double[][] data = new double[20][4];
 
-		double nano = 1000000000;
+		//double nano = 1000000000;
 
 		data[0][0] = 0;  //x 
 		data[0][1] = 2;  //y
-		data[0][2] = 5;  //z
-		data[0][3] = 0.1*nano;
+		data[0][2] = 0.98;  //z
+		data[0][3] = 0.1;
 		fballs.add(data[0]);
 
 		data[1][0] = 0;  //x 
-		data[1][1] = 2.5;  //y
-		data[1][2] = 5;  //z
-		data[1][3] = 0.2*nano;
+		data[1][1] = 2.1;  //y
+		data[1][2] = 1.23;  //z
+		data[1][3] = 0.2;
 		fballs.add(data[1]);
 
 		data[2][0] = 0;  //x 
-		data[2][1] = 2;  //y
-		data[2][2] = 5;  //z
-		data[2][3] = 0.3*nano;
+		data[2][1] = 1.79;  //y
+		data[2][2] = 1;  //z
+		data[2][3] = 0.3;
 		fballs.add(data[2]);
 
 		data[3][0] = 0;  //x 
 		data[3][1] = 2;  //y
-		data[3][2] = 5;  //z
-		data[3][3] = 0.4*nano;
+		data[3][2] = 1;  //z
+		data[3][3] = 0.4;
 		fballs.add(data[3]);
 
 		data[4][0] = 0.5;  //x 
 		data[4][1] = 2.4019;  //y
-		data[4][2] = 5;  //z
-		data[4][3] = 0.5*nano;
+		data[4][2] = 1;  //z
+		data[4][3] = 0.5;
 		fballs.add(data[4]);
 
 		data[5][0] = 1;  //x 
 		data[5][1] = 2.6078;  //y
-		data[5][2] = 5;  //z
-		data[5][3] = 0.6*nano;
+		data[5][2] = 1;  //z
+		data[5][3] = 0.6;
 		fballs.add(data[5]);
 
 		data[6][0] = 1.5;  //x 
 		data[6][1] = 2.6175;  //y
-		data[6][2] = 5;  //z
-		data[6][3] = 0.7*nano;
+		data[6][2] = 1;  //z
+		data[6][3] = 0.7;
 		fballs.add(data[6]);
 
 		data[7][0] = 2.0;  //x 
 		data[7][1] = 2.431;  //y
-		data[7][2] = 5;  //z
-		data[7][3] = 0.8*nano;
+		data[7][2] = 1;  //z
+		data[7][3] = 0.8;
 		fballs.add(data[7]);
 
 		data[8][0] = 2.5;  //x 
 		data[8][1] = 2.0485;  //y
-		data[8][2] = 5;  //z
+		data[8][2] = 1;  //z
 		data[8][3] = 0.9*nano;
 		fballs.add(data[8]);
 
 		data[9][0] = 3;  //x 
 		data[9][1] = 1.4698;  //y
-		data[9][2] = 5;  //z
-		data[9][3] = 1*nano;
+		data[9][2] = 1;  //z
+		data[9][3] = 1;
 		fballs.add(data[9]);
 
 		data[10][0] = 3.5;  //x 
 		data[10][1] = 0.69506;  //y
-		data[10][2] = 5;  //z
-		data[10][3] = 0.7*nano;
+		data[10][2] = 1;  //z
+		data[10][3] = 1.1;
 		fballs.add(data[10]);
 
+	}
+
+	public void PrintState()
+	{
+
+		VisWorld.Buffer vb = vw.getBuffer("State");
+
+		String statestring;
+		if (state == BallStatus.WAIT)
+			statestring = "WAIT";
+		else if (state == BallStatus.IN_HAND)
+			statestring = "IN_HAND";
+		else if (state == BallStatus.RELEASED)
+			statestring = "RELEASED";
+		else
+			statestring = "UNKNOWN";
+
+		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.CENTER, new VzText(VzText.ANCHOR.CENTER, 
+							"<<sansserif-bold-16,white>>" + statestring)));
+		
+		vb.swap();
 	}
 
 	public static void main(String[] args) throws Exception
