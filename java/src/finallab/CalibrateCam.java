@@ -24,10 +24,13 @@ public class CalibrateCam
 	Context ctx;
 	Device kinect;
 	JFrame window;
-	KinectRGBVideo rgbVideo;
+	JFrame windowD;
+	KinectRGBVideo rgbFeed;
+	KinectDepthVideo depthFeed;
 	
 	final static int C_X = KinectRGBVideo.WIDTH / 2;
 	final static int C_Y = KinectRGBVideo.HEIGHT / 2;
+	final static double CAMERA_HEIGHT = 0.052;
 	
 	ArrayList<Integer> arr_p_x;
 	ArrayList<Integer> arr_p_y;
@@ -39,8 +42,11 @@ public class CalibrateCam
 
 	int points;
 
-	CalibrateCam()
+	final boolean rgb;
+
+	CalibrateCam(boolean _rgb)
 	{
+		rgb = _rgb;
 		arr_p_x = new ArrayList<Integer>();
 		arr_p_y = new ArrayList<Integer>();
 		arr_r_x = new ArrayList<Double[]>();
@@ -55,16 +61,30 @@ public class CalibrateCam
 		window = new JFrame("calibrate camera");
 		window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		window.setVisible(true);
-		rgbVideo = new KinectRGBVideo(kinect);
-		rgbVideo.addMouseListener(ml);
-		window.setSize(640, 480);
-		window.setContentPane(rgbVideo);
+		KinectVideo cameraFeed;
+		if (rgb) {
+			rgbFeed = new KinectRGBVideo(kinect, true);
+			depthFeed = new KinectDepthVideo(kinect, true);
+			depthFeed.addMouseListener(depthPrinter);
+			windowD = new JFrame("depth");
+			windowD.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+			windowD.setVisible(true);
+			windowD.setContentPane(depthFeed);
+			windowD.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
+
+			cameraFeed = rgbFeed;
+		}
+		else {
+			depthFeed = new KinectDepthVideo(kinect, true);
+			cameraFeed = depthFeed;
+		}
+		cameraFeed.addMouseListener(calibrater);
+		window.setContentPane(cameraFeed);
+		window.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
 		window.addWindowListener(new WindowClose(this));
-
-
 	}
 	
-	MouseListener ml = new MouseAdapter() {
+	MouseListener calibrater = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
 			Point p = e.getPoint();
 			//pixel points of click
@@ -72,17 +92,26 @@ public class CalibrateCam
 			int pY = C_Y - p.y;
 			
 			//real world points of click
-			double rZ = .5;
-			//double depth = getDepth(x, y);
+			// double rZ = .85;
+			double rZ = 0d;
+			if (rgb)
+				rZ = Double.parseDouble(JOptionPane.showInputDialog("enter real world depth"));
+			else
+				rZ = (double)depthFeed.getDepthFromDepthPixel(p);
 			double rX = Double.parseDouble(JOptionPane.showInputDialog("enter real world x value"));
 			double rY = Double.parseDouble(JOptionPane.showInputDialog("enter real world y value"));
-			System.out.println("x: " + pX + ", y: " + pY);
+			System.out.println("x: " + pX + ", y: " + pY + ", dep: " + rZ);
 			
 			arr_p_x.add(pX);
 			arr_p_y.add(pY);
-			arr_r_x.add(new Double[] {rX, rY, rZ, 1d, 0d, 0d, 0d, 0d, -pX*rX, -pX*rY, -pX*rZ});
-			arr_r_y.add(new Double[] {0d, 0d, 0d, 0d, rX, rY, rZ, 1d, -pY*rX, -pY*rY, -pY*rZ});
+			arr_r_x.add(new Double[] {rX / rZ, rZ, 0d});
+			arr_r_y.add(new Double[] {rY / rZ, 0d, rZ});
 			
+		}
+	};
+	MouseListener depthPrinter = new MouseAdapter() {
+		public void mouseClicked(MouseEvent e) {
+			System.out.println((double)depthFeed.getDepthFromDepthPixel(e.getPoint()));			
 		}
 	};
 	
@@ -96,48 +125,45 @@ public class CalibrateCam
 			cc.arr_r_x.addAll(arr_r_y);
 
 			double [][] p_arr = new double[cc.arr_p_x.size()][1];
-			double [][] r_arr = new double[cc.arr_r_x.size()][11];
+			double [][] r_arr = new double[cc.arr_r_x.size()][3];
 
 			for (int i = 0; i < cc.arr_p_x.size(); i++) {
 				p_arr[i][0] = (double)cc.arr_p_x.get(i);
-				for (int j = 0; j < 11; j++) {
+				for (int j = 0; j < 3; j++) {
 					r_arr[i][j] = (double)cc.arr_r_x.get(i)[j];
 				}
 			}
 			cc.p = new Matrix(p_arr);
 			cc.r = new Matrix(r_arr);
-			Matrix q = (cc.r.transpose().times(cc.r)).inverse().times(cc.r.transpose()).times(cc.p);
+			// System.out.println(cc.r.toString());
+			Matrix q = ((((cc.r.transpose()).times(cc.r)).inverse()).times(cc.r.transpose())).times(cc.p);
 			System.out.println(q.toString());
+			System.out.println("f: " + q.get(0, 0));
+			System.out.println("cx: " + q.get(1, 0));
+			System.out.println("cy: " + q.get(2, 0));
+			// System.out.println(q.toString());
 		}
-		public void windowOpened(WindowEvent e)        {   }
-      	public void windowClosed(WindowEvent e)         {   }
-	    public void windowActivated(WindowEvent e)     {   }
-	    public void windowDeactivated(WindowEvent e) {   }
-	    public void windowIconified(WindowEvent e)      {   }
-	    public void windowDeiconified(WindowEvent e)   {   }
+		public void windowOpened(WindowEvent e){   }
+      	public void windowClosed(WindowEvent e){   }
+	    public void windowActivated(WindowEvent e){   }
+	    public void windowDeactivated(WindowEvent e){   }
+	    public void windowIconified(WindowEvent e){   }
+	    public void windowDeiconified(WindowEvent e){   }
 	}
-
-	// private void createMatrix() {
-	// 	arr_p_x.addAll(arr_p_y);
-	// 	arr_r_x.addAll(arr_r_y);
-
-	// 	double [][] p_arr = new double[arr_p_x.size()][1];
-	// 	double [][] r_arr = new double[arr_r_x.size()][11];
-
-	// 	for (int i = 0; i < arr_p_x.size(); i++) {
-	// 		p_arr[i][0] = (double)arr_p_x.get(i);
-	// 		for (int j = 0; j < 11; j++) {
-	// 			r_arr[i][j] = (double)arr_r_x.get(i)[j];
-	// 		}
-	// 	}
-	// 	p = new Matrix(p_arr);
-	// 	r = new Matrix(r_arr);
-	// 	Matrix q = (r.transpose().times(r)).inverse().times(r.transpose()).times(p);
-	// 	System.out.println(q.toString());
-	// }
 	
 	public static void main(String [] args) {
-		CalibrateCam cc = new CalibrateCam();
+		if (args.length != 1) {
+			System.out.println("No type specified...\n\nOptions:\n-r | RGB camera calibration\n-d | Depth camera calibration");
+			return;
+		}
+		boolean rgbCal;
+		if (args[0].equals("-r")) {
+			rgbCal = true;
+		}
+		else {
+			rgbCal = false;
+		}
+		CalibrateCam cc = new CalibrateCam(rgbCal);
 		// while(true) {
 		// 	try
 		// }

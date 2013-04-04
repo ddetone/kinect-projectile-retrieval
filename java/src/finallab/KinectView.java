@@ -45,7 +45,7 @@ public class KinectView
 	Statistics BALL;
 	ArrayList<Statistics> trajectory;
 	boolean[] validImageValue;
-	volatile int ballDepth;
+	
 
 	static double x_param = 0d;
 	static double y_param = 0d;
@@ -123,12 +123,12 @@ public class KinectView
 		{
 			jf.setLayout(new GridLayout(2,2));
 			pg = new ParameterGUI();
-			pg.addDoubleSlider("HueMin","Hue Min",0,3.6,0);
-			pg.addDoubleSlider("HueMax","Hue Max",0,3.6,.2);
-			pg.addDoubleSlider("SatMin","Saturation Min",0,3.6,0);
-			pg.addDoubleSlider("SatMax","Saturation Max",0,3.6,3.6);
-			pg.addDoubleSlider("BrightMin","Brightness Min",0,3.6,0);
-			pg.addDoubleSlider("BrightMax","Brightness Max",0,3.6,3.6);
+			pg.addDoubleSlider("HueMin","Hue Min",0,1.0,0);
+			pg.addDoubleSlider("HueMax","Hue Max",0,1.0,.2);
+			pg.addDoubleSlider("SatMin","Saturation Min",0,1.0,0);
+			pg.addDoubleSlider("SatMax","Saturation Max",0,1.0,1.0);
+			pg.addDoubleSlider("BrightMin","Brightness Min",0,1.0,0);
+			pg.addDoubleSlider("BrightMax","Brightness Max",0,1.0,1.0);
 			pg.addDoubleSlider("xParam", "xParam", 0d, 1.0, 0);	
 			pg.addDoubleSlider("yParam", "yParam", 0d, 1.0, 0);
 	        pg.addListener(new ParameterListener() {
@@ -176,17 +176,17 @@ public class KinectView
 		trajectory = new ArrayList<Statistics>();
 	}
 
-	public void publishBall(int timestamp)
-	{
+	// public void publishBall(int timestamp)
+	// {
 
-		ball_t ball = new ball_t();
-		ball.nanoTime = timestamp;
-		ball.x = BALL.center_x;
-		ball.y = BALL.center_y;
-		ball.z = 4;
-		lcm.publish("6_BALL",ball);
+	// 	ball_t ball = new ball_t();
+	// 	ball.nanoTime = timestamp;
+	// 	ball.x = BALL.center_x;
+	// 	ball.y = BALL.center_y;
+	// 	// ball.z = ballDepth;
+	// 	lcm.publish("6_BALL",ball);
 
-	}
+	// }
 
 	public static void main(String[] args)
 	{
@@ -214,7 +214,7 @@ public class KinectView
 			
 		// });
 		BallTracker tracker = new BallTracker(kv.width,kv.height,true);
-		KinectDepthVideo kdv = new KinectDepthVideo(kv.kinect);
+		KinectDepthVideo kdv = new KinectDepthVideo(kv.kinect, true);
 		kv.depthImg = kdv.getFrame();
 		while(true) 
 		{
@@ -230,7 +230,7 @@ public class KinectView
 			Statistics BiggestBlob = new Statistics();
 			for(Statistics blob : blobs)
 			{
-				if(blob.N > 100)
+				if(blob.N > 50)
 				{
 					// if(kv.BALL.Cxy() > blob.Cxy());
 						// if(kv.BALL.abs() > blob.abs())
@@ -291,7 +291,7 @@ public class KinectView
 			// }
 			// catch(Exception e){};
 				//System.println(kv.getDepth(kv.depthImg,kv.BALL.center_y*width+kv.BALL.center_x));
-				
+
 				ballLCM.x = kv.BALL.center_x;
 				ballLCM.y = kv.BALL.center_y;
 				ballLCM.z = 4;
@@ -567,10 +567,10 @@ public class KinectView
 		int depth = 0;
 		byte byte1 = bb.get(index * 2);
 		byte byte2 = bb.get(index * 2 + 1);
-		depth = byte2 & 0x3;
+		depth = byte2 & 0x7;
 		depth = depth << 8;
 		depth = depth | (byte1 & 0xFF);
-		return depth & 0x3FF;
+		return depth & 0x7FF;
 	}
 	
 
