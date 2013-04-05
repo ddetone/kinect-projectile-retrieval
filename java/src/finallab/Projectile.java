@@ -24,6 +24,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	ArrayList<double[]> balls;
 	ArrayList<double[]> pballs;
 	ArrayList<double[]> fballs;
+	ArrayList<double[]> landings;
 	int fake_index=0;
 	boolean fake = true;		
 
@@ -32,6 +33,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	double[] v_not; 			//x,y,z initial velocities, used in model
 	double nano = 1000000000;
 	double g = 9.806; //g in meters/second squared
+	double ball_radius;
 	BallStatus state;
 	boolean verbose;
 	final boolean DEFAULT_RELEASED = false;
@@ -92,8 +94,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		//projectile initializations
 		balls = new ArrayList<double[]>();
 		pballs = new ArrayList<double[]>();
+		landings = new ArrayList<double[]>();
 		v_not = new double[3];
 		state = BallStatus.WAIT; 
+
+		ball_radius = 0.06; //MUST BE IN METERS or else projection calculation will be off 
 
 		verbose = true;
 
@@ -256,7 +261,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	public void DrawBalls()
 	{
 
-		double ball_radius = 0.06; 
+		
 		VisWorld.Buffer vb = vw.getBuffer("Predicted Balls");
 		double[] shift = new double[3];
 
@@ -284,6 +289,12 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			vb.addBack(new VisChain(LinAlg.translate(fballs.get(i)[0],fballs.get(i)[2],fballs.get(i)[1]),fball));
 		}*/
 
+		if (landings.size() > 0)
+		{
+			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.green));
+			vb.addBack(new VisChain(LinAlg.translate(landings.get(0)[0],landings.get(0)[2],landings.get(0)[1]), land1));
+		}
+
 		vb.addBack(new VzAxes());
 
 		vb.swap();
@@ -296,7 +307,9 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		double a = -0.5*g;
 		double b = v_not[1];
-		double c = balls.get(1)[1]; //last in hand position
+		double c = balls.get(1)[1]-ball_radius; //last in hand position
+		//I subtracted ball_radius because we are actually solving when the bottom of the ball
+		//hits the ground, not the center, which is approximated by the kinect sensor
 
 		b = b / a;
 		c = c / a;
@@ -306,12 +319,28 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
         double root1 = (-b + sqroot) / 2.0;
         double root2 = (-b - sqroot) / 2.0;
+        double time_aloft = 0;
 
+        double[] first_landing = new double[3]; //x is 0, y is 1, z is 0
+        first_landing[0] = v_not[0]*time_aloft + balls.get(1)[0];
+        first_landing[1] = ball_radius;
+        first_landing[2] = v_not[2]*time_aloft + balls.get(1)[2];
 
-        if (verbose) {
-        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
-        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
-		System.out.printf("root1:%f root2:%f\n", root1, root2); }
+        if (root1 > 0)
+        	time_aloft = root1;
+        else if (root2 > 0)
+        	time_aloft = root2;
+
+        if (verbose) 
+        {
+	        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
+	        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
+			System.out.printf("root1:%f root2:%f time_aloft:%f\n", root1, root2, time_aloft);
+			System.out.printf("first_landingX:%f, first_landingY:%f first_landingZ:%f\n\n", first_landing[0],
+				 first_landing[1], first_landing[2]);
+		}
+
+		landings.add(first_landing);
 
 		int num_plotted = 20;
 
