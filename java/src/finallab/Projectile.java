@@ -126,7 +126,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				PrintState();
 
 				if(fake)
-					if (fake_index > 10)
+					if (fake_index > 16)
 						return;
 
 				if (state == BallStatus.WAIT) //waits for 3 balls
@@ -322,14 +322,15 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
         double time_aloft = 0;
 
         double[] first_landing = new double[3]; //x is 0, y is 1, z is 0
-        first_landing[0] = v_not[0]*time_aloft + balls.get(1)[0];
-        first_landing[1] = ball_radius;
-        first_landing[2] = v_not[2]*time_aloft + balls.get(1)[2];
 
         if (root1 > 0)
         	time_aloft = root1;
         else if (root2 > 0)
         	time_aloft = root2;
+
+        first_landing[0] = v_not[0]*time_aloft + balls.get(1)[0];
+        first_landing[1] = ball_radius;
+        first_landing[2] = v_not[2]*time_aloft + balls.get(1)[2];
 
         if (verbose) 
         {
@@ -342,7 +343,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		landings.add(first_landing);
 
-		int num_plotted = 20;
+		//int num_plotted = 20;
 
 /*
 		for (int i=1; i<num_plotted; i++)
@@ -391,46 +392,84 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		fballs.add(data[3]);
 
 		data[4][0] = 0.5;  //x 
-		data[4][1] = 2.4019;  //y
+		data[4][1] = 2.451;  //y
 		data[4][2] = 1;  //z
 		data[4][3] = 0.5;
 		fballs.add(data[4]);
 
 		data[5][0] = 1;  //x 
-		data[5][1] = 2.6078;  //y
+		data[5][1] = 2.804;  //y
 		data[5][2] = 1;  //z
 		data[5][3] = 0.6;
 		fballs.add(data[5]);
 
 		data[6][0] = 1.5;  //x 
-		data[6][1] = 2.6175;  //y
+		data[6][1] = 3.059;  //y
 		data[6][2] = 1;  //z
 		data[6][3] = 0.7;
 		fballs.add(data[6]);
 
 		data[7][0] = 2.0;  //x 
-		data[7][1] = 2.431;  //y
+		data[7][1] = 3.2155;  //y
 		data[7][2] = 1;  //z
 		data[7][3] = 0.8;
 		fballs.add(data[7]);
 
 		data[8][0] = 2.5;  //x 
-		data[8][1] = 2.0485;  //y
+		data[8][1] = 3.27;  //y
 		data[8][2] = 1;  //z
 		data[8][3] = 0.9*nano;
 		fballs.add(data[8]);
 
 		data[9][0] = 3;  //x 
-		data[9][1] = 1.4698;  //y
+		data[9][1] = 3.234;  //y
 		data[9][2] = 1;  //z
 		data[9][3] = 1;
 		fballs.add(data[9]);
 
 		data[10][0] = 3.5;  //x 
-		data[10][1] = 0.69506;  //y
+		data[10][1] = 3.0975;  //y
 		data[10][2] = 1;  //z
 		data[10][3] = 1.1;
 		fballs.add(data[10]);
+
+		data[11][0] = 3.95;  //x 
+		data[11][1] = 2.862;  //y
+		data[11][2] = 1;  //z
+		data[11][3] = 1.2;
+		fballs.add(data[11]);
+
+		data[12][0] = 4.5;  //x 
+		data[12][1] = 2.5286;  //y
+		data[12][2] = 1;  //z
+		data[12][3] = 1.3;
+		fballs.add(data[12]);
+
+		data[13][0] = 5.03;  //x 
+		data[13][1] = 2.097;  //y
+		data[13][2] = 1;  //z
+		data[13][3] = 1.4;
+		fballs.add(data[13]);
+
+		data[14][0] = 5.5;  //x 
+		data[14][1] = 1.56;  //y
+		data[14][2] = 1;  //z
+		data[14][3] = 1.49;
+		fballs.add(data[14]);
+
+		data[15][0] = 6;  //x 
+		data[15][1] = 0.939;  //y
+		data[15][2] = 1;  //z
+		data[15][3] = 1.6;
+		fballs.add(data[15]);
+
+		data[16][0] = 6.5;  //x 
+		data[16][1] = 0.21;  //y
+		data[16][2] = 1;  //z
+		data[16][3] = 1.71;
+		fballs.add(data[16]);
+
+
 
 	}
 
