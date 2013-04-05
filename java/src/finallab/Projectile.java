@@ -272,15 +272,23 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			//vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),ball));
 			
 			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
-			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0]*0.5,balls.get(i)[2]*0.5,balls.get(i)[1]*0.5),ball));			
+			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[2],balls.get(i)[1]),ball));			
 		}
-/*
-		for (int i=0; i<pballs.size(); i++)
-		{
-			shift = Predict(pballs.get(i)[3] - starttime, i);
-			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
-			vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),pball));
-		}*/
+
+
+
+
+		vb.addBack(new VzPoints(new VisVertexData(pballs), new VzPoints.Style(Color.BLUE, 2)));
+			
+		
+
+
+
+		// for (int i=0; i<pballs.size(); i++)
+		// {
+		// 	VzSphere pball = new VzSphere(0.02, new VzMesh.Style(Color.cyan));
+		// 	vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[2],pballs.get(i)[1]),pball));
+		// }
 /*
 		for (int i=0; i<fballs.size(); i++)
 		{
@@ -343,13 +351,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		landings.add(first_landing);
 
-		//int num_plotted = 20;
-
-/*
+		int num_plotted = 20;
 		for (int i=1; i<num_plotted; i++)
 		{
 			pballs.add(Predict((time_aloft/num_plotted)*(double)i, 1)); //use last held position as initial position
-		}*/
+		}
 	}
 
 	public double[] Predict(double dt, int ballindex)
