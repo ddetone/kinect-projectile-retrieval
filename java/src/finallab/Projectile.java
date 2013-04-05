@@ -119,14 +119,14 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				
 				double[] xyzt = new double[4];
 				xyzt[0] = curr_ball.x;
-				xyzt[1] = curr_ball.y;
-				xyzt[2] = curr_ball.z;
+				xyzt[1] = curr_ball.z; //z is height
+				xyzt[2] = curr_ball.y; //y is lateral position from camera
 				xyzt[3] = curr_ball.nanoTime / nano;
 				
 				PrintState();
 
 				if(fake)
-					if (fake_index > 10)
+					if (fake_index > 16)
 						return;
 
 				if (state == BallStatus.WAIT) //waits for 3 balls
@@ -248,10 +248,12 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		position[1] = balls.get(2)[1];
 		position[2] = balls.get(2)[2];
 
-		double e = Math.abs(predict_loc[0]-position[0])+Math.abs(predict_loc[1]-position[1])+Math.abs(predict_loc[2]-position[2]);
+		//double e = Math.abs(predict_loc[0]-position[0])+Math.abs(predict_loc[1]-position[1])+Math.abs(predict_loc[2]-position[2]);
+		double e = LinAlg.distance(predict_loc,position);
+
 		System.out.printf("e:%f\n\n",e) ;
 		//if (LinAlg.distance(predict_loc, balls.get(2)) < 0.2)
-		if (e<0.5)
+		if (e<0.25)
 			return true;
 		else
 			return false;
@@ -272,15 +274,23 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			//vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),ball));
 			
 			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
-			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0]*0.5,balls.get(i)[2]*0.5,balls.get(i)[1]*0.5),ball));			
+			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[1],balls.get(i)[2]),ball));			
 		}
-/*
-		for (int i=0; i<pballs.size(); i++)
-		{
-			shift = Predict(pballs.get(i)[3] - starttime, i);
-			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
-			vb.addBack(new VisChain(LinAlg.translate(shift[0],shift[1],shift[2]),pball));
-		}*/
+
+
+
+
+		//vb.addBack(new VzPoints(new VisVertexData(pballs), new VzPoints.Style(Color.BLUE, 2)));
+		vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));	
+		
+
+
+
+		// for (int i=0; i<pballs.size(); i++)
+		// {
+		// 	VzSphere pball = new VzSphere(0.02, new VzMesh.Style(Color.cyan));
+		// 	vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[2],pballs.get(i)[1]),pball));
+		// }
 /*
 		for (int i=0; i<fballs.size(); i++)
 		{
@@ -292,7 +302,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		if (landings.size() > 0)
 		{
 			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.green));
-			vb.addBack(new VisChain(LinAlg.translate(landings.get(0)[0],landings.get(0)[2],landings.get(0)[1]), land1));
+			vb.addBack(new VisChain(LinAlg.translate(landings.get(0)[0],landings.get(0)[1],landings.get(0)[2]), land1));
 		}
 
 		vb.addBack(new VzAxes());
@@ -306,8 +316,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 
 		double a = -0.5*g;
-		double b = v_not[1];
-		double c = balls.get(1)[1]-ball_radius; //last in hand position
+		double b = v_not[2];
+		double c = balls.get(1)[2]-ball_radius; //last in hand position
 		//I subtracted ball_radius because we are actually solving when the bottom of the ball
 		//hits the ground, not the center, which is approximated by the kinect sensor
 
@@ -322,14 +332,15 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
         double time_aloft = 0;
 
         double[] first_landing = new double[3]; //x is 0, y is 1, z is 0
-        first_landing[0] = v_not[0]*time_aloft + balls.get(1)[0];
-        first_landing[1] = ball_radius;
-        first_landing[2] = v_not[2]*time_aloft + balls.get(1)[2];
 
         if (root1 > 0)
         	time_aloft = root1;
         else if (root2 > 0)
         	time_aloft = root2;
+
+        first_landing[0] = v_not[0]*time_aloft + balls.get(1)[0];
+        first_landing[1] = v_not[1]*time_aloft + balls.get(1)[1];
+        first_landing[2] = ball_radius;
 
         if (verbose) 
         {
@@ -343,20 +354,18 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		landings.add(first_landing);
 
 		int num_plotted = 20;
-
-/*
 		for (int i=1; i<num_plotted; i++)
 		{
 			pballs.add(Predict((time_aloft/num_plotted)*(double)i, 1)); //use last held position as initial position
-		}*/
+		}
 	}
 
 	public double[] Predict(double dt, int ballindex)
 	{
 		double[] predict_loc = new double[3]; 
 		predict_loc[0] = balls.get(ballindex)[0] + (v_not[0] * dt); //deltaX = Vo,x * dt
-		predict_loc[1] = balls.get(ballindex)[1] + (v_not[1] * dt) - 0.5*g*dt*dt;
-		predict_loc[2] = balls.get(ballindex)[2] + (v_not[2] * dt); 	
+		predict_loc[1] = balls.get(ballindex)[1] + (v_not[1] * dt);
+		predict_loc[2] = balls.get(ballindex)[2] + (v_not[2] * dt) - 0.5*g*dt*dt; 	
 		return predict_loc;
 	}
 
@@ -367,70 +376,108 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		//double nano = 1000000000;
 
 		data[0][0] = 0;  //x 
-		data[0][1] = 2;  //y
-		data[0][2] = 0.98;  //z
+		data[0][1] = 1.0;
+		data[0][2] = 2;  //z
 		data[0][3] = 0.1;
 		fballs.add(data[0]);
 
 		data[1][0] = 0;  //x 
-		data[1][1] = 2.1;  //y
-		data[1][2] = 1.23;  //z
+		data[1][1] = 1.2;  //y
+		data[1][2] = 2.1; //z
 		data[1][3] = 0.2;
 		fballs.add(data[1]);
 
 		data[2][0] = 0;  //x 
-		data[2][1] = 1.79;  //y
-		data[2][2] = 1;  //z
+		data[2][1] = 1.0;  //y
+		data[2][2] = 1.79; //z
 		data[2][3] = 0.3;
 		fballs.add(data[2]);
 
 		data[3][0] = 0;  //x 
-		data[3][1] = 2;  //y
-		data[3][2] = 1;  //z
+		data[3][1] = 1.0;
+		data[3][2] = 2;  //z
 		data[3][3] = 0.4;
 		fballs.add(data[3]);
 
 		data[4][0] = 0.5;  //x 
-		data[4][1] = 2.4019;  //y
-		data[4][2] = 1;  //z
+		data[4][1] = 1.0;  //y
+		data[4][2] = 2.451; //z
 		data[4][3] = 0.5;
 		fballs.add(data[4]);
 
 		data[5][0] = 1;  //x 
-		data[5][1] = 2.6078;  //y
-		data[5][2] = 1;  //z
+		data[5][1] = 1.0;  //y
+		data[5][2] = 2.804; //z
 		data[5][3] = 0.6;
 		fballs.add(data[5]);
 
 		data[6][0] = 1.5;  //x 
-		data[6][1] = 2.6175;  //y
-		data[6][2] = 1;  //z
+		data[6][1] = 1.0;  //y
+		data[6][2] = 3.059; //z
 		data[6][3] = 0.7;
 		fballs.add(data[6]);
 
 		data[7][0] = 2.0;  //x 
-		data[7][1] = 2.431;  //y
-		data[7][2] = 1;  //z
+		data[7][1] = 1.0;  //y
+		data[7][2] = 3.2155; //z
 		data[7][3] = 0.8;
 		fballs.add(data[7]);
 
 		data[8][0] = 2.5;  //x 
-		data[8][1] = 2.0485;  //y
-		data[8][2] = 1;  //z
+		data[8][1] = 1.0;
+		data[8][2] = 3.27;  //z
 		data[8][3] = 0.9*nano;
 		fballs.add(data[8]);
 
 		data[9][0] = 3;  //x 
-		data[9][1] = 1.4698;  //y
-		data[9][2] = 1;  //z
+		data[9][1] = 0.98;  //y
+		data[9][2] = 3.234; //z
 		data[9][3] = 1;
 		fballs.add(data[9]);
 
 		data[10][0] = 3.5;  //x 
-		data[10][1] = 0.69506;  //y
-		data[10][2] = 1;  //z
+		data[10][1] = 1.0;  //y
+		data[10][2] = 3.0975; //z
 		data[10][3] = 1.1;
 		fballs.add(data[10]);
+
+		data[11][0] = 3.95;  //x 
+		data[11][1] = 1.0;  //y
+		data[11][2] = 2.862; //z
+		data[11][3] = 1.2;
+		fballs.add(data[11]);
+
+		data[12][0] = 4.5;  //x 
+		data[12][1] = 1.04;  //y
+		data[12][2] = 2.5286; //z
+		data[12][3] = 1.3;
+		fballs.add(data[12]);
+
+		data[13][0] = 5.03;  //x 
+		data[13][1] = 1.0;  //y
+		data[13][2] = 2.097; //z
+		data[13][3] = 1.4;
+		fballs.add(data[13]);
+
+		data[14][0] = 5.5;  //x 
+		data[14][1] = 1.0;  //y
+		data[14][2] = 1.56; //z
+		data[14][3] = 1.49;
+		fballs.add(data[14]);
+
+		data[15][0] = 6;  //x 
+		data[15][1] = 1.03; //y
+		data[15][2] = 0.939; //z
+		data[15][3] = 1.6;
+		fballs.add(data[15]);
+
+		data[16][0] = 6.5;  //x 
+		data[16][1] = 1;  //y
+		data[16][2] = 0.21; //z
+		data[16][3] = 1.71;
+		fballs.add(data[16]);
+
+
 
 	}
 
