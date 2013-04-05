@@ -40,7 +40,7 @@ public class VideoTest {
 		
 		windowRGB = new JFrame("RGB camera");
 		windowRGB.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		rgbVideo = new KinectRGBVideo(kinect);
+		rgbVideo = new KinectRGBVideo(kinect,0,null);
 		windowRGB.setSize(640, 480);
 		windowRGB.setContentPane(rgbVideo);
 		windowRGB.setVisible(true);

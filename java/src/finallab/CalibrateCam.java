@@ -55,7 +55,7 @@ public class CalibrateCam
 		window = new JFrame("calibrate camera");
 		window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		window.setVisible(true);
-		rgbVideo = new KinectRGBVideo(kinect);
+		rgbVideo = new KinectRGBVideo(kinect,0,null);
 		rgbVideo.addMouseListener(ml);
 		window.setSize(640, 480);
 		window.setContentPane(rgbVideo);

@@ -358,7 +358,7 @@ public class BallTracker
 	}
 
 
-	public ArrayList<Statistics> analyzePartition(boolean[] thresholdMap, Point poi, int xlength, int ylength, String pointOfInterest)
+	public ArrayList<Statistics> analyzePartition(Boolean[] thresholdMap, Point poi, int xlength, int ylength, String pointOfInterest)
 	{
 		int startX;
 		int startY;
