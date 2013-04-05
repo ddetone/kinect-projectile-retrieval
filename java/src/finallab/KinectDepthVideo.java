@@ -2,6 +2,7 @@ package finallab;
 
 import java.nio.ByteBuffer;
 import java.awt.Point;
+import java.util.*;
 
 import org.openkinect.freenect.DepthFormat;
 import org.openkinect.freenect.DepthHandler;
@@ -123,8 +124,8 @@ public class KinectDepthVideo extends KinectVideo {
 	}
 	public float getDepthFromRGBPixel(Point poi, int bound) {
 		BallTracker bt = new BallTracker(WIDTH, HEIGHT, false);
-		Statistics ballStats = bt.analyzeDepthPartition(frameData, poi, bound);
-		return raw_depth_to_meters(ballStats.closestDepth);
+		ArrayList<Statistics> ballStats = bt.analyzeDepthPartition(frameData, poi, bound);
+		return raw_depth_to_meters(ballStats.get(0).closestDepth);
 
 	}
 	public Point3D getWorldCoords(Point p) {

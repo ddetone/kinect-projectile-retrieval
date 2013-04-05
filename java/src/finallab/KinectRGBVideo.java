@@ -20,7 +20,7 @@ public class KinectRGBVideo extends KinectVideo
 
 	public KinectRGBVideo(Device kinect, int colorAnalyzeMode, double[] params) 
 	{
-		super(kinect);
+		super(kinect,true);
 		if((colorAnalyzeMode>2)||(colorAnalyzeMode == 0))
 		{
 

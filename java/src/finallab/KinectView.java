@@ -285,7 +285,7 @@ public class KinectView
 		BallTracker tracker = new BallTracker(kv.width,kv.height,true);
 
 		KinectRGBVideo kcv = new KinectRGBVideo(kv.kinect,1,params);
-		KinectDepthVideo kdv = new KinectDepthVideo(kv.kinect);
+		KinectDepthVideo kdv = new KinectDepthVideo(kv.kinect,true);
 
 		kv.depthImg = kdv.getFrame();
 		kv.rgbImg = kcv.getFrame();
