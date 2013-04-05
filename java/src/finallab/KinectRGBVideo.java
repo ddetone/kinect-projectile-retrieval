@@ -2,6 +2,7 @@ package finallab;
 
 import java.nio.ByteBuffer;
 import java.awt.Color;
+import java.awt.Point;
 
 import org.openkinect.freenect.Device;
 import org.openkinect.freenect.FrameMode;
@@ -28,7 +29,6 @@ public class KinectRGBVideo extends KinectVideo
 				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
 					frameData = rgb;
 					int[] pixelInts = new int[WIDTH * HEIGHT];
-
 					for(int i = 0; i < WIDTH*HEIGHT; i++) {
 						int rgbVal = 0xFF;
 						for(int j = 0; j < 3; j++) {
@@ -38,7 +38,6 @@ public class KinectRGBVideo extends KinectVideo
 						}
 						pixelInts[i] = rgbVal;
 					}
-
 					frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
 					rgb.position(0);
 				//repaint();
