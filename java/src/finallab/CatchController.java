@@ -34,7 +34,7 @@ public class CatchController
 		Point3D answer = new Point3D();
 		double [][] robo_point_array = {{point[0]}, {point[2]}, {0}, {1}};
 		double [][] trans_mat = {{1,0,0,BOT_DIST_FROM_KINECT_X},{0,1,0,BOT_DIST_FROM_KINECT_Y},{0,0,1,0},{0,0,0,1}};
-		Matrix global_point_mat = new Matrix(trans_mat).times(new Matrix(LinAlg.rotateZ(BOT_THETA))).times(new Matrix(robo_point_array));
+		Matrix global_point_mat = new Matrix(trans_mat).times(new Matrix(LinAlg.rotateY(BOT_THETA))).times(new Matrix(robo_point_array));
 		return new Point3D(global_point_mat.get(0, 0), global_point_mat.get(1, 0), 0);
 	}
 
