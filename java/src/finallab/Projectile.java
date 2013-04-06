@@ -44,9 +44,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	final boolean fake = true;
 	final boolean verbose = true;
 
-
-	int fake_index;
-	int ball_index;
+	//int fake_index;
+	int num_balls;
 	int bounce_index;
 
 	Projectile()
@@ -58,7 +57,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		vc = new VisCanvas(vl);
 		pg = new ParameterGUI();
 		pg.addCheckBoxes("Released?", "Released", DEFAULT_RELEASED);
-		//pg.addCheckBoxes("dispConv", "Display Exploded Wall Map", DEFAULT_DISP_CONV);
 
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
@@ -106,8 +104,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		v_not = new double[3];
 		state = BallStatus.WAIT; 
-		fake_index = 0;	
-		ball_index = 0;
+		//fake_index = 0;	
+		num_balls = 0;
 		bounce_index = 0;
 	}
 
@@ -118,7 +116,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			if(channel.equals("6_BALL"))
 			{
 
-				if(fake && fake_index >= fballs.size())
+				if(fake && num_balls >= fballs.size())
 					return;
 
 				ball_t in_ball = new ball_t(dins);
@@ -128,30 +126,29 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				xyzt[2] = in_ball.y; //y is lateral position from camera
 				xyzt[3] = in_ball.nanoTime / nano;
 
+				addBall(xyzt);
 
 				PrintState();
 				if (balls.size() >= 3) //wait for 3 balls
-					state = BallStatus.IN_HAND;
-				else
-					addBall(xyzt);
+					state = BallStatus.IN_HAND;				
 
 
 				PrintState();
 				if (state == BallStatus.IN_HAND)
 				{
-					//if (DetermineReleased())
-					//{
+					if (CalculateParabola())
+					{
 						state = BallStatus.RELEASED;
 						//update starttime of first parabola
 						
 						
-					//}
+					}
 				}
 
 				PrintState();
 				if (state == BallStatus.RELEASED)
 				{
-
+					CalculateParabola();
 		
 				}
 
@@ -169,13 +166,13 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	{
 		if (fake)
 		{
-			balls.add(fballs.get(fake_index));
-			fake_index++;
+			balls.add(fballs.get(num_balls));
+			num_balls++;
 		}
 		else
 		{
 			balls.add(xyzt);
-			ball_index++;
+			num_balls++;
 		}
 	}
 
@@ -186,21 +183,20 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		boolean error_ok = false;
 		double error;
 
-		data.add(balls.get(ball_index));
-		data.add(balls.get(ball_index-1));
+		System.out.printf("num_balls:%d\n",num_balls);
+		//need at least three balls for release determination
+		data.add(balls.get(num_balls-1));
+		data.add(balls.get(num_balls-2));
 		
 
-		for (int i=ball_index-2; i>=0 ; i--)
+		for (int i=num_balls-3; i>=0 ; i--)
 		{
 			data.add(balls.get(i));
 			
-			if (solveLinReg(data))
-				error_ok = true;
-
-			
-			
-
 		}
+
+		if (solveLinReg(data))
+			error_ok = true;
 
 		//wrong
 		return false;
@@ -211,9 +207,9 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		//Solves for x in, Ax=B
 		int num_corr = correspondences.size();
 		double error = 0;
-		double[][] A = new double[3*num_corr][7];
+		double[][] A = new double[3*num_corr][6];
 		double[] B = new double[3*num_corr];
-		double[] x = new double[7];
+		double[] x = new double[6];
 
 		for (int i=0; i<correspondences.size(); i++)
 		{
@@ -223,11 +219,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			A[i+num_corr][2] = 1;
 			A[i+num_corr][3] = t;
 			A[i+num_corr*2][4] = 1;
-			A[i+num_corr*2][5] = t;			
-			A[i+num_corr*2][6] = t*t;
+			A[i+num_corr*2][5] = t;
+			//A[i+num_corr*2][6] = t*t;
 			B[i] = correspondences.get(i)[0];
 			B[i+num_corr] = correspondences.get(i)[1];
-			B[i+num_corr*2] = correspondences.get(i)[2];
+			B[i+num_corr*2] = correspondences.get(i)[2] + 0.5*g*t*t;
 		}
 		if (verbose)
 		{
@@ -239,16 +235,33 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		double[][] AtA = LinAlg.matrixAtB(A,A);
 		double[][] invAtA = LinAlg.inverse(AtA);
-		double[][] invAtAAt = LinAlg.matrixABt(invAtA,A);
+		double[][] invAtAAt = LinAlg.matrixABt(invAtA,LinAlg.transpose(A));
 		x = LinAlg.matrixAB(invAtAAt,B);
 
 		if (verbose)
 		{
-			LinAlg.print(AtA);
-			LinAlg.print(invAtA);
-			LinAlg.print(invAtAAt);
+			// System.out.printf("Ata\n");
+			// LinAlg.print(AtA);
+			// System.out.printf("invAtA\n");
+			// LinAlg.print(invAtA);
+			// System.out.printf("invAtAA\n");
+			// LinAlg.print(invAtAAt);
+			System.out.printf("x\n");
 			LinAlg.print(x);
 		}
+
+		double time_aloft = 2;
+		for (int i=0; i<20; i++)
+		{
+			double[] pred = new double[3];
+			double dt = balls.get(num_balls-1)[3] + (time_aloft/20)*i;
+			System.out.printf("dt is:%f\n",dt);
+			pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
+			pred[1] = x[2] + (x[3] * dt);
+			pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
+			pballs.add(pred);	
+		} 
+		
 
 		//need to calculate errors
 
@@ -331,15 +344,23 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[1],balls.get(i)[2]),ball));			
 		}
 
-		vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));	
+		for (int i=0; i<pballs.size(); i++)
+		{
+			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
+			vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[1],pballs.get(i)[2]),pball));			
+		}
 
+		pballs.clear();
 
+		//vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));	
+
+/*
 		if (landings.size() > 0)
 		{
 			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.green));
 			vb.addBack(new VisChain(LinAlg.translate(landings.get(0)[0],landings.get(0)[1],landings.get(0)[2]), land1));
 		}
-
+*/
 		vb.addBack(new VzAxes());
 		vb.swap();
 
@@ -371,14 +392,10 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	        double root2 = (-b - sqroot) / 2.0;
 	        double time_aloft = 0;
 
-	        
-
 	        if (root1 > 0)
 	        	time_aloft = root1;
 	        else if (root2 > 0)
 	        	time_aloft = root2;
-
-
 
 	        cur_landing[0] = cur_v_not[0]*time_aloft + balls.get(1)[0];
 	        cur_landing[1] = cur_v_not[1]*time_aloft + balls.get(1)[1];
@@ -419,108 +436,88 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		//double nano = 1000000000;
 
 		data[0][0] = 0;  //x 
-		data[0][1] = 1.0;
-		data[0][2] = 2;  //z
-		data[0][3] = 0.1;
+		data[0][1] = 1;
+		data[0][2] = 2.02;  //z
+		data[0][3] = 0.4;
 		fballs.add(data[0]);
 
-		data[1][0] = 0;  //x 
-		data[1][1] = 1.2;  //y
-		data[1][2] = 2.1; //z
-		data[1][3] = 0.2;
+		data[1][0] = 0.5;  //x 
+		data[1][1] = 1.0;  //y
+		data[1][2] = 2.451; //z
+		data[1][3] = 0.5;
 		fballs.add(data[1]);
 
-		data[2][0] = 0;  //x 
+		data[2][0] = 1;  //x 
 		data[2][1] = 1.0;  //y
-		data[2][2] = 1.79; //z
-		data[2][3] = 0.3;
+		data[2][2] = 2.904; //z
+		data[2][3] = 0.6;
 		fballs.add(data[2]);
 
-		data[3][0] = 0;  //x 
-		data[3][1] = 1.0;
-		data[3][2] = 2;  //z
-		data[3][3] = 0.4;
+		data[3][0] = 1.5;  //x 
+		data[3][1] = 1.0;  //y
+		data[3][2] = 3.059; //z
+		data[3][3] = 0.7;
 		fballs.add(data[3]);
 
-		data[4][0] = 0.5;  //x 
+		data[4][0] = 2.0;  //x 
 		data[4][1] = 1.0;  //y
-		data[4][2] = 2.451; //z
-		data[4][3] = 0.5;
+		data[4][2] = 3.2155; //z
+		data[4][3] = 0.8;
 		fballs.add(data[4]);
 
-		data[5][0] = 1;  //x 
-		data[5][1] = 1.0;  //y
-		data[5][2] = 2.804; //z
-		data[5][3] = 0.6;
+		data[5][0] = 2.5;  //x 
+		data[5][1] = 1.0;
+		data[5][2] = 3.27;  //z
+		data[5][3] = 0.9*nano;
 		fballs.add(data[5]);
 
-		data[6][0] = 1.5;  //x 
-		data[6][1] = 1.0;  //y
-		data[6][2] = 3.059; //z
-		data[6][3] = 0.7;
+		data[6][0] = 3;     //x 
+		data[6][1] = 0.98;  //y
+		data[6][2] = 3.234; //z
+		data[6][3] = 1;
 		fballs.add(data[6]);
 
-		data[7][0] = 2.0;  //x 
-		data[7][1] = 1.0;  //y
-		data[7][2] = 3.2155; //z
-		data[7][3] = 0.8;
+		data[7][0] = 3.5;    //x 
+		data[7][1] = 1.0;    //y
+		data[7][2] = 3.0975; //z
+		data[7][3] = 1.1;
 		fballs.add(data[7]);
 
-		data[8][0] = 2.5;  //x 
-		data[8][1] = 1.0;
-		data[8][2] = 3.27;  //z
-		data[8][3] = 0.9*nano;
+		data[8][0] = 3.95;  //x 
+		data[8][1] = 1.0;   //y
+		data[8][2] = 2.862; //z
+		data[8][3] = 1.2;
 		fballs.add(data[8]);
 
-		data[9][0] = 3;  //x 
-		data[9][1] = 0.98;  //y
-		data[9][2] = 3.234; //z
-		data[9][3] = 1;
+		data[9][0] = 4.5;    //x 
+		data[9][1] = 1.04;   //y
+		data[9][2] = 2.5286; //z
+		data[9][3] = 1.3;
 		fballs.add(data[9]);
 
-		data[10][0] = 3.5;  //x 
-		data[10][1] = 1.0;  //y
-		data[10][2] = 3.0975; //z
-		data[10][3] = 1.1;
+		data[10][0] = 5.03;  //x 
+		data[10][1] = 1.0;   //y
+		data[10][2] = 2.097; //z
+		data[10][3] = 1.4;
 		fballs.add(data[10]);
 
-		data[11][0] = 3.95;  //x 
+		data[11][0] = 5.5;  //x 
 		data[11][1] = 1.0;  //y
-		data[11][2] = 2.862; //z
-		data[11][3] = 1.2;
+		data[11][2] = 1.56; //z
+		data[11][3] = 1.49;
 		fballs.add(data[11]);
 
-		data[12][0] = 4.5;  //x 
-		data[12][1] = 1.04;  //y
-		data[12][2] = 2.5286; //z
-		data[12][3] = 1.3;
+		data[12][0] = 6;     //x 
+		data[12][1] = 1.03;  //y
+		data[12][2] = 0.939; //z
+		data[12][3] = 1.6;
 		fballs.add(data[12]);
 
-		data[13][0] = 5.03;  //x 
-		data[13][1] = 1.0;  //y
-		data[13][2] = 2.097; //z
-		data[13][3] = 1.4;
+		data[13][0] = 6.5;  //x 
+		data[13][1] = 1;    //y
+		data[13][2] = 0.21; //z
+		data[13][3] = 1.71;
 		fballs.add(data[13]);
-
-		data[14][0] = 5.5;  //x 
-		data[14][1] = 1.0;  //y
-		data[14][2] = 1.56; //z
-		data[14][3] = 1.49;
-		fballs.add(data[14]);
-
-		data[15][0] = 6;  //x 
-		data[15][1] = 1.03; //y
-		data[15][2] = 0.939; //z
-		data[15][3] = 1.6;
-		fballs.add(data[15]);
-
-		data[16][0] = 6.5;  //x 
-		data[16][1] = 1;  //y
-		data[16][2] = 0.21; //z
-		data[16][3] = 1.71;
-		fballs.add(data[16]);
-
-
 
 	}
 
@@ -550,16 +547,4 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		Projectile p = new Projectile();
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
