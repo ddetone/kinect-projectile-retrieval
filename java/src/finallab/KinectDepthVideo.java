@@ -20,7 +20,6 @@ public class KinectDepthVideo extends KinectVideo {
 		super(kinect, _display);	
 
 		f = 585.124;
-		RGB_DEPTH_DIST *= -1;
 		display = _display;
 		kinect.setDepthFormat(DepthFormat.D11BIT);
 		kinect.startDepth(new DepthHandler() {
@@ -107,6 +106,7 @@ public class KinectDepthVideo extends KinectVideo {
 			}			
 		});
 	}	
+	// 0,0 at top left
 	public float getDepthFromDepthPixel(Point p) {
 		int index = p.y*WIDTH + p.x;
 		int depth = 0;

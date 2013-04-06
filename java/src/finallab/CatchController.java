@@ -81,7 +81,7 @@ public class CatchController
 			//update projectile path
 			
 			ball = viewer.update();
-			System.out.println("x:"+ball.x+ " y:" +ball.y+ " z:" +ball.z);
+			// System.out.println("x:"+ball.x+ " y:" +ball.y+ " z:" +ball.z);
 			//bounces = predictor.update(ball);
 			switch(state)
 			{
