@@ -19,9 +19,7 @@ public class KinectDepthVideo extends KinectVideo {
 	public KinectDepthVideo(Device kinect, boolean _display) {
 		super(kinect, _display);	
 
-		f = 586.61;
-		c_x = -4.9;
-		c_y = -8.97;
+		f = 585.124;
 		RGB_DEPTH_DIST *= -1;
 		display = _display;
 		kinect.setDepthFormat(DepthFormat.D11BIT);
@@ -98,15 +96,14 @@ public class KinectDepthVideo extends KinectVideo {
 					depthColor = depthColor << 8;
 					depthColor = depthColor | (b & 0xFF);
 					pixelInts[i] = depthColor;
-					frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
-					
-					//set position to 0 because ByteBuffer is reused to access byte array of new frame
-					//and get() below increments the iterator
-					depthBuf.position(0);
-					if(display)
-						repaint();
-					newImage = true;
 				}
+				frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
+				
+				//set position to 0 because ByteBuffer is reused to access byte array of new frame
+				//and get() below increments the iterator
+				// repaint();
+				depthBuf.position(0);
+				newImage = true;
 			}			
 		});
 	}	
@@ -136,8 +133,8 @@ public class KinectDepthVideo extends KinectVideo {
 		Point pPix = new Point();
 		pPix.x = p.x + C_X;
 		pPix.y = C_Y - p.y;
-		double depth = (double)getDepthFromDepthPixel(pPix);
-		return getWorldCoords(p, depth);
+		double depth = (double)getDepthFromDepthPixel(p);
+		return getWorldCoords(pPix, depth);
 	}
 
 	private float raw_depth_to_meters(int raw_depth)

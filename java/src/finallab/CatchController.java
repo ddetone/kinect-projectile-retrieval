@@ -72,11 +72,17 @@ public class CatchController
 		//go to catchmode
 		int state = 0;
 		int nextState = 0;
-		//ball_t ball = viewer.update();
+		ball_t ball;
 		//bounces = predictor.update(ball);
 		int bounceIndex = -1;
 		while(true)
 		{
+			//update ball points
+			//update projectile path
+			
+			ball = viewer.update();
+			System.out.println("x:"+ball.x+ " y:" +ball.y+ " z:" +ball.z);
+			//bounces = predictor.update(ball);
 			switch(state)
 			{
 				//waiting state
@@ -137,10 +143,6 @@ public class CatchController
 				break;
 
 			}
-			//update ball points
-			//ball = viewer.update();
-			//update projectile path
-			//bounces = predictor.update(ball);
 			state = nextState;
 		}
 	}
@@ -176,8 +178,7 @@ public class CatchController
 	public static void main(String[] args)
 	{
 		CatchController cc = new CatchController(true);
-		while(true)
-			cc.viewer.update();
+		cc.catchStateMachine();
 	}
 		
 }

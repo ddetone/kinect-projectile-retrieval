@@ -18,9 +18,34 @@ public class KinectRGBVideo extends KinectVideo
 	double hueMin,hueMax,satMin,satMax,brightMin,brightMax;
 	int redMin, redMax, greenMin, greenMax, blueMin, blueMax;
 
+	public KinectRGBVideo(Device kinect, boolean _display) {
+		super(kinect, _display);
+		f = 527.273;
+		kinect.startVideo(new VideoHandler() {
+			@Override
+			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				frameData = rgb;
+				int[] pixelInts = new int[WIDTH * HEIGHT];
+				for(int i = 0; i < WIDTH*HEIGHT; i++) {
+					int rgbVal = 0xFF;
+					for(int j = 0; j < 3; j++) {
+						int data = rgb.get() & 0xFF;
+						rgbVal = rgbVal << 8;
+						rgbVal = rgbVal | (data);
+					}
+					pixelInts[i] = rgbVal;
+				}
+				frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
+				rgb.position(0);
+				repaint();
+				newImage = true;
+			}
+		});
+	}
 	public KinectRGBVideo(Device kinect, int colorAnalyzeMode, double[] params) 
 	{
 		super(kinect,true);
+		f = 527.273;
 		if((colorAnalyzeMode>2)||(colorAnalyzeMode == 0))
 		{
 
@@ -40,7 +65,7 @@ public class KinectRGBVideo extends KinectVideo
 					}
 					frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
 					rgb.position(0);
-				//repaint();
+					// repaint();
 					newImage = true;
 				}
 			});
@@ -185,4 +210,43 @@ public class KinectRGBVideo extends KinectVideo
 	{
 		return validImageValue;
 	}	
+	public double guessDepth(int xDiff) {
+		if (xDiff >= 46) {
+			return .8;
+		}
+		else if (xDiff >= 37 && xDiff < 46) {
+			return 1.0;
+		}
+		else if (xDiff >= 32 && xDiff < 37) {
+			return 1.2;
+		}
+		else if (xDiff >= 28 && xDiff < 32) {
+			return 1.4;
+		}
+		else if (xDiff >= 24 && xDiff < 28) {
+			return 1.6;
+		}
+		else if (xDiff >= 22 && xDiff < 24) {
+			return 1.8;
+		}
+		else if (xDiff >= 19 && xDiff < 22) {
+			return 2.0;
+		}
+		else if (xDiff >= 17 && xDiff < 19) {
+			return 2.2;
+		}
+		else if (xDiff >= 15 && xDiff < 17) {
+			return 2.4;
+		}
+		else if (xDiff >= 14 && xDiff < 15) {
+			return 2.6;
+		}
+		else if (xDiff >= 12 && xDiff < 14) {
+			return 2.8;
+		}
+		else {
+			return 3.0;
+		}
+
+	}
 }

@@ -125,10 +125,10 @@ public class KinectView
 			{
 				jf.setLayout(new GridLayout(2,2));
 				pg = new ParameterGUI();
-				pg.addDoubleSlider("HueMin","Hue Min",-.2,1.0,-.2);
-				pg.addDoubleSlider("HueMax","Hue Max",-.2,1.0,1.0);
-				pg.addDoubleSlider("SatMin","Saturation Min",0,1.0,0);
-				pg.addDoubleSlider("SatMax","Saturation Max",0,1.0,1.0);
+				pg.addDoubleSlider("HueMin","Hue Min",-.2,1.0,0.135424);
+				pg.addDoubleSlider("HueMax","Hue Max",-.2,1.0,0.187456);
+				pg.addDoubleSlider("SatMin","Saturation Min",0,1.0,0.320480);
+				pg.addDoubleSlider("SatMax","Saturation Max",0,1.0,0.773490);
 				pg.addDoubleSlider("BrightMin","Brightness Min",0,1.0,0);
 				pg.addDoubleSlider("BrightMax","Brightness Max",0,1.0,1.0);
 				pg.addDoubleSlider("x_param","x_param",0.0,1.0,1.0);
@@ -182,7 +182,11 @@ public class KinectView
 
 		colorStream = new KinectRGBVideo(kinect,1,params);
 		depthStream = new KinectDepthVideo(kinect,display);
-
+		if(display)
+		{
+			depthImg = depthStream.getFrame();
+			rgbImg = colorStream.getFrame();
+		}
 		// Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() 
 		// {
   //   		// public void run() 
@@ -231,9 +235,10 @@ public class KinectView
 				colorStream.changeThreshold((byte)1,params);
 			}
 		}
+
 		while(!colorStream.newImage && !depthStream.newImage);
 		ball_t ballLCM = new ball_t();
-		ballLCM.nanoTime = globalTime;
+		ballLCM.nanoTime = System.nanoTime();
 		colorStream.newImage = false;
 		depthStream.newImage = false;
 		Point poi = new Point();
@@ -290,12 +295,7 @@ public class KinectView
 			}
 		}
 		catch(Exception e){};
-		//System.println(getDepth(depthImg,BALL.center_y*width+BALL.center_x));
-
-		ballLCM.x = BALL.center_x;
-		ballLCM.y = BALL.center_y;
-		ballLCM.z = 4;
-		lcm.publish("6_BALL",ballLCM);
+		
 		Point ballCenter = new Point(BALL.center_x,BALL.center_y);
 		ArrayList<Statistics> depthBlobs = finder.analyzeDepthPartition(depthStream.getBuf(),ballCenter,bound);
 		Statistics ClosestBall = new Statistics();
@@ -306,6 +306,7 @@ public class KinectView
 				ClosestBall = blob;
 			}
 		}
+		System.out.println("depth blobs: " + depthBlobs.size());
 		if(ClosestBall.closestPixel != null)
 		{
 			ClosestBall.center();
@@ -319,14 +320,23 @@ public class KinectView
 					catch(Exception e){};
 				}
 			}
-			//System.out.println(ClosestBall.closestDepth);
+			System.out.println("x-pix diff: " + (ClosestBall.max_x - ClosestBall.min_x));
+			Point3D coord = depthStream.getWorldCoords(ClosestBall.closestPixel);
+			// System.out.println("x:"+coord.x + " y:"+coord.y + " z:"+coord.z);
+			ballLCM.x = coord.x;
+			ballLCM.y = coord.y;
+			ballLCM.z = coord.z;
+			if(tracking)
+				lcm.publish("6_BALL",ballLCM);
+		// try
 		}
-		try
-		{
-			Point3D realWorld = depthStream.getWorldCoords(ClosestBall.closestPixel);
-			System.out.println(realWorld.x + " " + realWorld.y + " " + realWorld.z);
-		}
-		catch(Exception e){};
+
+
+		// {
+		// 	// Point3D realWorld = depthStream.getWorldCoords(ClosestBall.closestPixel);
+		// 	// System.out.println(realWorld.x + " " + realWorld.y + " " + realWorld.z);
+		// }
+		// catch(Exception e){};
 		if(display)
 		{
 			rgbJim.setImage(rgbImg);
@@ -385,13 +395,11 @@ public class KinectView
 			x_param = kv.pg.gd("x_param");
 			y_param = kv.pg.gd("y_param");
 		}
-		
-
-		kv.depthImg = kv.depthStream.getFrame();
-		kv.rgbImg = kv.colorStream.getFrame();
 		while(true) 
 		{
 			while(!kv.colorStream.newImage && !kv.depthStream.newImage);
+			// System.out.println("Got new Image");
+			// System.out.println(System.currentTimeMillis());
 			ball_t ballLCM = new ball_t();
 			ballLCM.nanoTime = kv.globalTime;
 			kv.colorStream.newImage = false;

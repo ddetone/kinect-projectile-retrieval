@@ -44,6 +44,11 @@ public class CalibrateCam
 
 	final boolean rgb;
 
+	ParameterGUI pg;
+
+	int clicks = 0;
+	Point p1;
+
 	CalibrateCam(boolean _rgb)
 	{
 		rgb = _rgb;
@@ -63,14 +68,14 @@ public class CalibrateCam
 		window.setVisible(true);
 		KinectVideo cameraFeed;
 		if (rgb) {
-			rgbFeed = new KinectRGBVideo(kinect,0, null);
-			depthFeed = new KinectDepthVideo(kinect, true);
-			depthFeed.addMouseListener(depthPrinter);
-			windowD = new JFrame("depth");
-			windowD.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-			windowD.setVisible(true);
-			windowD.setContentPane(depthFeed);
-			windowD.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
+			rgbFeed = new KinectRGBVideo(kinect, true);
+			// depthFeed = new KinectDepthVideo(kinect, true);
+			// depthFeed.addMouseListener(depthPrinter);
+			// windowD = new JFrame("depth");
+			// windowD.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+			// windowD.setVisible(true);
+			// windowD.setContentPane(depthFeed);
+			// windowD.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
 
 			cameraFeed = rgbFeed;
 		}
@@ -78,20 +83,32 @@ public class CalibrateCam
 			depthFeed = new KinectDepthVideo(kinect, true);
 			cameraFeed = depthFeed;
 		}
-		cameraFeed.addMouseListener(calibrater);
+		// cameraFeed.addMouseListener(calibrater);
+		cameraFeed.addMouseListener(xyPrinter);
 		window.setContentPane(cameraFeed);
+		// window.add(pg);
 		window.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
 		window.addWindowListener(new WindowClose(this));
+
+		// pg = new ParameterGUI();
+		// pg.addDoubleSlider("f", "f", 200, 1000, 200);
+		// JFrame slider = new JFrame("calibrate f");
+		// slider.add(pg);
+		// slider.setSize(80, 20);
+		// slider.setVisible(true);
 	}
 	
 	MouseListener calibrater = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
+
 			Point p = e.getPoint();
+
 			//pixel points of click
 			int pX = p.x - C_X;
 			int pY = C_Y - p.y;
+
 			
-			//real world points of click
+			// real world points of click
 			// double rZ = .85;
 			double rZ = 0d;
 			if (rgb)
@@ -112,6 +129,25 @@ public class CalibrateCam
 	MouseListener depthPrinter = new MouseAdapter() {
 		public void mouseClicked(MouseEvent e) {
 			System.out.println((double)depthFeed.getDepthFromDepthPixel(e.getPoint()));			
+		}
+	};
+	MouseListener xyPrinter = new MouseAdapter() {
+		public void mouseClicked(MouseEvent e) {
+			Point p = e.getPoint();
+			//pixel points of click
+			int pX = p.x - C_X;
+			int pY = C_Y - p.y;
+						if (clicks == 0) {
+				p1 = p;
+				clicks++;
+			}
+			else {
+				// double f = pg.gd("f");
+				// double x1 = (p1.x) * (1 / f);
+				// double x2 = (p.x) * (1 / f);
+				System.out.println("x diff: " + (p.x - p1.x));
+				clicks = 0;
+			}
 		}
 	};
 	

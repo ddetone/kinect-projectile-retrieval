@@ -25,8 +25,6 @@ public abstract class KinectVideo extends JPanel {
 
 	//calibration params
 	protected double f;
-	protected double c_x;
-	protected double c_y;
 	
 	public KinectVideo(Device kinect, boolean _display) {
 		setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -51,15 +49,15 @@ public abstract class KinectVideo extends JPanel {
     public Point3D getWorldCoords(Point p, double depth) {
     	Point3D world = new Point3D();
 		world.z = depth;
-		world.x = (p.x - c_x) * (world.z / f);
-		world.y = (p.y - c_y) * (world.z / f);
+		world.x = (p.x) * (world.z / f);
+		world.y = (p.y) * (world.z / f);
 		return world;
     }
 	public Point getPixFromWorld(Point3D world) {
 		// world.x += RGB_DEPTH_DIST;
 		Point pix = new Point();
-		pix.x = (int)((f * world.x / world.z) + c_x);
-		pix.y = (int)((f * world.y / world.z) + c_y);
+		pix.x = (int)(f * world.x / world.z);
+		pix.y = (int)(f * world.y / world.z);
 		return pix;
 	}
     public void pause() {
