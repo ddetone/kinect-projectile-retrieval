@@ -22,7 +22,7 @@ public class KinectDepthVideo extends KinectVideo {
 	private final static int MAX_FRAMES = 100;
 	private final static int THRESH = 50;
 
-	private short [] depthAvgs;
+	private double [] depthAvgs;
 	private boolean [] validPixels;
 	private int numFrames;
 	
@@ -30,7 +30,7 @@ public class KinectDepthVideo extends KinectVideo {
 		super(kinect, _display);	
 
 		numFrames = 0;
-		depthAvgs = new short[WIDTH*HEIGHT];
+		depthAvgs = new double[WIDTH*HEIGHT];
 		validPixels = new boolean[WIDTH*HEIGHT];
 		for (int i = 0; i < WIDTH*HEIGHT; i++) {
 			depthAvgs[i] = 0;
@@ -40,8 +40,9 @@ public class KinectDepthVideo extends KinectVideo {
 		f = 585.124;
 		display = _display;
 		final ParameterGUI pg = new ParameterGUI();
-		pg.addIntSlider("thresh", "thresh", 1, 100, 50);
-		pg.addIntSlider("frames", "frames", 1, 1000, 15);
+		pg.addDoubleSlider("thresh", "thresh", 1, 100, 50);
+		pg.addIntSlider("frames", "frames", 1, 1000, 200);
+		pg.addDoubleSlider("learning", "learning", 0.0, 1.0, .05);
 		JFrame slider = new JFrame("thresh slider");
 
 		slider.setSize(300, 100);
@@ -57,6 +58,7 @@ public class KinectDepthVideo extends KinectVideo {
 				frameData = depthBuf;
 				timestamp = _timestamp;
 				int[] pixelInts = new int[WIDTH * HEIGHT];
+				int[] avgInts = new int[WIDTH*HEIGHT];
 
 				//ballDepth = getDepth(depthBuf,BALL.center_x*width + BALL.center_y);
 
@@ -72,10 +74,11 @@ public class KinectDepthVideo extends KinectVideo {
 					boolean valid = false;
 					if(depth < 1000)
 					{
-						if (/*depth<1000 &&*/ Math.abs(depth - depthAvgs[i]) > pg.gi("thresh")) {
+						if (/*depth<1000 &&*/ Math.abs((double)depth - depthAvgs[i]) > pg.gd("thresh")) {
 							valid = true;
 						}
-						depthAvgs[i] = (short)(((depthAvgs[i] * numFrames) + depth) / (numFrames + 1));
+						//double depthFactor = (((depthAvgs[i] * (1.0-pg.gd("learning")) * (double)numFrames) + (pg.gd("learning")*(double)depth)) / (double)(numFrames + 1));
+						depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depth) / (double)(numFrames + 1));
 					}
 					validPixels[i] = valid;
 
@@ -141,8 +144,10 @@ public class KinectDepthVideo extends KinectVideo {
 					}
 				}
 				frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
+				//if(numFrames >= pg.gi("frames"))
+					//numFrames--;
 				numFrames = (numFrames + 1) % pg.gi("frames");
-				
+				//numFrames++;
 				//set position to 0 because ByteBuffer is reused to access byte array of new frame
 				//and get() below increments the iterator
 				// repaint();
