@@ -33,8 +33,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	ArrayList<double[]> landings;
 	Parabola[] bounces;
 	double[] v_not; 						//x,y,z initial velocities, used in model
-	double starttime;						//time when ball is released
-	
+
 	final double nano = 1000000000;
 	final double g = 9.806; 				//g in meters/second squared
 	final double ball_radius = 0.06; 		//must be in meters
@@ -162,20 +161,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		}
 	}
 
-	public void addBall(double[] xyzt)
-	{
-		if (fake)
-		{
-			balls.add(fballs.get(num_balls));
-			num_balls++;
-		}
-		else
-		{
-			balls.add(xyzt);
-			num_balls++;
-		}
-	}
-
 	//return false if not yet released
 	public boolean CalculateParabola()
 	{
@@ -211,9 +196,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		double[] B = new double[3*num_corr];
 		double[] x = new double[6];
 
+		double starttime = correspondences.get(num_balls-1)[3];
+
 		for (int i=0; i<correspondences.size(); i++)
 		{
-			double t = correspondences.get(i)[3];
+			double t = correspondences.get(i)[3] - starttime;
 			A[i][0] = 1;
 			A[i][1] = t;
 			A[i+num_corr][2] = 1;
@@ -235,7 +222,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		double[][] AtA = LinAlg.matrixAtB(A,A);
 		double[][] invAtA = LinAlg.inverse(AtA);
-		double[][] invAtAAt = LinAlg.matrixABt(invAtA,LinAlg.transpose(A));
+		double[][] invAtAAt = LinAlg.matrixABt(invAtA,A);
 		x = LinAlg.matrixAB(invAtAAt,B);
 
 		if (verbose)
@@ -250,11 +237,15 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			LinAlg.print(x);
 		}
 
+
+
+
+
 		double time_aloft = 2;
 		for (int i=0; i<20; i++)
 		{
 			double[] pred = new double[3];
-			double dt = balls.get(num_balls-1)[3] + (time_aloft/20)*i;
+			double dt = (time_aloft/20)*i;
 			System.out.printf("dt is:%f\n",dt);
 			pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 			pred[1] = x[2] + (x[3] * dt);
@@ -262,6 +253,10 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			pballs.add(pred);	
 		} 
 		
+
+
+
+
 
 		//need to calculate errors
 
@@ -429,6 +424,21 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		return predict_loc;
 	}
 */
+
+	public void addBall(double[] xyzt)
+	{
+		if (fake)
+		{
+			balls.add(fballs.get(num_balls));
+			num_balls++;
+		}
+		else
+		{
+			balls.add(xyzt);
+			num_balls++;
+		}
+	}
+
 	public void createFakeData()
 	{
 		double[][] data = new double[20][4];
@@ -468,7 +478,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		data[5][0] = 2.5;  //x 
 		data[5][1] = 1.0;
 		data[5][2] = 3.27;  //z
-		data[5][3] = 0.9*nano;
+		data[5][3] = 0.9;
 		fballs.add(data[5]);
 
 		data[6][0] = 3;     //x 
