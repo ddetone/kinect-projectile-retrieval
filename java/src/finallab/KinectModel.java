@@ -32,6 +32,7 @@ public class KinectModel
 	VisCanvas vc = new VisCanvas(vl);
 
 	KinectDepthVideo kdv;
+	KinectRGBVideo krv;
 
 	Context ctx;
 	Device kinect;
@@ -51,12 +52,17 @@ public class KinectModel
 		jf.setVisible(true);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		vl.cameraManager.uiLookAt(
-		          new double[] {1, 1, 1 },
-		          new double[] { 0,  0, 0.00000 },
-		          new double[] { 0.13802,  0.40084, 0.90569 }, true);
+		vl.cameraManager.uiLookAt(new double[] {-2.66075, 1.22066, 1.70393 },
+				new double[] {1.75367, -0.06226,  0.00000 },
+				new double[] {0.33377, -0.09695,  0.93766 }, true);
 
 		kdv = new KinectDepthVideo(kinect, false);
+		krv = new KinectRGBVideo(kinect, true);
+		JFrame rgbFrame = new JFrame("rgb feed");
+		rgbFrame.setContentPane(krv);
+		rgbFrame.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
+		rgbFrame.setVisible(true);
+		
 	}
 
 	public static void drawWorld(KinectModel km)
@@ -64,17 +70,18 @@ public class KinectModel
 		// VisChain env = new VisChain();
 		VisChain world = new VisChain();
 		ArrayList<double[]> worldPoints = new ArrayList<double[]>();
-		for (int i = 0; i < KinectVideo.WIDTH * KinectVideo.HEIGHT; i += 500) {
+		for (int i = 0; i < KinectVideo.WIDTH * KinectVideo.HEIGHT; i += 1) {
 			Point currCoord = new Point();
 			currCoord.x = (i % KinectVideo.WIDTH) - KinectVideo.C_X;
 			currCoord.y = KinectVideo.C_Y - (i / KinectVideo.WIDTH);
 			Point3D worldPoint = km.kdv.getWorldCoords(currCoord);
-			if (!(worldPoint.x == 0 && worldPoint.y == 0 && worldPoint.z == 0) && worldPoint.z < 2) {
+			if (!(worldPoint.x == 0 && worldPoint.y == 0 && worldPoint.z == 0) && worldPoint.z < 3) {
 				double [] point = {worldPoint.x, worldPoint.y, worldPoint.z};
-				System.out.println("x:" + worldPoint.x + " y:" + worldPoint.y + " z:" + worldPoint.z);
+//				System.out.println("x:" + worldPoint.x + " y:" + worldPoint.y + " z:" + worldPoint.z);
 				worldPoints.add(point);
 			}
 		}
+//		km.kdv.stop();
 		VisWorld.Buffer vb = km.vw.getBuffer("Environment");
 		vb.addBack(new VzPoints(new VisVertexData(worldPoints), new VzPoints.Style(Color.BLUE, 2)));
 		vb.swap();
@@ -85,12 +92,12 @@ public class KinectModel
 	public static void main(String[] args) throws Exception
 	{
 		KinectModel km = new KinectModel();
-		// while(true)
-		// {
+		 while(true)
+		 {
 
-			Thread.sleep(2000);
+//			Thread.sleep(2000);
 			drawWorld(km);
-		// }
+		 }
 
 
 	}

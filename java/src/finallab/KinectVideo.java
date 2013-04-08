@@ -21,6 +21,7 @@ public abstract class KinectVideo extends JPanel {
 	
 	protected BufferedImage frame;
 	protected ByteBuffer frameData;
+	protected int timestamp;
 	protected boolean display;
 
 	//calibration params
@@ -65,5 +66,8 @@ public abstract class KinectVideo extends JPanel {
     }
     public void resume() {
     	display = true;
+    }
+    public int getLatestTime() {
+    	return timestamp;
     }
 }
