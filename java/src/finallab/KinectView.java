@@ -125,14 +125,22 @@ public class KinectView
 			{
 				jf.setLayout(new GridLayout(2,2));
 				pg = new ParameterGUI();
-				pg.addDoubleSlider("HueMin","Hue Min",-.2,1.0,0.135424);
-				pg.addDoubleSlider("HueMax","Hue Max",-.2,1.0,0.187456);
-				pg.addDoubleSlider("SatMin","Saturation Min",0,1.0,0.320480);
-				pg.addDoubleSlider("SatMax","Saturation Max",0,1.0,0.773490);
-				pg.addDoubleSlider("BrightMin","Brightness Min",0,1.0,0);
+				//tennis ball
+				// pg.addDoubleSlider("HueMin","Hue Min",-.2,1.0,0.135424);
+				// pg.addDoubleSlider("HueMax","Hue Max",-.2,1.0,0.187456);
+				// pg.addDoubleSlider("SatMin","Saturation Min",0,1.0,0.320480);
+				// pg.addDoubleSlider("SatMax","Saturation Max",0,1.0,0.773490);
+				// pg.addDoubleSlider("BrightMin","Brightness Min",0,1.0,0);
+				// pg.addDoubleSlider("BrightMax","Brightness Max",0,1.0,1.0);
+				//sky ball
+				pg.addDoubleSlider("HueMin","Hue Min",-.2,1.0,0.2048);
+				pg.addDoubleSlider("HueMax","Hue Max",-.2,1.0,0.4534);
+				pg.addDoubleSlider("SatMin","Saturation Min",0,1.0,0.3228);
+				pg.addDoubleSlider("SatMax","Saturation Max",0,1.0,1.0);
+				pg.addDoubleSlider("BrightMin","Brightness Min",0,1.0,.313);
 				pg.addDoubleSlider("BrightMax","Brightness Max",0,1.0,1.0);
-				pg.addDoubleSlider("x_param","x_param",0.0,1.0,1.0);
-				pg.addIntSlider("y_param","y_param",0,30,27);
+				pg.addDoubleSlider("x_param","x_param",0d,1d,1d);
+				pg.addIntSlider("y_param","y_param",1,500,100);
 				jf.add(pg, 1,0);
 				jf.add(rgbJim, 0, 0);
 				jf.add(depthJim, 0, 1);
@@ -205,6 +213,7 @@ public class KinectView
 
 	public ball_t update()
 	{
+		BALL = null;
 		double params[] = new double[6];
 		if(display)
 		{
@@ -241,36 +250,51 @@ public class KinectView
 		ballLCM.nanoTime = System.nanoTime();
 		colorStream.newImage = false;
 		depthStream.newImage = false;
-		Point poi = new Point();
-		poi.x = 320;
-		poi.y = 240;
-		ArrayList<Statistics> blobs = finder.analyzePartition(colorStream.getValidImage(), poi, 640,480, "center");
-		Statistics BiggestBlob = new Statistics();
-		for(Statistics blob : blobs)
-		{
-			if(blob.N > 50)
-			{
-				if(BiggestBlob.N < blob.N)
-					BiggestBlob = blob;
-				blob.center();
-			}
-			BALL = BiggestBlob;
-			BALL.center();
+		// Point poi = new Point();
+		// poi.x = 320;
+		// poi.y = 240;
+		// ArrayList<Statistics> blobs = finder.analyzePartition(colorStream.getValidImage(), poi, 640,480, "center");
+		// Statistics BiggestBlob = new Statistics();
+		// for(Statistics blob : blobs)
+		// {
+		// 	if(blob.N > 50)
+		// 	{
+		// 		if(BiggestBlob.N < blob.N)
+		// 			BiggestBlob = blob;
+		// 		blob.center();
+		// 	}
+		// 	BALL = BiggestBlob;
+		// 	BALL.center();
 
-		}
-		trajectory.add(BiggestBlob);
-		for(Statistics ball : trajectory)
-		{
-			for(int y = ball.center_y-3; y < ball.center_y+3; y++)
-			{
-				for(int x = ball.center_x-3; x < ball.center_x+3;x++)
-				{
-					try{
-						rgbImg.setRGB(x,y,0xFF000000);
-					}
-					catch(Exception e){};	
-				}
+		// }
+		// trajectory.add(BiggestBlob);
+		// for(Statistics ball : trajectory)
+		// {
+		// 	for(int y = ball.center_y-3; y < ball.center_y+3; y++)
+		// 	{
+		// 		for(int x = ball.center_x-3; x < ball.center_x+3;x++)
+		// 		{
+		// 			try{
+		// 				rgbImg.setRGB(x,y,0xFF000000);
+		// 			}
+		// 			catch(Exception e){};	
+		// 		}
+		// 	}
+		// }
+
+		ArrayList<Statistics> blobs = finder.analyze2(depthStream.getValidImageArray());
+		Statistics ball = null;
+
+		for (Statistics curr : blobs) {
+			if (ball == null) {
+				ball = curr;
+				continue;
 			}
+			if (curr.N > ball.N) {
+				System.out.println("blob size: " + curr.N + ", blob abs: " + curr.abs());
+				ball = curr;
+			}
+			
 		}
 
 		//if not tracking keep kv.trajectory to just one index
@@ -280,82 +304,104 @@ public class KinectView
 		}
 
 		//draw bounding box to determine if ball will fall in place
-		int bound = (int)(x_param*160.0);
-		try
-		{
-			for(int y = BALL.center_y-(bound/2); y < BALL.center_y+(bound/2); y++)
-			{
-				// depthImg.setRGB(BALL.center_x-(bound/2),y,0xFFFFFFFF);
-				// depthImg.setRGB(BALL.center_x+(bound/2),y,0xFFFFFFFF);
-			}
-			for(int x = BALL.center_x-(bound/2); x < BALL.center_x+(bound/2); x++)
-			{
-				// depthImg.setRGB(x,BALL.center_y-(bound/2),0xFFFFFFFF);
-				// depthImg.setRGB(x,BALL.center_y+(bound/2),0xFFFFFFFF);
-			}
-		}
-		catch(Exception e){};
+		// int bound = (int)(x_param*160.0);
+		// try
+		// {
+		// 	for(int y = BALL.center_y-(bound/2); y < BALL.center_y+(bound/2); y++)
+		// 	{
+		// 		// depthImg.setRGB(BALL.center_x-(bound/2),y,0xFFFFFFFF);
+		// 		// depthImg.setRGB(BALL.center_x+(bound/2),y,0xFFFFFFFF);
+		// 	}
+		// 	for(int x = BALL.center_x-(bound/2); x < BALL.center_x+(bound/2); x++)
+		// 	{
+		// 		// depthImg.setRGB(x,BALL.center_y-(bound/2),0xFFFFFFFF);
+		// 		// depthImg.setRGB(x,BALL.center_y+(bound/2),0xFFFFFFFF);
+		// 	}
+		// }
+		// catch(Exception e){};
 		
-		Point ballCenter = new Point(BALL.center_x,BALL.center_y);
-		ArrayList<Statistics> depthBlobs = finder.analyzeDepthPartition(depthStream.getBuf(),ballCenter,bound);
-		Statistics ClosestBall = new Statistics();
-		for(Statistics blob : depthBlobs)
+		if(ball != null)
 		{
-			if(blob.closestDepth < ClosestBall.closestDepth)
-			{
-				ClosestBall = blob;
-			}
-		}
-		// System.out.println("depth blobs: " + depthBlobs.size());
-		if(ClosestBall.closestPixel != null)
-		{
-			ClosestBall.center();
-			for(int y = ClosestBall.closestPixel.y-3; y < ClosestBall.closestPixel.y+3; y++)
-			{
-				for(int x = ClosestBall.closestPixel.x-3; x < ClosestBall.closestPixel.x+3;x++)
-				{
-					try{
-						// depthImg.setRGB(x,y,0xFFFFFFFF);
-					}
-					catch(Exception e){};
-				}
-			}
+			// ClosestBall.center();
+			// for(int y = ClosestBall.closestPixel.y-3; y < ClosestBall.closestPixel.y+3; y++)
+			// {
+			// 	for(int x = ClosestBall.closestPixel.x-3; x < ClosestBall.closestPixel.x+3;x++)
+			// 	{
+			// 		try{
+			// 			// depthImg.setRGB(x,y,0xFFFFFFFF);
+			// 		}
+			// 		catch(Exception e){};
+			// 	}
+			// }
 			// System.out.println("x-pix diff: " + (ClosestBall.max_x - ClosestBall.min_x));
 
 			// Point3D coord = depthStream.getWorldCoords(ClosestBall.closestPixel);
-			Point ballCoord = new Point(BALL.center_x - KinectVideo.C_X, KinectVideo.C_Y - BALL.center_y);
+			// Point ballCoord = new Point(ball.center_x - KinectVideo.C_X, KinectVideo.C_Y - ball.center_y);
 			// System.out.println("ballCoord: " + ballCoord.x + ", " + ballCoord.y);
-			Point3D coord = colorStream.getWorldCoords(ballCoord, colorStream.guessDepth(BiggestBlob.max_x - BiggestBlob.min_x));
-			coord.x += KinectVideo.RGB_DEPTH_DIST;
-			Point depthCoord = depthStream.getPixFromWorld(coord);
-			// System.out.println("depthCoord: " + depthCoord.x + ", " + depthCoord.y);
-			Point depthPix = new Point(depthCoord.x + KinectVideo.C_X, KinectVideo.C_Y - depthCoord.y);
-			depthPix.y -= y_param;
-			// System.out.println("depthPix: " + depthPix.x + ", " + depthPix.y);
-			for(int y = depthPix.y-3; y < depthPix.y+3; y++)
-			{
-				for(int x = depthPix.x-3; x < depthPix.x+3;x++)
-				{
-					try{
-						depthImg.setRGB(x,y,0xFFFFFFFF);
-					}
-					catch(Exception e){
-						// System.out.println(x + " " + y);
-					};
-				}
-			}
-			try {
-				coord.z = depthStream.getDepthFromDepthPixel(depthPix);
-			}
-			catch(Exception e) {
+			// double depthGuess = colorStream.guessDepth(ball.max_x - ball.min_x);
+			// System.out.println("guess: " + depthGuess);
 
-			} 
-			// System.out.println("depth: " + depthStream.getDepthFromDepthPixel(depthPix));
-			ballLCM.x = coord.x;
-			ballLCM.y = coord.y + 0.84;
-			ballLCM.z = coord.z;
-			if(tracking)
-				lcm.publish("6_BALL",ballLCM);
+
+
+			// Point3D coord = colorStream.getWorldCoords(ballCoord, colorStream.guessDepth(ball.max_x - ball.min_x));
+			// coord.x += KinectVideo.RGB_DEPTH_DIST;
+			// Point depthCoord = depthStream.getPixFromWorld(coord);
+			// // System.out.println("depthCoord: " + depthCoord.x + ", " + depthCoord.y);
+			// Point depthPix = new Point(depthCoord.x + KinectVideo.C_X, KinectVideo.C_Y - depthCoord.y);
+			// // depthPix.y -= y_param;
+			// depthPix.y -= 16;
+			// depthPix.x -= depthPix.x * .003;
+
+			// int ballWidth = ball.max_x - ball.min_x;
+
+			// int ballBound = ballWidth * 2;
+
+			// int ballArea = (int)(3.14 * (ballWidth/2) * (ballWidth/2));
+
+			// ArrayList<Statistics> depthBlobs = finder.analyzeDepthPartition(depthStream.getBuf(),depthPix, ballBound, ballArea);
+			// // System.out.println("num blobs " + depthBlobs.size());
+			// Statistics ClosestBall = new Statistics();
+			// for(Statistics blob : depthBlobs)
+			// {
+			// 	if(blob.closestDepth < ClosestBall.closestDepth)
+			// 	{
+			// 		ClosestBall = blob;
+			// 	}
+			// }
+			// depthPix = ClosestBall.closestPixel;
+			Point depthPix = ball.center();
+			Point depthCoord = new Point(depthPix.x - KinectVideo.C_X, KinectVideo.C_Y - depthPix.y);
+			Point3D coord = depthStream.getWorldCoords(depthPix);
+			if (depthPix != null) {
+				// System.out.println("depth blobs: " + depthBlobs.size());
+				// System.out.println("time diff: " + (depthStream.getLatestTime() - colorStream.getLatestTime()));
+				//System.out.println("depthPix: " + depthPix.x + ", " + depthPix.y);
+				for(int y = depthPix.y-3; y < depthPix.y+3; y++)
+				{
+					for(int x = depthPix.x-3; x < depthPix.x+3;x++)
+					{
+						try{
+							depthImg.setRGB(x,y,0xFFFF0000);
+						}
+						catch(Exception e){
+							// System.out.println(x + " " + y);
+						};
+					}
+				}
+				try {
+					// coord.z = depthStream.getDepthFromDepthPixel(depthPix);
+					// System.out.println("depth: " + coord.z);
+				}
+				catch(Exception e) {
+
+				} 
+				// System.out.println("depth: " + depthStream.getDepthFromDepthPixel(depthPix));
+				ballLCM.x = coord.x;
+				ballLCM.y = coord.y + 0.84;
+				ballLCM.z = coord.z;
+				//if(tracking)
+					lcm.publish("6_BALL",ballLCM);
+			}
 		// try
 		}
 
