@@ -37,7 +37,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	final double nano = 1000000000;
 	final double g = 9.806; 				//g in meters/second squared
 	final double ball_radius = 0.06; 		//must be in meters
-	final double error_thresh = 0.25;
+	final double error_thresh = 0.02;
 	final int num_bounces = 4;
 	final boolean DEFAULT_RELEASED = false;	//used in debugging
 	final boolean fake = true;
@@ -286,83 +286,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		else
 			return false;
 
-		/*
-		double time_aloft = 2;
-		for (int i=0; i<20; i++)
-		{
-			double[] pred = new double[3];
-			double dt = (time_aloft/20)*i;
-			System.out.printf("dt is:%f\n",dt);
-			pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
-			pred[1] = x[2] + (x[3] * dt);
-			pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
-			pballs.add(pred);	
-		} 
-		*/
 	}
-/*
-	public boolean DetermineReleased()
-	{
 
-		//update the velocity between balls at t-2 and t-1
-		double prev_dt = balls.get(1)[3] - balls.get(0)[3];
-		v_not[0] = (balls.get(1)[0] - balls.get(0)[0]) / prev_dt;
-		v_not[1] = (balls.get(1)[1] - balls.get(0)[1]) / prev_dt;
-		v_not[2] = (balls.get(1)[2] - balls.get(0)[2]) / prev_dt;		
-
-		double cur_dt = balls.get(2)[3] - balls.get(1)[3];
-		double[] predict_loc = Predict(cur_dt, 1); //predict location of ball 1 (first potentially released ball)
-		
-		double[] errors = new double[3];
-		errors[0] = predict_loc[0]-balls.get(2)[0];
-		errors[1] = predict_loc[1]-balls.get(2)[1];
-		errors[2] = predict_loc[2]-balls.get(2)[2];
-
-		if (verbose)
-		{
-			if (fake) System.out.printf("fake_index: %d\n",fake_index);
-			System.out.printf("zeroballx: %f\n",balls.get(0)[0]);
-			System.out.printf("zerobally: %f\n",balls.get(0)[1]);
-			System.out.printf("zeroballz: %f\n",balls.get(0)[2]);
-			System.out.printf("zeroballt: %f\n",balls.get(0)[3]);
-			System.out.printf("oneballx: %f\n",balls.get(1)[0]);
-			System.out.printf("onebally: %f\n",balls.get(1)[1]);
-			System.out.printf("oneballz: %f\n",balls.get(1)[2]);
-			System.out.printf("oneballt: %f\n",balls.get(1)[3]);
-			System.out.printf("recentballx: %f\n",balls.get(2)[0]);
-			System.out.printf("recentbally: %f\n",balls.get(2)[1]);
-			System.out.printf("recentballz: %f\n",balls.get(2)[2]);
-			System.out.printf("recentballt: %f\n",balls.get(2)[3]);
-			System.out.printf("prev_dt: %f\n", prev_dt);
-			System.out.printf("cur_dt: %f\n", cur_dt);
-			System.out.printf("v_not[x] (m/s): %f\n",v_not[0]);
-			System.out.printf("predict_loc[x]: %f\n",predict_loc[0]);
-			System.out.printf("errors[x]: %f\n",errors[0]);
-			System.out.printf("v_not[y] (m/s): %f\n",v_not[1]);
-			System.out.printf("predict_loc[y]: %f\n",predict_loc[1]);
-			System.out.printf("errors[y]: %f\n",errors[1]);
-			System.out.printf("v_not[z] (m/s): %f\n",v_not[2]);
-			System.out.printf("predict_loc[z]: %f\n",predict_loc[2]);
-			System.out.printf("errors[z]: %f\n",errors[2]);						
-		}
-
-		double[] position = new double[3];
-		position[0] = balls.get(2)[0];
-		position[1] = balls.get(2)[1];
-		position[2] = balls.get(2)[2];
-
-		//double e = Math.abs(predict_loc[0]-position[0])+Math.abs(predict_loc[1]-position[1])+Math.abs(predict_loc[2]-position[2]);
-		double e = LinAlg.distance(predict_loc,position);
-
-		System.out.printf("e:%f\n\n",e) ;
-		//if (LinAlg.distance(predict_loc, balls.get(2)) < 0.2)
-		if (e<0.25)
-			return true;
-		else
-			return false;
-
-	}
-*/
 	public void DrawBalls()
 	{
 
@@ -383,7 +308,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		{
 			double[] pred = new double[3];
 			double dt = (time_aloft/20)*i;
-			System.out.printf("dt is:%f\n",dt);
 			pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 			pred[1] = x[2] + (x[3] * dt);
 			pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
@@ -391,24 +315,25 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		} 
 
 
-
+		/*
 		for (int i=0; i<pballs.size(); i++)
 		{
 			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
 			vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[1],pballs.get(i)[2]),pball));			
-		}
+		}*/
 
 		//pballs.clear();
 
-		//vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));	
+		vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));	
 
-/*
-		if (landings.size() > 0)
+
+		for (int i=0; i<num_bounces; i++)
 		{
 			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.green));
-			vb.addBack(new VisChain(LinAlg.translate(landings.get(0)[0],landings.get(0)[1],landings.get(0)[2]), land1));
+			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
+						bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
 		}
-*/
+
 		vb.addBack(new VzAxes());
 		vb.swap();
 
@@ -455,71 +380,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 	}
 
-	/*
-	public void GeneratePrediction()
-	{
-
-		double[] cur_v_not = new double[3];
-
-        for (int i=0; i<4; i++)
-        {
-        	if (i==0)
-        		cur_v_not = v_not;
-
-			double a = -0.5*g;
-			double b = cur_v_not[2];
-			double c = balls.get(1)[2]-ball_radius; //last in hand position
-			//I subtracted ball_radius because we are actually solving when the bottom of the ball
-			//hits the ground, not the center, which is approximated by the kinect sensor
-
-			b = b / a;
-			c = c / a;
-
-			double discriminant = b*b - 4.0*c;
-	        double sqroot =  Math.sqrt(discriminant);
-
-	        double root1 = (-b + sqroot) / 2.0;
-	        double root2 = (-b - sqroot) / 2.0;
-	        double time_aloft = 0;
-
-	        if (root1 > 0)
-	        	time_aloft = root1;
-	        else if (root2 > 0)
-	        	time_aloft = root2;
-
-	        cur_landing[0] = cur_v_not[0]*time_aloft + balls.get(1)[0];
-	        cur_landing[1] = cur_v_not[1]*time_aloft + balls.get(1)[1];
-	        cur_landing[2] = ball_radius;
-
-	        if (verbose) 
-	        {
-		        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
-		        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
-				System.out.printf("root1:%f root2:%f time_aloft:%f\n", root1, root2, time_aloft);
-				System.out.printf("cur_landingX:%f, cur_landingY:%f cur_landingZ:%f\n\n", cur_landing[0],
-					 cur_landing[1], cur_landing[2]);
-			}
-
-			landings.add(cur_landing);
-
-			int num_plotted = 20;
-			for (int j=1; j<num_plotted; j++)
-			{
-				pballs.add(Predict((time_aloft/num_plotted)*(double)j, 1)); //use last held position as initial position
-			}
-		}
-	}
-
-	public double[] Predict(double dt, int ballindex)
-	{
-		double[] predict_loc = new double[3]; 
-		predict_loc[0] = balls.get(ballindex)[0] + (v_not[0] * dt); //deltaX = Vo,x * dt
-		predict_loc[1] = balls.get(ballindex)[1] + (v_not[1] * dt);
-		predict_loc[2] = balls.get(ballindex)[2] + (v_not[2] * dt) - 0.5*g*dt*dt; 	
-		return predict_loc;
-	}
-*/
-
 	public void addBall(double[] xyzt)
 	{
 		if (fake)
@@ -540,14 +400,17 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		//double nano = 1000000000;
 
+
+
+
 		data[0][0] = 0;  //x 
 		data[0][1] = 1;
-		data[0][2] = 2.02;  //z
+		data[0][2] = 0;  //z
 		data[0][3] = 0.4;
 		fballs.add(data[0]);
 
 		data[1][0] = 0.5;  //x 
-		data[1][1] = 1.0;  //y
+		data[1][1] = 2.0;  //y
 		data[1][2] = 2.451; //z
 		data[1][3] = 0.5;
 		fballs.add(data[1]);
