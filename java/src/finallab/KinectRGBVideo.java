@@ -23,8 +23,9 @@ public class KinectRGBVideo extends KinectVideo
 		f = 527.273;
 		kinect.startVideo(new VideoHandler() {
 			@Override
-			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
 				frameData = rgb;
+				timestamp = _timestamp; 
 				int[] pixelInts = new int[WIDTH * HEIGHT];
 				for(int i = 0; i < WIDTH*HEIGHT; i++) {
 					int rgbVal = 0xFF;
@@ -51,8 +52,9 @@ public class KinectRGBVideo extends KinectVideo
 
 			kinect.startVideo(new VideoHandler() {
 				@Override
-				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
 					frameData = rgb;
+					timestamp = _timestamp; 
 					int[] pixelInts = new int[WIDTH * HEIGHT];
 					for(int i = 0; i < WIDTH*HEIGHT; i++) {
 						int rgbVal = 0xFF;
@@ -86,8 +88,9 @@ public class KinectRGBVideo extends KinectVideo
 			validImageValue = new Boolean[WIDTH*HEIGHT];
 			kinect.startVideo(new VideoHandler() {
 				@Override
-				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
 					frameData = rgb;
+					timestamp = _timestamp; 
 					int[] pixelInts = new int[WIDTH * HEIGHT];
 
 					int red = 0;
@@ -142,8 +145,9 @@ public class KinectRGBVideo extends KinectVideo
 			validImageValue = new Boolean[WIDTH*HEIGHT];
 			kinect.startVideo(new VideoHandler() {
 				@Override
-				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int timestamp) {
+				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
 					frameData = rgb;
+					timestamp = _timestamp; 
 					int[] pixelInts = new int[WIDTH * HEIGHT];
 
 					int red = 0;
@@ -210,38 +214,80 @@ public class KinectRGBVideo extends KinectVideo
 	{
 		return validImageValue;
 	}	
+	//tennis ball
+	// public double guessDepth(int xDiff) {
+	// 	if (xDiff >= 46) {
+	// 		return .8;
+	// 	}
+	// 	else if (xDiff >= 37 && xDiff < 46) {
+	// 		return 1.0;
+	// 	}
+	// 	else if (xDiff >= 32 && xDiff < 37) {
+	// 		return 1.2;
+	// 	}
+	// 	else if (xDiff >= 28 && xDiff < 32) {
+	// 		return 1.4;
+	// 	}
+	// 	else if (xDiff >= 24 && xDiff < 28) {
+	// 		return 1.6;
+	// 	}
+	// 	else if (xDiff >= 22 && xDiff < 24) {
+	// 		return 1.8;
+	// 	}
+	// 	else if (xDiff >= 19 && xDiff < 22) {
+	// 		return 2.0;
+	// 	}
+	// 	else if (xDiff >= 17 && xDiff < 19) {
+	// 		return 2.2;
+	// 	}
+	// 	else if (xDiff >= 15 && xDiff < 17) {
+	// 		return 2.4;
+	// 	}
+	// 	else if (xDiff >= 14 && xDiff < 15) {
+	// 		return 2.6;
+	// 	}
+	// 	else if (xDiff >= 12 && xDiff < 14) {
+	// 		return 2.8;
+	// 	}
+	// 	else {
+	// 		return 3.0;
+	// 	}
+
+	// }
+
+	//sky ball
 	public double guessDepth(int xDiff) {
-		if (xDiff >= 46) {
+		if (xDiff >= 58) {
 			return .8;
 		}
-		else if (xDiff >= 37 && xDiff < 46) {
+		else if (xDiff >= 47) {
 			return 1.0;
 		}
-		else if (xDiff >= 32 && xDiff < 37) {
+		else if (xDiff >= 39) {
 			return 1.2;
 		}
-		else if (xDiff >= 28 && xDiff < 32) {
+		else if (xDiff >= 33) {
 			return 1.4;
 		}
-		else if (xDiff >= 24 && xDiff < 28) {
+		else if (xDiff >= 29) {
 			return 1.6;
 		}
-		else if (xDiff >= 22 && xDiff < 24) {
+		else if (xDiff >= 27) {
 			return 1.8;
 		}
-		else if (xDiff >= 19 && xDiff < 22) {
+		else if (xDiff >= 24) {
 			return 2.0;
 		}
-		else if (xDiff >= 17 && xDiff < 19) {
+		else if (xDiff >= 21) {
 			return 2.2;
 		}
-		else if (xDiff >= 15 && xDiff < 17) {
+		else if (xDiff >= 19) {
 			return 2.4;
 		}
-		else if (xDiff >= 14 && xDiff < 15) {
+		else if (xDiff >= 18) {
 			return 2.6;
 		}
-		else if (xDiff >= 12 && xDiff < 14) {
+		else if (xDiff >= 17) {
 			return 2.8;
 		}
 		else {

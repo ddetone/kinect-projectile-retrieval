@@ -257,9 +257,9 @@ public class BallTracker
 				}
 				else if(map.containsKey(finder.find(access)))
 				{
-					Statistics output = map.get(finder.find(access));
-					output.update(x,y);
-					map.put(finder.find(access),output);
+					Statistics oldBlob = map.get(finder.find(access));
+					oldBlob.update(x,y);
+					map.put(finder.find(access),oldBlob);
 				}
 			}
 		}
@@ -280,7 +280,7 @@ public class BallTracker
 	
 	}
 
-	public ArrayList<Statistics> analyzeDepthPartition(ByteBuffer buf, Point poi, int bound) {
+	public ArrayList<Statistics> analyzeDepthPartition(ByteBuffer buf, Point poi, int bound, int cap) {
 		finder = new UnionFind((bound+1)*(bound+1));
 		int startX = poi.x-bound/2;
 		int startY = poi.y-bound/2;
@@ -298,10 +298,10 @@ public class BallTracker
 				int plusX = (y-startY)*bound+(x+1-startX);
 				int plusY = (y-startY+1)*bound+(x-startX);
 
-				if((x < width-1)&& (plusX < bound*bound)) {
+				if((x < width-1)&& (plusX < bound*bound) && x < endX - 1) {
 					if (Math.abs(getDepth(buf, (y*width+x)) - getDepth(buf, y*width+(x+1))) < 6) {
 						finder.join(access,plusX);
-						output.setRGB(x + 1,y,0xFFFF0000);
+						// output.setRGB(x + 1,y,0xFFFF0000);
 					}
 					else {
 						output.setRGB(x + 1,y,0x00000000);
@@ -310,16 +310,22 @@ public class BallTracker
 				if((y < height-1) && (plusY < bound*bound)) {
 					if (Math.abs(getDepth(buf, (y*width+x)) - getDepth(buf, ((y+1)*width+x))) < 6) {
 						finder.join(access,plusY);
-						output.setRGB(x,y + 1,0xFFFF0000);
+						// output.setRGB(x,y + 1,0xFFFF0000);
 					}
 					else {
 						output.setRGB(x,y+1,0x00000000);
 					}
 					
 				}
+				try {
+
+					output.setRGB(x,y+1,0x00000000);
+				}catch(Exception e){}
 			}
 
 		}
+		HashMap<Integer, Integer> colorMap = new HashMap<Integer, Integer>();
+		Random r = new Random();
 		for(int y = startY; y < endY; y++)
 		{
 			for(int x = startX; x < endX; x++)
@@ -332,12 +338,19 @@ public class BallTracker
 					Statistics input = new Statistics();
 					input.update(x,y,getDepth(buf, y*width+(x)));
 					map.put(access, input);
+					Integer color = (Integer)r.nextInt();
+					colorMap.put(access, color);
+					output.setRGB(x,y,color);
 				}
 				else if(map.containsKey(finder.find(access)))
 				{
-					Statistics output = map.get(finder.find(access));
-					output.update(x,y,getDepth(buf, y*width+(x)));
-					map.put(finder.find(access),output);
+					Statistics oldBlob = map.get(finder.find(access));
+					Integer color = colorMap.get(finder.find(access));
+					if (oldBlob.N < cap) {
+						oldBlob.update(x,y,getDepth(buf, y*width+(x)));
+						map.put(finder.find(access),oldBlob);
+						output.setRGB(x,y,color);
+					}
 				}
 			}
 		}

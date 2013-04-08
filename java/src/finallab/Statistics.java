@@ -128,9 +128,10 @@ public class Statistics
         return value;
     }
 
-    public void center()
+    public Point center()
     {
         center_x = (min_x + max_x)/2;
         center_y = (min_y + max_y)/2;
+        return new Point(center_x, center_y);
     }
 }
