@@ -27,6 +27,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
  
 	LCM lcm;
 	BallStatus state;
+	BallStatus prevstate;
 	ArrayList<double[]> balls;
 	ArrayList<double[]> pballs;
 	ArrayList<double[]> fballs; 			//fake points
@@ -37,13 +38,14 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 	final double nano = 1000000000;
 	final double g = 9.806; 				//g in meters/second squared
-	final double ball_radius = 0.06; 		//must be in meters
+	final double ball_radius = 0.03; 		//must be in meters
 	final double DEFAULT_ERROR_THRESH = 0.02;
 	final double bounce_factor = 0.75; 		//60% bounce is retained
 	final int num_bounces = 5;
 	final boolean DEFAULT_RELEASED = false;	//used in debugging
-	final boolean fake = true;
+	final boolean fake = false;
 	final boolean verbose = true;
+	final boolean verbose2 = false;
 
 	//int fake_index;
 	int num_balls;
@@ -113,6 +115,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		friction[2] = 0.02;
 
 		state = BallStatus.WAIT; 
+		prevstate = BallStatus.WAIT;
 		//fake_index = 0;	
 		num_balls = 0;
 		bounce_index = 0;
@@ -128,6 +131,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				if(fake && num_balls >= fballs.size())
 					return;
 
+				prevstate = state;
 				ball_t in_ball = new ball_t(dins);
 				double[] xyzt = new double[4];
 				xyzt[0] = in_ball.x;
@@ -155,7 +159,10 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				PrintState();
 				if (state == BallStatus.RELEASED)
 				{
-					CalculateParabola();
+					if (prevstate == BallStatus.RELEASED)
+						CalculateParabola();
+					if (CheckBounce())
+						bounce_index++;
 				}
 
 				DrawBalls();
@@ -166,6 +173,18 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		{
 			e.printStackTrace();
 		}
+	}
+
+	public boolean CheckBounce()
+	{
+		if ((balls.get(num_balls-1)[2] > balls.get(num_balls-2)[2]) &&
+			(balls.get(num_balls-2)[2] < balls.get(num_balls-3)[2]))
+		{
+			if (verbose) System.out.printf("BOUNCE\n");
+			return true;
+		}
+		else
+			return false;
 	}
 
 	//return false if not yet released
@@ -287,7 +306,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			bounces.get(bounce_index).updateParams(x);
 			CalculateLanding(bounce_index);
 
-			if(verbose)bounces.get(bounce_index).printParabola(bounce_index);
+			if(verbose2)bounces.get(bounce_index).printParabola(bounce_index);
 			CalculateNextParabolas();
 
 			return true;
@@ -319,7 +338,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			
 			CalculateLanding(i);
 
-			if(verbose)bounces.get(i).printParabola(i);
+			if(verbose2)bounces.get(i).printParabola(i);
 		}
 
 	}
