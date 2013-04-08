@@ -32,12 +32,13 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	ArrayList<double[]> fballs; 			//fake points
 	ArrayList<double[]> landings;
 	ArrayList<Parabola> bounces;
-	double[] v_not; 						//x,y,z initial velocities, used in model
+	double[] friction;
 
 	final double nano = 1000000000;
 	final double g = 9.806; 				//g in meters/second squared
 	final double ball_radius = 0.06; 		//must be in meters
 	final double error_thresh = 0.02;
+	final double bounce_factor = 0.6; 		//60% bounce is retained
 	final int num_bounces = 4;
 	final boolean DEFAULT_RELEASED = false;	//used in debugging
 	final boolean fake = true;
@@ -105,8 +106,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			Parabola emptyBounce = new Parabola();
 			bounces.add(emptyBounce);
 		}
+		friction = new double[3]; //a factor for air/ground friction to help with better prediction
+		friction[0] = 0.02;	//subtract 2 cm per every 1 s
+		friction[1] = 0.02;
+		friction[2] = 0.02;
 
-		v_not = new double[3];
 		state = BallStatus.WAIT; 
 		//fake_index = 0;	
 		num_balls = 0;
@@ -143,9 +147,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 					if (CalculateParabola())
 					{
 						state = BallStatus.RELEASED;
-						//update starttime of first parabola
-						
-						
+						//update starttime of first parabola						
 					}
 				}
 
@@ -153,8 +155,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				if (state == BallStatus.RELEASED)
 				{
 					CalculateParabola();
-
-		
 				}
 
 				DrawBalls();
@@ -213,6 +213,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		double starttime = balls.get(oldestball_index)[3];
 
+		//the parameters for the regression are solved such that at a given starttime
+		//the xyz displacements are equal to the x_0, y_0, z_0
 		for (int i=0; i<correspondences.size(); i++)
 		{
 			double t = correspondences.get(i)[3] - starttime;
@@ -272,19 +274,107 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			System.out.printf("Average squared error:%f\n",error);
 		}
 
-
 		if (error < error_thresh)
 		{
+			//update current bounce parameters
 			bounces.get(bounce_index).starttime = starttime;
 			bounces.get(bounce_index).error = error;
 			bounces.get(bounce_index).first_ball = oldestball_index;
 			bounces.get(bounce_index).updateParams(x);
-			CalculateLanding();
-			if(verbose)bounces.get(bounce_index).printParabola();
+			CalculateLanding(bounce_index);
+
+			CalculateNextParabolas();
+
 			return true;
 		}
 		else
 			return false;
+	}
+
+	public void CalculateNextParabolas()
+	{
+
+		for (int i=bounce_index+1; i<num_bounces; i++)
+		{
+			double lt = bounces.get(i-1).land_time;
+			bounces.get(i).starttime = bounces.get(i-1).starttime + lt;
+
+			double[] newx = new double[6];
+			newx[0] = bounces.get(i-1).parabola[0] + bounces.get(i-1).parabola[1]*lt;
+			newx[1] = bounces.get(i-1).parabola[1];
+			newx[2] = bounces.get(i-1).parabola[2] + bounces.get(i-1).parabola[3]*lt;
+			newx[3] = bounces.get(i-1).parabola[3];
+			newx[4] = ball_radius;
+			newx[5] = bounces.get(i-1).parabola[5] - g*(lt - bounces.get(i-1).starttime)*(-1*bounce_factor);
+			bounces.get(i).updateParams(newx);
+			
+			CalculateLanding(i);
+
+			if(verbose)bounces.get(i).printParabola();
+		}
+
+	}
+
+	//requires .parabola .starttime .firstball
+	public void CalculateLanding(int bindex)
+	{
+
+			double a = -0.5*g;
+			double b = bounces.get(bindex).parabola[5]; //z_vel
+			double c = bounces.get(bindex).parabola[4] - ball_radius; //z_not - ball_radius
+
+			b = b / a;
+			c = c / a;
+
+			double discriminant = b*b - 4.0*c;
+	        double sqroot =  Math.sqrt(discriminant);
+
+	        double root1 = (-b + sqroot) / 2.0;
+	        double root2 = (-b - sqroot) / 2.0;
+	        double nextroot = 0;
+	        double prevroot = 0;
+
+	        if (root1 > bounces.get(bindex).starttime)
+	        {
+	        	nextroot = root1;
+	        	prevroot = root2;
+	        }
+	        else
+	        {
+	        	nextroot = root2;
+	        	prevroot = root1;
+	        }
+
+	        double land_time;
+	        if (bindex == 0)
+	        {
+	        	//double release_height = bounces.get(0).parabola[0] + bounces.get(0).parabola[1]*bounces.get(0).starttime;
+	        	
+	        	//need to subract off the time it takes for the ball to travel from release height to the ground given
+	        	//the intial velocity in the z direction. 
+	        	land_time = nextroot - (bounces.get(0).starttime - prevroot);
+
+	        }
+	        else //don't need to account for release height for these bounces
+	        	land_time = nextroot + bounces.get(bindex-1).land_time;
+
+
+	        double[] cur_landing = new double[3];
+	        cur_landing[0] = bounces.get(bindex).parabola[1]*land_time + bounces.get(bindex).parabola[0];
+	        cur_landing[1] = bounces.get(bindex).parabola[3]*land_time + bounces.get(bindex).parabola[2];
+	        cur_landing[2] = ball_radius;
+
+	        if (verbose) 
+	        {
+		        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
+		        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
+				System.out.printf("root1:%f root2:%f land_time:%f\n", root1, root2, land_time);
+				System.out.printf("cur_landingX:%f, cur_landingY:%f cur_landingZ:%f\n\n", cur_landing[0],
+					 cur_landing[1], cur_landing[2]);
+			}
+
+			bounces.get(bindex).land_time = land_time;
+			bounces.get(bindex).pred_landing = cur_landing;        							
 
 	}
 
@@ -297,23 +387,35 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		for (int i=0; i<balls.size(); i++)
 		{
-			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.red));
+			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
 			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[1],balls.get(i)[2]),ball));			
 		}
 
-		double time_aloft = bounces.get(bounce_index).timealoft;
-		//double starttime = bounces.get(bounce_index).starttime;
-		double[] x = bounces.get(bounce_index).parabola;
-		for (int i=0; i<20; i++)
-		{
-			double[] pred = new double[3];
-			double dt = (time_aloft/20)*i;
-			pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
-			pred[1] = x[2] + (x[3] * dt);
-			pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
-			pballs.add(pred);	
-		} 
 
+		for (int i=0; i<num_bounces; i++)
+		{
+
+			double land_time = bounces.get(i).land_time;
+			double starttime = bounces.get(i).starttime;
+			double[] x = bounces.get(i).parabola;
+
+			for (int j=0; j<20; j++)
+			{
+				double[] pred = new double[3];
+				double dt = ((land_time-starttime)/20)*j + starttime;
+				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
+				pred[1] = x[2] + (x[3] * dt);
+				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
+				pballs.add(pred);	
+			} 
+
+			if (i%2 == 0)
+				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
+			else
+				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+
+
+		}
 
 		/*
 		for (int i=0; i<pballs.size(); i++)
@@ -324,59 +426,15 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		//pballs.clear();
 
-		vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));	
-
-
 		for (int i=0; i<num_bounces; i++)
 		{
-			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.green));
+			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.cyan));
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
 						bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
 		}
 
 		vb.addBack(new VzAxes());
 		vb.swap();
-
-	}
-
-	public void CalculateLanding()
-	{
-
-			double a = -0.5*g;
-			double b = bounces.get(bounce_index).parabola[5]; //z_vel
-			double c = bounces.get(bounce_index).parabola[4] - ball_radius; //z_not - ball_radius
-
-			b = b / a;
-			c = c / a;
-
-			double discriminant = b*b - 4.0*c;
-	        double sqroot =  Math.sqrt(discriminant);
-
-	        double root1 = (-b + sqroot) / 2.0;
-	        double root2 = (-b - sqroot) / 2.0;
-	        double time_aloft = 0;
-
-	        if (root1 > 0)
-	        	time_aloft = root1;
-	        else if (root2 > 0)
-	        	time_aloft = root2;
-
-	        double[] cur_landing = new double[3];
-	        cur_landing[0] = bounces.get(bounce_index).parabola[1]*time_aloft + bounces.get(bounce_index).parabola[0];
-	        cur_landing[1] = bounces.get(bounce_index).parabola[3]*time_aloft + bounces.get(bounce_index).parabola[2];
-	        cur_landing[2] = ball_radius;
-
-	        if (verbose) 
-	        {
-		        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
-		        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
-				System.out.printf("root1:%f root2:%f time_aloft:%f\n", root1, root2, time_aloft);
-				System.out.printf("cur_landingX:%f, cur_landingY:%f cur_landingZ:%f\n\n", cur_landing[0],
-					 cur_landing[1], cur_landing[2]);
-			}
-
-			bounces.get(bounce_index).timealoft = time_aloft;
-			bounces.get(bounce_index).pred_landing = cur_landing;        							
 
 	}
 
@@ -399,9 +457,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		double[][] data = new double[20][4];
 
 		//double nano = 1000000000;
-
-
-
 
 		data[0][0] = 0;  //x 
 		data[0][1] = 1;

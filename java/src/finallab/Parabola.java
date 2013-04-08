@@ -10,7 +10,7 @@ public class Parabola
 	int first_ball;
 	double error;
 	double starttime;
-	double timealoft;
+	double land_time;
 	double[] pred_landing;
 	double[] parabola; //6x1 matrix with projectile parameters
 
@@ -40,7 +40,7 @@ public class Parabola
 		System.out.printf("first_ball:%d\n",first_ball);
 		System.out.printf("error:%f\n",error);
 		System.out.printf("starttime:%f\n",starttime);
-		System.out.printf("timealoft:%f\n",timealoft);
+		System.out.printf("land_time:%f\n",land_time);
 		for (int i=0; i<3; i++)
 			System.out.printf("landing%d: %f\n",i,pred_landing[i]);
 
