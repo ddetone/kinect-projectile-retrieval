@@ -3,6 +3,9 @@ package finallab;
 import java.util.*;
 import java.io.*;
 
+import april.util.*;
+import april.jmat.*;
+
 
 public class Parabola 
 {
@@ -30,13 +33,15 @@ public class Parabola
 		}
 	}
 
-	public void printParabola()
+	public void printParabola(int index)
 	{
 		// if (valid)
 		// 	System.out.printf("valid\n");
 		// else
 		// 	System.out.printf("valid\n");
 
+		System.out.printf("-----Parabola number: %d\n", index);
+		LinAlg.print(parabola);
 		System.out.printf("first_ball:%d\n",first_ball);
 		System.out.printf("error:%f\n",error);
 		System.out.printf("starttime:%f\n",starttime);
