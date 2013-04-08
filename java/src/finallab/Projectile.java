@@ -211,13 +211,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		double[] B = new double[3*num_corr];
 		double[] x = new double[6];
 
-		double starttime = balls.get(oldestball_index)[3];
-
 		//the parameters for the regression are solved such that at a given starttime
 		//the xyz displacements are equal to the x_0, y_0, z_0
 		for (int i=0; i<correspondences.size(); i++)
 		{
-			double t = correspondences.get(i)[3] - starttime;
+			double t = correspondences.get(i)[3];
 			A[i][0] = 1;
 			A[i][1] = t;
 			A[i+num_corr][2] = 1;
@@ -252,7 +250,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			actual[0] = correspondences.get(i)[0];
 			actual[1] = correspondences.get(i)[1];
 			actual[2] = correspondences.get(i)[2];
-			double dt = correspondences.get(i)[3] - starttime;
+			//double dt = correspondences.get(i)[3] - starttime;
+			double dt = correspondences.get(i)[3];
 			prediction[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 			prediction[1] = x[2] + (x[3] * dt);
 			prediction[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt;
@@ -277,12 +276,13 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		if (error < error_thresh)
 		{
 			//update current bounce parameters
-			bounces.get(bounce_index).starttime = starttime;
+			bounces.get(bounce_index).starttime = balls.get(oldestball_index)[3];
 			bounces.get(bounce_index).error = error;
 			bounces.get(bounce_index).first_ball = oldestball_index;
 			bounces.get(bounce_index).updateParams(x);
 			CalculateLanding(bounce_index);
 
+			if(verbose)bounces.get(bounce_index).printParabola();
 			CalculateNextParabolas();
 
 			return true;
@@ -297,7 +297,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		for (int i=bounce_index+1; i<num_bounces; i++)
 		{
 			double lt = bounces.get(i-1).land_time;
-			bounces.get(i).starttime = bounces.get(i-1).starttime + lt;
+			//bounces.get(i).starttime = bounces.get(i-1).starttime + lt;
+			bounces.get(i).starttime = lt;
 
 			double[] newx = new double[6];
 			newx[0] = bounces.get(i-1).parabola[0] + bounces.get(i-1).parabola[1]*lt;
@@ -305,7 +306,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			newx[2] = bounces.get(i-1).parabola[2] + bounces.get(i-1).parabola[3]*lt;
 			newx[3] = bounces.get(i-1).parabola[3];
 			newx[4] = ball_radius;
-			newx[5] = bounces.get(i-1).parabola[5] - g*(lt - bounces.get(i-1).starttime)*(-1*bounce_factor);
+			newx[5] = (bounces.get(i-1).parabola[5] - g*(lt - bounces.get(i-1).starttime))*(-1*bounce_factor);
 			bounces.get(i).updateParams(newx);
 			
 			CalculateLanding(i);
@@ -346,6 +347,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	        }
 
 	        double land_time;
+	        land_time = nextroot;
+	        /*
 	        if (bindex == 0)
 	        {
 	        	//double release_height = bounces.get(0).parabola[0] + bounces.get(0).parabola[1]*bounces.get(0).starttime;
@@ -357,7 +360,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	        }
 	        else //don't need to account for release height for these bounces
 	        	land_time = nextroot + bounces.get(bindex-1).land_time;
-
+		*/
 
 	        double[] cur_landing = new double[3];
 	        cur_landing[0] = bounces.get(bindex).parabola[1]*land_time + bounces.get(bindex).parabola[0];
@@ -396,13 +399,13 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		{
 
 			double land_time = bounces.get(i).land_time;
-			double starttime = bounces.get(i).starttime;
+			//double starttime = bounces.get(i).starttime;
 			double[] x = bounces.get(i).parabola;
 
 			for (int j=0; j<20; j++)
 			{
 				double[] pred = new double[3];
-				double dt = ((land_time-starttime)/20)*j + starttime;
+				double dt = (land_time/20)*j;
 				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 				pred[1] = x[2] + (x[3] * dt);
 				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
@@ -455,91 +458,92 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	public void createFakeData()
 	{
 		double[][] data = new double[20][4];
+		double timeoffset = 5.47;
 
 		//double nano = 1000000000;
 
 		data[0][0] = 0;  //x 
 		data[0][1] = 1;
 		data[0][2] = 0;  //z
-		data[0][3] = 0.4;
+		data[0][3] = 0.4 + timeoffset;
 		fballs.add(data[0]);
 
 		data[1][0] = 0.5;  //x 
 		data[1][1] = 2.0;  //y
 		data[1][2] = 2.451; //z
-		data[1][3] = 0.5;
+		data[1][3] = 0.5 + timeoffset;
 		fballs.add(data[1]);
 
 		data[2][0] = 1;  //x 
 		data[2][1] = 1.0;  //y
 		data[2][2] = 2.904; //z
-		data[2][3] = 0.6;
+		data[2][3] = 0.6 + timeoffset;
 		fballs.add(data[2]);
 
 		data[3][0] = 1.5;  //x 
 		data[3][1] = 1.0;  //y
 		data[3][2] = 3.059; //z
-		data[3][3] = 0.7;
+		data[3][3] = 0.7 + timeoffset;
 		fballs.add(data[3]);
 
 		data[4][0] = 2.0;  //x 
 		data[4][1] = 1.0;  //y
 		data[4][2] = 3.2155; //z
-		data[4][3] = 0.8;
+		data[4][3] = 0.8 + timeoffset;
 		fballs.add(data[4]);
 
 		data[5][0] = 2.5;  //x 
 		data[5][1] = 1.0;
 		data[5][2] = 3.27;  //z
-		data[5][3] = 0.9;
+		data[5][3] = 0.9 + timeoffset;
 		fballs.add(data[5]);
 
 		data[6][0] = 3;     //x 
 		data[6][1] = 0.98;  //y
 		data[6][2] = 3.234; //z
-		data[6][3] = 1;
+		data[6][3] = 1 + timeoffset;
 		fballs.add(data[6]);
 
 		data[7][0] = 3.5;    //x 
 		data[7][1] = 1.0;    //y
 		data[7][2] = 3.0975; //z
-		data[7][3] = 1.1;
+		data[7][3] = 1.1 + timeoffset;
 		fballs.add(data[7]);
 
 		data[8][0] = 3.95;  //x 
 		data[8][1] = 1.0;   //y
 		data[8][2] = 2.862; //z
-		data[8][3] = 1.2;
+		data[8][3] = 1.2 + timeoffset;
 		fballs.add(data[8]);
 
 		data[9][0] = 4.5;    //x 
 		data[9][1] = 1.04;   //y
 		data[9][2] = 2.5286; //z
-		data[9][3] = 1.3;
+		data[9][3] = 1.3 + timeoffset;
 		fballs.add(data[9]);
 
 		data[10][0] = 5.03;  //x 
 		data[10][1] = 1.0;   //y
 		data[10][2] = 2.097; //z
-		data[10][3] = 1.4;
+		data[10][3] = 1.4 + timeoffset;
 		fballs.add(data[10]);
 
 		data[11][0] = 5.5;  //x 
 		data[11][1] = 1.0;  //y
 		data[11][2] = 1.56; //z
-		data[11][3] = 1.49;
+		data[11][3] = 1.49 + timeoffset;
 		fballs.add(data[11]);
 
 		data[12][0] = 6;     //x 
 		data[12][1] = 1.03;  //y
 		data[12][2] = 0.939; //z
-		data[12][3] = 1.6;
+		data[12][3] = 1.6 + timeoffset;
 		fballs.add(data[12]);
 
 		data[13][0] = 6.5;  //x 
 		data[13][1] = 1;    //y
 		data[13][2] = 0.21; //z
-		data[13][3] = 1.71;
+		data[13][3] = 1.71 + timeoffset;
 		fballs.add(data[13]);
 
 	}
