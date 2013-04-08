@@ -31,7 +31,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	ArrayList<double[]> pballs;
 	ArrayList<double[]> fballs; 			//fake points
 	ArrayList<double[]> landings;
-	Parabola[] bounces;
+	ArrayList<Parabola> bounces;
 	double[] v_not; 						//x,y,z initial velocities, used in model
 
 	final double nano = 1000000000;
@@ -99,7 +99,12 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			createFakeData();
 		}		
 		landings = new ArrayList<double[]>();
-		//bounces = new Parabola()[num_bounces];
+		bounces = new ArrayList<Parabola>();
+		for (int i=0; i<num_bounces; i++)
+		{
+			Parabola emptyBounce = new Parabola();
+			bounces.add(emptyBounce);
+		}
 
 		v_not = new double[3];
 		state = BallStatus.WAIT; 
@@ -128,8 +133,8 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				addBall(xyzt);
 
 				PrintState();
-				if (balls.size() >= 3) //wait for 3 balls
-					state = BallStatus.IN_HAND;				
+				if (balls.size() >= 3 && state == BallStatus.WAIT) //wait for 3 balls
+					state = BallStatus.IN_HAND;
 
 
 				PrintState();
@@ -148,6 +153,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				if (state == BallStatus.RELEASED)
 				{
 					CalculateParabola();
+
 		
 				}
 
@@ -165,7 +171,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	public boolean CalculateParabola()
 	{
 		ArrayList<double[]> data = new ArrayList<double[]>();
-		boolean error_ok = false;
+		boolean is_parab = false;
 		double error;
 
 		System.out.printf("num_balls:%d\n",num_balls);
@@ -176,27 +182,36 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		for (int i=num_balls-3; i>=0 ; i--)
 		{
+			boolean error_ok = true;
 			data.add(balls.get(i));
 			
+			error_ok = solveLinReg(data, i);
+
+			if (error_ok)
+			{
+				is_parab = true;
+			}
+			if (!error_ok && is_parab)
+				break;
 		}
 
-		if (solveLinReg(data))
-			error_ok = true;
-
-		//wrong
-		return false;
+		if (is_parab)
+			return true;
+		else
+			return false;
 	}
 
-	public boolean solveLinReg(ArrayList<double[]> correspondences)
+	//Calculates linear regression for projectile. if the error is less that error_thresh
+	//it will update the current bounce[bounce_index] with the calculated parameters
+	public boolean solveLinReg(ArrayList<double[]> correspondences, int oldestball_index)
 	{
 		//Solves for x in, Ax=B
 		int num_corr = correspondences.size();
-		double error = 0;
 		double[][] A = new double[3*num_corr][6];
 		double[] B = new double[3*num_corr];
 		double[] x = new double[6];
 
-		double starttime = correspondences.get(num_balls-1)[3];
+		double starttime = balls.get(oldestball_index)[3];
 
 		for (int i=0; i<correspondences.size(); i++)
 		{
@@ -212,13 +227,6 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			B[i+num_corr] = correspondences.get(i)[1];
 			B[i+num_corr*2] = correspondences.get(i)[2] + 0.5*g*t*t;
 		}
-		if (verbose)
-		{
-			LinAlg.print(A);
-			LinAlg.print(B);
-		}
-
-		//x = ((inv(AtA))At)B
 
 		double[][] AtA = LinAlg.matrixAtB(A,A);
 		double[][] invAtA = LinAlg.inverse(AtA);
@@ -227,20 +235,58 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		if (verbose)
 		{
-			// System.out.printf("Ata\n");
-			// LinAlg.print(AtA);
-			// System.out.printf("invAtA\n");
-			// LinAlg.print(invAtA);
-			// System.out.printf("invAtAA\n");
-			// LinAlg.print(invAtAAt);
+			LinAlg.print(A);
+			LinAlg.print(B);
 			System.out.printf("x\n");
 			LinAlg.print(x);
 		}
 
+		ArrayList<Double> errors = new ArrayList<Double>();
+		double[] prediction = new double[3];
+
+		for (int i=0; i<correspondences.size(); i++)
+		{
+			double[] actual = new double[3];
+			actual[0] = correspondences.get(i)[0];
+			actual[1] = correspondences.get(i)[1];
+			actual[2] = correspondences.get(i)[2];
+			double dt = correspondences.get(i)[3] - starttime;
+			prediction[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
+			prediction[1] = x[2] + (x[3] * dt);
+			prediction[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt;
+			double e = LinAlg.squaredDistance(actual, prediction);
+			errors.add(e);
+		}
+
+		double error = 0;
+		for (int i=0; i<errors.size(); i++)
+		{
+			error += errors.get(i);
+		}
+		error = error / errors.size();
+
+		if (verbose)
+		{
+			for (int i=0; i<errors.size(); i++)
+				System.out.printf("Error at %d:%f\n",i,errors.get(i));
+			System.out.printf("Average squared error:%f\n",error);
+		}
 
 
+		if (error < error_thresh)
+		{
+			bounces.get(bounce_index).starttime = starttime;
+			bounces.get(bounce_index).error = error;
+			bounces.get(bounce_index).first_ball = oldestball_index;
+			bounces.get(bounce_index).updateParams(x);
+			CalculateLanding();
+			if(verbose)bounces.get(bounce_index).printParabola();
+			return true;
+		}
+		else
+			return false;
 
-
+		/*
 		double time_aloft = 2;
 		for (int i=0; i<20; i++)
 		{
@@ -252,16 +298,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
 			pballs.add(pred);	
 		} 
-		
-
-
-
-
-
-		//need to calculate errors
-
-		//wrong
-		return false;
+		*/
 	}
 /*
 	public boolean DetermineReleased()
@@ -339,13 +376,29 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[1],balls.get(i)[2]),ball));			
 		}
 
+		double time_aloft = bounces.get(bounce_index).timealoft;
+		//double starttime = bounces.get(bounce_index).starttime;
+		double[] x = bounces.get(bounce_index).parabola;
+		for (int i=0; i<20; i++)
+		{
+			double[] pred = new double[3];
+			double dt = (time_aloft/20)*i;
+			System.out.printf("dt is:%f\n",dt);
+			pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
+			pred[1] = x[2] + (x[3] * dt);
+			pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
+			pballs.add(pred);	
+		} 
+
+
+
 		for (int i=0; i<pballs.size(); i++)
 		{
 			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
 			vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[1],pballs.get(i)[2]),pball));			
 		}
 
-		pballs.clear();
+		//pballs.clear();
 
 		//vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));	
 
@@ -360,6 +413,48 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		vb.swap();
 
 	}
+
+	public void CalculateLanding()
+	{
+
+			double a = -0.5*g;
+			double b = bounces.get(bounce_index).parabola[5]; //z_vel
+			double c = bounces.get(bounce_index).parabola[4] - ball_radius; //z_not - ball_radius
+
+			b = b / a;
+			c = c / a;
+
+			double discriminant = b*b - 4.0*c;
+	        double sqroot =  Math.sqrt(discriminant);
+
+	        double root1 = (-b + sqroot) / 2.0;
+	        double root2 = (-b - sqroot) / 2.0;
+	        double time_aloft = 0;
+
+	        if (root1 > 0)
+	        	time_aloft = root1;
+	        else if (root2 > 0)
+	        	time_aloft = root2;
+
+	        double[] cur_landing = new double[3];
+	        cur_landing[0] = bounces.get(bounce_index).parabola[1]*time_aloft + bounces.get(bounce_index).parabola[0];
+	        cur_landing[1] = bounces.get(bounce_index).parabola[3]*time_aloft + bounces.get(bounce_index).parabola[2];
+	        cur_landing[2] = ball_radius;
+
+	        if (verbose) 
+	        {
+		        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
+		        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
+				System.out.printf("root1:%f root2:%f time_aloft:%f\n", root1, root2, time_aloft);
+				System.out.printf("cur_landingX:%f, cur_landingY:%f cur_landingZ:%f\n\n", cur_landing[0],
+					 cur_landing[1], cur_landing[2]);
+			}
+
+			bounces.get(bounce_index).timealoft = time_aloft;
+			bounces.get(bounce_index).pred_landing = cur_landing;        							
+
+	}
+
 	/*
 	public void GeneratePrediction()
 	{
