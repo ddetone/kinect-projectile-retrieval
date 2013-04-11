@@ -139,6 +139,9 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				xyzt[2] = in_ball.y; //y is lateral position from camera
 				xyzt[3] = in_ball.nanoTime / nano;
 
+				if ((Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100))
+					return;
+				
 				addBall(xyzt);
 
 				PrintState();

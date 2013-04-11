@@ -1,8 +1,7 @@
 package finallab;
 
-import java.io.*;
+import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.*;
 import java.awt.*;
 import java.awt.image.*;
@@ -10,14 +9,8 @@ import java.awt.event.*;
 import javax.swing.*;
 
 import org.openkinect.freenect.*;
-import org.openkinect.freenect.util.*;
 
-import april.jcam.*;
 import april.util.*;
-import april.jmat.*;
-import april.vis.*;
-import april.image.*;
-import april.jmat.geom.*;
 
 import finallab.lcmtypes.*;
 import lcm.lcm.*;
@@ -168,12 +161,17 @@ public class KinectView
 			kinect = ctx.openDevice(0);
 		} else {
 			System.err.println("WARNING: No kinects detected");
+			return;
 		}
 
 		validImageValue = new boolean[width*height];
 
-		lcm = LCM.getSingleton();
-
+		try{
+			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
+		}
+		catch(IOException e){
+			lcm = LCM.getSingleton();
+		}
 		BALL = new Statistics();
 		trajectory = new ArrayList<Statistics>();
 
@@ -220,7 +218,7 @@ public class KinectView
 		{
 			rgbJim.setImage(rgbImg);
 			depthJim.setImage(depthImg);
-			if(colorAnalyze && display)
+			if(colorAnalyze)
 			{
 				params[0] = (double)pg.gi("redValMin");
 				params[2] = (double)pg.gi("greenValMin");
@@ -232,7 +230,7 @@ public class KinectView
 				y_param = pg.gi("y_param");
 				colorStream.changeThreshold((byte)2,params);
 			}
-			else if(colorAnalyze2 && display)
+			else if(colorAnalyze2)
 			{
 				params[0] = pg.gd("HueMin");
 				params[1] = pg.gd("HueMax");
@@ -292,7 +290,7 @@ public class KinectView
 		{
 
 			Point depthPix = ball.center();
-			Point depthCoord = new Point(depthPix.x - KinectVideo.C_X, KinectVideo.C_Y - depthPix.y);
+//			Point depthCoord = new Point(depthPix.x - KinectVideo.C_X, KinectVideo.C_Y - depthPix.y);
 			Point3D coord = depthStream.getWorldCoords(depthPix);
 			if (depthPix != null) {
 					// System.out.println("depth blobs: " + depthBlobs.size());
@@ -337,7 +335,7 @@ public class KinectView
 		{
 			rgbJim.setImage(rgbImg);
 			depthJim.setImage(depthImg);
-			if(colorAnalyze && display)
+			if(colorAnalyze)
 			{
 				params[0] = (double)pg.gi("redValMin");
 				params[2] = (double)pg.gi("greenValMin");
@@ -349,7 +347,7 @@ public class KinectView
 				y_param = pg.gi("y_param");
 				colorStream.changeThreshold((byte)2,params);
 			}
-			else if(colorAnalyze2 && display)
+			else if(colorAnalyze2)
 			{
 				params[0] = pg.gd("HueMin");
 				params[1] = pg.gd("HueMax");
@@ -369,27 +367,29 @@ public class KinectView
 	{
 		final KinectView kv = new KinectView(true);
 		double params[] = new double[6];
-		if(kv.colorAnalyze && kv.display)
-		{
-			params[0] = (double)kv.pg.gi("redValMin");
-			params[2] = (double)kv.pg.gi("greenValMin");
-			params[4] = (double)kv.pg.gi("blueValMin");
-			params[1] = (double)kv.pg.gi("redValMax");
-			params[3] = (double)kv.pg.gi("greenValMax");
-			params[5] = (double)kv.pg.gi("blueValMax");
-			x_param = kv.pg.gd("x_param");
-			y_param = kv.pg.gi("y_param");
-		}
-		else if(kv.colorAnalyze2 && kv.display)
-		{
-			params[0] = kv.pg.gd("HueMin");
-			params[1] = kv.pg.gd("HueMax");
-			params[2] = kv.pg.gd("SatMin");
-			params[3] = kv.pg.gd("SatMax");
-			params[4] = kv.pg.gd("BrightMin");
-			params[5] = kv.pg.gd("BrightMax");
-			x_param = kv.pg.gd("x_param");
-			y_param = kv.pg.gi("y_param");
+		if (kv.display) {
+			if(kv.colorAnalyze)
+			{
+				params[0] = (double)kv.pg.gi("redValMin");
+				params[2] = (double)kv.pg.gi("greenValMin");
+				params[4] = (double)kv.pg.gi("blueValMin");
+				params[1] = (double)kv.pg.gi("redValMax");
+				params[3] = (double)kv.pg.gi("greenValMax");
+				params[5] = (double)kv.pg.gi("blueValMax");
+				x_param = kv.pg.gd("x_param");
+				y_param = kv.pg.gi("y_param");
+			}
+			else if(kv.colorAnalyze2)
+			{
+				params[0] = kv.pg.gd("HueMin");
+				params[1] = kv.pg.gd("HueMax");
+				params[2] = kv.pg.gd("SatMin");
+				params[3] = kv.pg.gd("SatMax");
+				params[4] = kv.pg.gd("BrightMin");
+				params[5] = kv.pg.gd("BrightMax");
+				x_param = kv.pg.gd("x_param");
+				y_param = kv.pg.gi("y_param");
+			}
 		}
 		while(true) 
 		{
@@ -456,7 +456,7 @@ public class KinectView
 			ballLCM.y = kv.BALL.center_y;
 			ballLCM.z = 4;
 			kv.lcm.publish("6_BALL",ballLCM);
-			Point ballCenter = new Point(kv.BALL.center_x,kv.BALL.center_y);
+//			Point ballCenter = new Point(kv.BALL.center_x,kv.BALL.center_y);
 			ArrayList<Statistics> depthBlobs = new ArrayList<Statistics>();//kv.finder.analyzeDepthPartition(kv.depthStream.getBuf(),ballCenter,bound);
 			Statistics ClosestBall = new Statistics();
 			for(Statistics blob : depthBlobs)
@@ -486,29 +486,31 @@ public class KinectView
 			
 			kv.rgbJim.setImage(kv.rgbImg);
 			kv.depthJim.setImage(kv.depthImg);
-			if(kv.colorAnalyze && kv.display)
-			{
-				params[0] = (double)kv.pg.gi("redValMin");
-				params[2] = (double)kv.pg.gi("greenValMin");
-				params[4] = (double)kv.pg.gi("blueValMin");
-				params[1] = (double)kv.pg.gi("redValMax");
-				params[3] = (double)kv.pg.gi("greenValMax");
-				params[5] = (double)kv.pg.gi("blueValMax");
-				x_param = kv.pg.gd("x_param");
-				y_param = kv.pg.gi("y_param");
-				kv.colorStream.changeThreshold((byte)2,params);
-			}
-			else if(kv.colorAnalyze2 && kv.display)
-			{
-				params[0] = kv.pg.gd("HueMin");
-				params[1] = kv.pg.gd("HueMax");
-				params[2] = kv.pg.gd("SatMin");
-				params[3] = kv.pg.gd("SatMax");
-				params[4] = kv.pg.gd("BrightMin");
-				params[5] = kv.pg.gd("BrightMax");
-				x_param = kv.pg.gd("x_param");
-				y_param = kv.pg.gi("y_param");
-				kv.colorStream.changeThreshold((byte)1,params);
+			if (kv.display) {
+				if(kv.colorAnalyze)
+				{
+					params[0] = (double)kv.pg.gi("redValMin");
+					params[2] = (double)kv.pg.gi("greenValMin");
+					params[4] = (double)kv.pg.gi("blueValMin");
+					params[1] = (double)kv.pg.gi("redValMax");
+					params[3] = (double)kv.pg.gi("greenValMax");
+					params[5] = (double)kv.pg.gi("blueValMax");
+					x_param = kv.pg.gd("x_param");
+					y_param = kv.pg.gi("y_param");
+					kv.colorStream.changeThreshold((byte)2,params);
+				}
+				else if(kv.colorAnalyze2)
+				{
+					params[0] = kv.pg.gd("HueMin");
+					params[1] = kv.pg.gd("HueMax");
+					params[2] = kv.pg.gd("SatMin");
+					params[3] = kv.pg.gd("SatMax");
+					params[4] = kv.pg.gd("BrightMin");
+					params[5] = kv.pg.gd("BrightMax");
+					x_param = kv.pg.gd("x_param");
+					y_param = kv.pg.gi("y_param");
+					kv.colorStream.changeThreshold((byte)1,params);
+				}
 			}
 		}
 	}
