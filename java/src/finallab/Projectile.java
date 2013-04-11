@@ -41,7 +41,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	final double ball_radius = 0.03; 		//must be in meters
 	final double DEFAULT_ERROR_THRESH = 0.02;
 	final double bounce_factor = 0.75; 		//60% bounce is retained
-	final int num_bounces = 5;
+	final int num_bounces = 3;
 	final boolean DEFAULT_RELEASED = false;	//used in debugging
 	final boolean fake = false;
 	final boolean verbose = true;
