@@ -16,7 +16,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 {
 
 	public enum BallStatus {
-		WAIT, IN_HAND, RELEASED
+		WAIT, RELEASED, FINISHED, RESET
 	}
 
 	JFrame jf;
@@ -27,22 +27,22 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
  
 	LCM lcm;
 	BallStatus state;
-	BallStatus prevstate;
 	ArrayList<double[]> balls;
 	ArrayList<double[]> pballs;
 	ArrayList<double[]> fballs; 			//fake points
-	ArrayList<double[]> landings;
+	//ArrayList<double[]> landings;
 	ArrayList<Parabola> bounces;
-	double[] friction;
+	//double[] friction;
 
 
 	final double nano = 1000000000;
 	final double g = 9.806; 				//g in meters/second squared
 	final double ball_radius = 0.03; 		//must be in meters
-	final double DEFAULT_ERROR_THRESH = 0.02;
-	final double bounce_factor = 0.75; 		//60% bounce is retained
+	final double DEFAULT_ERROR_THRESH = 0.01;
+	final double bounce_factor = 0.75; 		//% bounce is retained
 	final int num_bounces = 3;
-	final boolean DEFAULT_RELEASED = false;	//used in debugging
+	final int num_regression = 20; //the max number of recent balls used in regression
+	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean fake = false;
 	final boolean verbose = true;
 	final boolean verbose2 = false;
@@ -59,17 +59,15 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		vl = new VisLayer(vw);
 		vc = new VisCanvas(vl);
 		pg = new ParameterGUI();
-		pg.addCheckBoxes("Released", "Released?", DEFAULT_RELEASED);
+		pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
 		pg.addDoubleSlider("error_thresh","Average Squared Error Threshold",0,0.25,DEFAULT_ERROR_THRESH);
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
 			{
-				if(name == "Released")
+				if(name == "Reset")
 				{
-					if(pg.gb("Released"))
-						state = BallStatus.RELEASED;
-					else
-						state = BallStatus.IN_HAND;
+					if(pg.gb("Reset"))
+						state = BallStatus.RESET;
 				}
 			}
 		});
@@ -102,20 +100,20 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			fballs = new ArrayList<double[]>();
 			createFakeData();
 		}		
-		landings = new ArrayList<double[]>();
+		//landings = new ArrayList<double[]>();
 		bounces = new ArrayList<Parabola>();
 		for (int i=0; i<num_bounces; i++)
 		{
 			Parabola emptyBounce = new Parabola();
 			bounces.add(emptyBounce);
 		}
+		/*
 		friction = new double[3]; //a factor for air/ground friction to help with better prediction
 		friction[0] = 0.02;	//subtract 2 cm per every 1 s
 		friction[1] = 0.02;
 		friction[2] = 0.02;
-
+		*/
 		state = BallStatus.WAIT;
-		prevstate = BallStatus.WAIT;
 		//fake_index = 0;	
 		num_balls = 0;
 		bounce_index = 0;
@@ -128,10 +126,31 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			if(channel.equals("6_BALL"))
 			{
 
+				PrintState();
+				if (state == BallStatus.FINISHED)
+				{
+					if (verbose) System.out.printf("Reset to continue\n");
+					return;
+				}
+
+				PrintState();
+				if (state == BallStatus.RESET) //reset everything
+				{
+					num_balls = 0;
+					bounce_index = 0;
+					bounces.clear();
+					for (int i=0; i<num_bounces; i++)
+					{
+						Parabola emptyBounce = new Parabola();
+						bounces.add(emptyBounce);
+					}
+					balls.clear();
+					state = BallStatus.WAIT;
+				}
+
 				if(fake && num_balls >= fballs.size())
 					return;
 
-				prevstate = state;
 				ball_t in_ball = new ball_t(dins);
 				double[] xyzt = new double[4];
 				xyzt[0] = in_ball.x;
@@ -139,6 +158,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 				xyzt[2] = in_ball.y; //y is lateral position from camera
 				xyzt[3] = in_ball.nanoTime / nano;
 
+				//bounds checking for ball locations
 				if ((Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100))
 					return;
 				
@@ -146,9 +166,14 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 				PrintState();
 				if (balls.size() >= 3 && state == BallStatus.WAIT) //wait for 3 balls
-					state = BallStatus.IN_HAND;
+				{	
+					state = BallStatus.RELEASED;
+					bounces.get(0).first_ball = 0;
+					bounces.get(0).starttime = balls.get(0)[3];
+					bounces.get(0).balls_in_parab = 3;
+				}
 
-
+				/*
 				PrintState();
 				if (state == BallStatus.IN_HAND)
 				{
@@ -157,15 +182,23 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 						state = BallStatus.RELEASED;
 						//update starttime of first parabola						
 					}
-				}
+				}*/
 
 				PrintState();
 				if (state == BallStatus.RELEASED)
 				{
-					if (prevstate == BallStatus.RELEASED)
-						CalculateParabola();
-					if (CheckBounce())
-						bounce_index++;
+					if (num_balls >= 4)
+						CheckBounce();
+					if (state == BallStatus.FINISHED)
+						return;
+					//if (prevstate == BallStatus.RELEASED)
+					if (CalculateParabola() == false)
+					{
+
+					}
+
+					//if (CheckBounce())
+						//bounce_index++;
 				}
 
 				DrawBalls();
@@ -178,6 +211,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		}
 	}
 
+	/*
 	public boolean CheckBounce()
 	{
 		if ((balls.get(num_balls-1)[2] > balls.get(num_balls-2)[2]) &&
@@ -188,6 +222,45 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		}
 		else
 			return false;
+	}*/
+
+	public void CheckBounce()
+	{
+
+		if (bounces.get(bounce_index).balls_in_parab < 3)
+			return;
+
+		double x[] = bounces.get(bounce_index).parabola;
+
+		double[] actual = new double[3];
+		double[] prediction = new double[3];
+
+		actual[0] = balls.get(num_balls-1)[0];
+		actual[1] = balls.get(num_balls-1)[1];
+		actual[2] = balls.get(num_balls-1)[2];
+		double dt = balls.get(num_balls-1)[3] - bounces.get(bounce_index).starttime;
+		//double dt = correspondences.get(i)[3];
+		prediction[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
+		prediction[1] = x[2] + (x[3] * dt);
+		prediction[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt;
+		double e = LinAlg.squaredDistance(actual, prediction);
+		if (verbose) System.out.printf("error:%f\n",e);
+		double error_thresh = pg.gd("error_thresh");
+		if (e > error_thresh)
+		{
+			System.out.printf("BOUNCE DETECTED\n");
+			bounce_index++;
+			if (bounce_index >= num_bounces-1)
+			{
+				state = BallStatus.FINISHED;
+				return;
+			}
+
+			bounces.get(bounce_index).first_ball = num_balls-1;
+			bounces.get(bounce_index).starttime = balls.get(num_balls-1)[3];
+		}
+
+
 	}
 
 	//return false if not yet released
@@ -199,11 +272,23 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 
 		System.out.printf("num_balls:%d\n",num_balls);
 		//need at least three balls for release determination
-		data.add(balls.get(num_balls-1));
-		data.add(balls.get(num_balls-2));
-		
 
-		for (int i=num_balls-3; i>=0 ; i--)
+		// data.add(balls.get(num_balls-1));
+		// data.add(balls.get(num_balls-2));
+		int num_reg_balls = Math.min(num_balls - bounces.get(bounce_index).first_ball, num_regression);
+
+		if (verbose) System.out.printf("num_reg_balls:%d\n", num_reg_balls);
+
+		if (num_reg_balls < 3)
+			return true;
+
+		for (int i=1; (i <= num_reg_balls); i++)
+			data.add(balls.get(num_balls-i));
+
+		return (solveLinReg(data));
+		
+		/*
+		for (int i=num_balls-3; (i>=0)&&(i > (num_balls - (num_regression + 3))) ; i--)
 		{
 			boolean error_ok = true;
 			data.add(balls.get(i));
@@ -222,11 +307,12 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			return true;
 		else
 			return false;
+			*/
 	}
 
 	//Calculates linear regression for projectile. if the error is less that error_thresh
 	//it will update the current bounce[bounce_index] with the calculated parameters
-	public boolean solveLinReg(ArrayList<double[]> correspondences, int oldestball_index)
+	public boolean solveLinReg(ArrayList<double[]> correspondences)
 	{
 		//Solves for x in, Ax=B
 		int num_corr = correspondences.size();
@@ -234,7 +320,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		double[] B = new double[3*num_corr];
 		double[] x = new double[6];
 
+		
+		int oldestball_index = bounces.get(bounce_index).first_ball;
+
 		double starttime = balls.get(oldestball_index)[3];
+		
 
 		//the parameters for the regression are solved such that at a given starttime
 		//the xyz displacements are equal to the x_0, y_0, z_0
@@ -258,7 +348,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		double[][] invAtAAt = LinAlg.matrixABt(invAtA,A);
 		x = LinAlg.matrixAB(invAtAAt,B);
 
-		if (verbose)
+		if (verbose2)
 		{
 			LinAlg.print(A);
 			LinAlg.print(B);
@@ -284,19 +374,23 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			errors.add(e);
 		}
 
-		double error = 0;
-		for (int i=0; i<errors.size(); i++)
+		//double error = 0;
+
+		double error = errors.get(correspondences.size() - 1);
+		/*for (int i=0; i<errors.size(); i++)
 		{
 			error += errors.get(i);
 		}
 		error = error / errors.size();
-
+		*/
 		if (verbose)
 		{
 			for (int i=0; i<errors.size(); i++)
 				System.out.printf("Error at %d:%f\n",i,errors.get(i));
 			System.out.printf("Average squared error:%f\n",error);
 		}
+
+
 
 		double error_thresh = pg.gd("error_thresh");
 
@@ -305,8 +399,9 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			//update current bounce parameters
 			bounces.get(bounce_index).starttime = starttime;
 			bounces.get(bounce_index).error = error;
-			bounces.get(bounce_index).first_ball = oldestball_index;
+			//bounces.get(bounce_index).first_ball = oldestball_index;
 			bounces.get(bounce_index).updateParams(x);
+			bounces.get(bounce_index).balls_in_parab++;
 			CalculateLanding(bounce_index);
 
 			if(verbose2)bounces.get(bounce_index).printParabola(bounce_index);
@@ -315,7 +410,11 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 			return true;
 		}
 		else
+		{
+
 			return false;
+		}
+			
 	}
 
 	public void CalculateNextParabolas()
@@ -398,7 +497,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 	        cur_landing[1] = bounces.get(bindex).parabola[3]*land_time + bounces.get(bindex).parabola[2];
 	        cur_landing[2] = ball_radius;
 
-	        if (verbose) 
+	        if (verbose2) 
 	        {
 		        System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
 		        System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
@@ -587,10 +686,12 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		String statestring;
 		if (state == BallStatus.WAIT)
 			statestring = "WAIT";
-		else if (state == BallStatus.IN_HAND)
-			statestring = "IN_HAND";
 		else if (state == BallStatus.RELEASED)
 			statestring = "RELEASED";
+		else if (state == BallStatus.FINISHED)
+			statestring = "FINISHED";
+		else if (state == BallStatus.RESET)
+			statestring = "RESET";
 		else
 			statestring = "UNKNOWN";
 

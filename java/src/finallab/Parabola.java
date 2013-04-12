@@ -11,6 +11,7 @@ public class Parabola
 {
 	volatile boolean valid;
 	int first_ball;
+	int balls_in_parab;
 	double error;
 	double starttime;
 	double land_time;
@@ -23,6 +24,7 @@ public class Parabola
 		pred_landing = new double[3];
 		valid = false;
 		first_ball = 0;
+		balls_in_parab = 0;
 	}
 
 	public void updateParams(double[] params)
