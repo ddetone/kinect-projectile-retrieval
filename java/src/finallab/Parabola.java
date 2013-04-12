@@ -12,7 +12,7 @@ public class Parabola
 	volatile boolean valid;
 	int first_ball;
 	int balls_in_parab;
-	double error;
+	double error; //Only calculates error if verbose2 is set, for optimizations
 	double starttime;
 	double land_time;
 	double[] pred_landing;
