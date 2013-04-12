@@ -171,7 +171,7 @@ public class KinectView extends Thread
 		BALL = new Statistics();
 		trajectory = new ArrayList<Statistics>();
 
-		finder = new BallTracker(width,height,display);
+		finder = new BallTracker(width,height,false);
 		
 		double params[] = new double[6];
 		params[0] = 0;

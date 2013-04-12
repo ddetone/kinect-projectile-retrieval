@@ -16,7 +16,7 @@ import finallab.lcmtypes.*;
 
 public class CatchController implements LCMSubscriber
 {
-	Projectile predictor;
+	ProjectileT predictor;
 	KinectView viewer;
 	boolean display = true;
 
@@ -30,7 +30,7 @@ public class CatchController implements LCMSubscriber
 
 	CatchController(boolean _display)
 	{
-		predictor = new Projectile();
+		predictor = new ProjectileT();
 		display = _display;
 		viewer = new KinectView(_display);
 		viewer.start();
@@ -100,31 +100,35 @@ public class CatchController implements LCMSubscriber
 			bounces = predictor.getParabolas();
 		}
 		while(!bounces.get(0).valid);
-		System.out.println("LETS GOOO!!");
 		
 		while(true)
 		{
 			
 			// System.out.println("x:"+ball.x+ " y:" +ball.y+ " z:" +ball.z);
 			bounces = predictor.getParabolas();
+			Point3D land;
+			Point3D wayPoint = new Point3D(0.0,0.0,0.0);
 			switch(state)
 			{
 				//waiting state
 				//waiting for signal of endpoint from projectile
 				//once recieved points determine weather good to grab on first bounce second bounce etc...
 				case 0:
-
 					// determine if able to catch on first bounce or second bounce
-					Point3D land = determineBounceCatch(bounces);
-						double r = Math.sqrt(land.x*land.x + land.y*land.y);
-						double theta = Math.atan2(land.y, land.x);
-						xyt_t spot = new xyt_t();
-						spot.xyt[0] = r;
-						spot.xyt[2] = theta;
-						// go to point at bounce index
+					land = determineBounceCatch(bounces);
+					double r = Math.sqrt(land.x*land.x + land.y*land.y);
+					double theta = Math.atan2(land.y, land.x);
+					xyt_t spot = new xyt_t();
+					spot.xyt[0] = r;
+					spot.xyt[2] = theta;
+					if((land.x != wayPoint.x) || (land.y != wayPoint.y) || (land.z != wayPoint.z))
+					{
+					// go to point at bounce index
 						lcm.publish("6_WAYPONT",spot);
-						System.out.println("WAYPOINT");
-
+						wayPoint = land;
+						return;
+					}
+					nextState = 1;
 				break;
 				
 				//retrieve state
