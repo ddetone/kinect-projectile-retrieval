@@ -68,6 +68,25 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 
 		pg.addCheckBoxes("sendWayPoint", "Send Waypoint", DEFAULT_SEND_WAYPOINT);
 		pg.addCheckBoxes("dispConv", "Display Exploded Wall Map", DEFAULT_DISP_CONV);
+		
+		pg.addDoubleSlider("kp", "kp", 0d, 2d, 0.1);
+		pg.addDoubleSlider("ki", "ki", 0d, 1d, 0d);
+		pg.addDoubleSlider("kd", "kd", 0d, 5d, 0.1);
+		pg.addListener(new ParameterListener() {
+			
+			@Override
+			public void parameterChanged(ParameterGUI _pg, String name) {
+				double [] k = new double[3];
+				k[0] = _pg.gd("kp");
+				k[1] = _pg.gd("ki");
+				k[2] = _pg.gd("kd");
+				xyt_t params = new xyt_t();
+				params.xyt = k;
+				lcm.publish("6_PARAMS", params);
+				
+				
+			}
+		});
 
 
 		pg.addListener(new ParameterListener() {

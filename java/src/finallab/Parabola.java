@@ -9,7 +9,7 @@ import april.jmat.*;
 
 public class Parabola 
 {
-	//boolean valid;
+	volatile boolean valid;
 	int first_ball;
 	double error;
 	double starttime;
@@ -21,7 +21,7 @@ public class Parabola
 	{
 		parabola = new double[6];
 		pred_landing = new double[3];
-		//valid = false;
+		valid = false;
 		first_ball = 0;
 	}
 

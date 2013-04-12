@@ -54,22 +54,27 @@ public class PidController
 		else
 			dt = currUtime - prevUtime;
 
-		//integral += error*dt;
-		integral += error;
+		integral += error*dt;
+		//integral += error;
 
         if(isClampIntegrator){
             integral = LinAlg.clamp(integral, -clamp, clamp);
         }
 
-		//double derivative = (error - prevError)/dt;
-		double derivative = (error - prevError);
+		double derivative = (error - prevError)/dt;
+		//double derivative = (error - prevError);
 
-		double output = Kp * error + Ki * integral + Kd * derivative;
+		double output = Kp * error + Ki * integral - Kd * derivative;
 
 		prevError = error;
 		prevUtime = currUtime;
 
 		return(output);
+	}
+	public void changeParams(double [] p) {
+		Kp = p[0];
+		Ki = p[1];
+		Kd = p[2];
 	}
 
 

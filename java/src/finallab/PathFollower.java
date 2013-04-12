@@ -38,7 +38,7 @@ public class PathFollower implements LCMSubscriber
 
 	static final double MAX_SPEED = 1.0f;
 	static final double SET_SPEED = 0.9f;
-	static final double ALLOWED_ANGLE = 180;
+	static final double ALLOWED_ANGLE = 360;
 	static final double STRAIGHT_DIST = 0.5; 
 	static final double DEST_DIST = 0.20; 
 
@@ -50,8 +50,8 @@ public class PathFollower implements LCMSubscriber
 	//int state = 0;
 	//boolean turnEnd = false;
 	//The PID controller for finer turning
-	//double[] KPID = new double[]{0.46, 0.006, 0.10};
-	double[] KPID = new double[]{0.46, 0.015, 0.0};
+	double[] KPID = new double[]{0.46, 0.006, 0.10};
+	//double[] KPID = new double[]{0.46, 0.015, 0.0};
 
 	PidController pidAngle = new PidController(KPID[0], KPID[1], KPID[2]);
 
@@ -67,6 +67,7 @@ public class PathFollower implements LCMSubscriber
 
 		lcm.subscribe("6_POSE",this);
 		lcm.subscribe("6_WAYPOINT",this);
+		lcm.subscribe("6_PARAMS", this);
 	}
 
 	void calcErrors()
@@ -78,7 +79,7 @@ public class PathFollower implements LCMSubscriber
 		while(curAngle > Math.PI)curAngle -= 2 * Math.PI;
 		while(curAngle < -Math.PI)curAngle += 2 * Math.PI;		
 
-		errorAngle = curAngle - angleToDest;
+		errorAngle = angleToDest-curAngle;
 
 
 
@@ -103,10 +104,8 @@ public class PathFollower implements LCMSubscriber
 				//+ "  integrator: " + pidAngle.integral);
 		
 
-		pid = pid /2;		
-
-		right = SET_SPEED - pid;
-		left = SET_SPEED + pid;		
+		right = SET_SPEED + pid;
+		left = SET_SPEED - pid;		
 
 		if(verbose)System.out.println("left:" + left
 				+ "  right: " + right);
@@ -204,6 +203,10 @@ public class PathFollower implements LCMSubscriber
 				{
 					isFollow = true;
 				}
+			}
+			else if (channel.equals("6_PARAMS")) {
+				xyt_t params = new xyt_t(dins);
+				pidAngle.changeParams(params.xyt);
 			}
 		}
 		catch (IOException e)

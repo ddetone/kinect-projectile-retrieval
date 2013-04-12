@@ -114,7 +114,7 @@ public class Projectile extends VisEventAdapter implements LCMSubscriber
 		friction[1] = 0.02;
 		friction[2] = 0.02;
 
-		state = BallStatus.WAIT; 
+		state = BallStatus.WAIT;
 		prevstate = BallStatus.WAIT;
 		//fake_index = 0;	
 		num_balls = 0;

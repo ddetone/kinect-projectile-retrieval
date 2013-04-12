@@ -15,7 +15,7 @@ import april.util.*;
 import finallab.lcmtypes.*;
 import lcm.lcm.*;
 
-public class KinectView
+public class KinectView extends Thread
 {
 	Context ctx;
 	Device kinect;
@@ -166,12 +166,8 @@ public class KinectView
 
 		validImageValue = new boolean[width*height];
 
-		try{
-			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
-		}
-		catch(IOException e){
-			lcm = LCM.getSingleton();
-		}
+
+		lcm = LCM.getSingleton();
 		BALL = new Statistics();
 		trajectory = new ArrayList<Statistics>();
 
@@ -186,13 +182,14 @@ public class KinectView
 		params[5] = 1.0;
 		kinect.setDepthFormat(DepthFormat.D11BIT);
 
-		colorStream = new KinectRGBVideo(kinect,1,params);
+		colorStream = new KinectRGBVideo(kinect,0,params);
 		depthStream = new KinectDepthVideo(kinect,display);
 		if(display)
 		{
 			depthImg = depthStream.getFrame();
 			rgbImg = colorStream.getFrame();
 		}
+		
 		// Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() 
 		// {
   //   		// public void run() 
@@ -208,322 +205,161 @@ public class KinectView
   //   		// }
 		// }));
 	}
+	
+	public void run() {
 
-	public ball_t update()
-	{
-		BALL = null;
-		ball_t ballLCM = new ball_t();
-		double params[] = new double[6];
-		if(display)
-		{
-			rgbJim.setImage(rgbImg);
-			depthJim.setImage(depthImg);
-			if(colorAnalyze)
-			{
-				params[0] = (double)pg.gi("redValMin");
-				params[2] = (double)pg.gi("greenValMin");
-				params[4] = (double)pg.gi("blueValMin");
-				params[1] = (double)pg.gi("redValMax");
-				params[3] = (double)pg.gi("greenValMax");
-				params[5] = (double)pg.gi("blueValMax");
-				x_param = pg.gd("x_param");
-				y_param = pg.gi("y_param");
-				colorStream.changeThreshold((byte)2,params);
-			}
-			else if(colorAnalyze2)
-			{
-				params[0] = pg.gd("HueMin");
-				params[1] = pg.gd("HueMax");
-				params[2] = pg.gd("SatMin");
-				params[3] = pg.gd("SatMax");
-				params[4] = pg.gd("BrightMin");
-				params[5] = pg.gd("BrightMax");
-				x_param = pg.gd("x_param");
-				y_param = pg.gi("y_param");
-				colorStream.changeThreshold((byte)1,params);
-			}
-		}
-		while(!depthStream.newImage);
-		ballLCM.nanoTime = System.nanoTime();
-		depthStream.newImage = false;
-
-		ArrayList<Statistics> blobs = finder.analyze2(depthStream.getValidImageArray());
-		Statistics ball = null;
-
-		int size = 300;
-		for (Statistics curr : blobs) {
-			if (curr.N > size) {
-				System.out.println("blob size: " + curr.N + ", blob abs: " + curr.abs());
-				ball = curr;
-				size = ball.N;
-			}
-
-		}
-
-		if(ball != null)
-			trajectory.add(ball);
-		for(Statistics ballpoints : trajectory)
-		{
-			Point depthPix = ballpoints.center();
-			for(int y = depthPix.y-3; y < depthPix.y+3; y++)
-			{
-				for(int x = depthPix.x-3; x < depthPix.x+3;x++)
-				{
-					try{
-						depthImg.setRGB(x,y,0xFF000000);
-					}
-					catch(Exception e){
-							// System.out.println(x + " " + y);
-					};
+		while (true) {
+			BALL = null;
+			ball_t ballLCM = new ball_t();
+			double params[] = new double[6];
+			if (display) {
+				rgbJim.setImage(rgbImg);
+				depthJim.setImage(depthImg);
+				if (colorAnalyze) {
+					params[0] = (double) pg.gi("redValMin");
+					params[2] = (double) pg.gi("greenValMin");
+					params[4] = (double) pg.gi("blueValMin");
+					params[1] = (double) pg.gi("redValMax");
+					params[3] = (double) pg.gi("greenValMax");
+					params[5] = (double) pg.gi("blueValMax");
+					x_param = pg.gd("x_param");
+					y_param = pg.gi("y_param");
+					colorStream.changeThreshold((byte) 2, params);
+				} else if (colorAnalyze2) {
+					params[0] = pg.gd("HueMin");
+					params[1] = pg.gd("HueMax");
+					params[2] = pg.gd("SatMin");
+					params[3] = pg.gd("SatMax");
+					params[4] = pg.gd("BrightMin");
+					params[5] = pg.gd("BrightMax");
+					x_param = pg.gd("x_param");
+					y_param = pg.gi("y_param");
+					colorStream.changeThreshold((byte) 1, params);
 				}
 			}
-		}
 
-		//if not tracking keep kv.trajectory to just one index
-		if(!tracking)
-		{
-			trajectory.clear();
-		}
+			while (!depthStream.newImage);
+			ballLCM.nanoTime = System.nanoTime();
+			depthStream.newImage = false;
 
+			ArrayList<Statistics> blobs = finder.analyze2(depthStream
+					.getValidImageArray());
+			Statistics ball = null;
 
-		if(ball != null)
-		{
+			int size = 300;
+			for (Statistics curr : blobs) {
+				if (curr.N > size) {
+					ball = curr;
+					size = ball.N;
+				}
 
-			Point depthPix = ball.center();
-//			Point depthCoord = new Point(depthPix.x - KinectVideo.C_X, KinectVideo.C_Y - depthPix.y);
-			Point3D coord = depthStream.getWorldCoords(depthPix);
-			if (depthPix != null) {
-					// System.out.println("depth blobs: " + depthBlobs.size());
-					// System.out.println("time diff: " + (depthStream.getLatestTime() - colorStream.getLatestTime()));
-					//System.out.println("depthPix: " + depthPix.x + ", " + depthPix.y);
-				for(int y = depthPix.y-3; y < depthPix.y+3; y++)
-				{
-					for(int x = depthPix.x-3; x < depthPix.x+3;x++)
-					{
-						try{
-							depthImg.setRGB(x,y,0xFFFF0000);
-						}
-						catch(Exception e){
-								// System.out.println(x + " " + y);
+			}
+
+			if (ball != null)
+				trajectory.add(ball);
+			for (Statistics ballpoints : trajectory) {
+				Point depthPix = ballpoints.center();
+				for (int y = depthPix.y - 3; y < depthPix.y + 3; y++) {
+					for (int x = depthPix.x - 3; x < depthPix.x + 3; x++) {
+						try {
+							depthImg.setRGB(x, y, 0xFF000000);
+						} catch (Exception e) {
+							// System.out.println(x + " " + y);
 						};
 					}
 				}
-				try {
-						// coord.z = depthStream.getDepthFromDepthPixel(depthPix);
-						// System.out.println("depth: " + coord.z);
-				}
-				catch(Exception e) {
+			}
 
-				} 
-					// System.out.println("depth: " + depthStream.getDepthFromDepthPixel(depthPix));
-				ballLCM.x = coord.x;
-				ballLCM.y = coord.y + 0.82;
-				ballLCM.z = coord.z;
-					//if(tracking)
-				lcm.publish("6_BALL",ballLCM);
+			// if not tracking keep kv.trajectory to just one index
+			if (!tracking) {
+				trajectory.clear();
 			}
-			// try
-		}
 
+			if (ball != null) {
 
-		// {
-		// 	// Point3D realWorld = depthStream.getWorldCoords(ClosestBall.closestPixel);
-		// 	// System.out.println(realWorld.x + " " + realWorld.y + " " + realWorld.z);
-		// }
-		// catch(Exception e){};
-		if(display)
-		{
-			rgbJim.setImage(rgbImg);
-			depthJim.setImage(depthImg);
-			if(colorAnalyze)
-			{
-				params[0] = (double)pg.gi("redValMin");
-				params[2] = (double)pg.gi("greenValMin");
-				params[4] = (double)pg.gi("blueValMin");
-				params[1] = (double)pg.gi("redValMax");
-				params[3] = (double)pg.gi("greenValMax");
-				params[5] = (double)pg.gi("blueValMax");
-				x_param = pg.gd("x_param");
-				y_param = pg.gi("y_param");
-				colorStream.changeThreshold((byte)2,params);
-			}
-			else if(colorAnalyze2)
-			{
-				params[0] = pg.gd("HueMin");
-				params[1] = pg.gd("HueMax");
-				params[2] = pg.gd("SatMin");
-				params[3] = pg.gd("SatMax");
-				params[4] = pg.gd("BrightMin");
-				params[5] = pg.gd("BrightMax");
-				x_param = pg.gd("x_param");
-				y_param = pg.gi("y_param");
-				colorStream.changeThreshold((byte)1,params);
-			}
-		}
-		return ballLCM;
-	}
-
-	public static void main(String[] args)
-	{
-		final KinectView kv = new KinectView(true);
-		double params[] = new double[6];
-		if (kv.display) {
-			if(kv.colorAnalyze)
-			{
-				params[0] = (double)kv.pg.gi("redValMin");
-				params[2] = (double)kv.pg.gi("greenValMin");
-				params[4] = (double)kv.pg.gi("blueValMin");
-				params[1] = (double)kv.pg.gi("redValMax");
-				params[3] = (double)kv.pg.gi("greenValMax");
-				params[5] = (double)kv.pg.gi("blueValMax");
-				x_param = kv.pg.gd("x_param");
-				y_param = kv.pg.gi("y_param");
-			}
-			else if(kv.colorAnalyze2)
-			{
-				params[0] = kv.pg.gd("HueMin");
-				params[1] = kv.pg.gd("HueMax");
-				params[2] = kv.pg.gd("SatMin");
-				params[3] = kv.pg.gd("SatMax");
-				params[4] = kv.pg.gd("BrightMin");
-				params[5] = kv.pg.gd("BrightMax");
-				x_param = kv.pg.gd("x_param");
-				y_param = kv.pg.gi("y_param");
-			}
-		}
-		while(true) 
-		{
-			while(!kv.colorStream.newImage && !kv.depthStream.newImage);
-			// System.out.println("Got new Image");
-			// System.out.println(System.currentTimeMillis());
-			ball_t ballLCM = new ball_t();
-			ballLCM.nanoTime = kv.globalTime;
-			kv.colorStream.newImage = false;
-			kv.depthStream.newImage = false;
-			Point poi = new Point();
-			poi.x = 320;
-			poi.y = 240;
-			ArrayList<Statistics> blobs = kv.finder.analyzePartition(kv.colorStream.getValidImage(), poi, 640,480, "center");
-			Statistics BiggestBlob = new Statistics();
-			for(Statistics blob : blobs)
-			{
-				if(blob.N > 50)
-				{
-					if(BiggestBlob.N < blob.N)
-						BiggestBlob = blob;
-					blob.center();
-				}
-				kv.BALL = BiggestBlob;
-				kv.BALL.center();
-				
-			}
-			kv.trajectory.add(BiggestBlob);
-			for(Statistics ball : kv.trajectory)
-			{
-				for(int y = ball.center_y-3; y < ball.center_y+3; y++)
-					for(int x = ball.center_x-3; x < ball.center_x+3;x++)
-						try{
-								kv.rgbImg.setRGB(x,y,0xFF000000);
+				Point depthPix = ball.center();
+				// Point depthCoord = new Point(depthPix.x - KinectVideo.C_X,
+				// KinectVideo.C_Y - depthPix.y);
+				Point3D coord = depthStream.getWorldCoords(depthPix);
+				if (depthPix != null) {
+					// System.out.println("depth blobs: " + depthBlobs.size());
+					// System.out.println("time diff: " +
+					// (depthStream.getLatestTime() -
+					// colorStream.getLatestTime()));
+					// System.out.println("depthPix: " + depthPix.x + ", " +
+					// depthPix.y);
+					for (int y = depthPix.y - 3; y < depthPix.y + 3; y++) {
+						for (int x = depthPix.x - 3; x < depthPix.x + 3; x++) {
+							try {
+								depthImg.setRGB(x, y, 0xFFFF0000);
+							} catch (Exception e) {
+								// System.out.println(x + " " + y);
+							};
 						}
-						catch(Exception e){};	
+					}
+					try {
+						// coord.z =
+						// depthStream.getDepthFromDepthPixel(depthPix);
+						// System.out.println("depth: " + coord.z);
+					} catch (Exception e) {
+
+					}
+					// System.out.println("depth: " +
+					// depthStream.getDepthFromDepthPixel(depthPix));
+					if (!display || (display && tracking)) {
+						ballLCM.x = coord.x;
+						ballLCM.y = coord.y + 0.82;
+						ballLCM.z = coord.z;
+						// if(tracking)
+						lcm.publish("6_BALL", ballLCM);
+					}
+				}
+				// try
 			}
 
-			//if not tracking keep kv.trajectory to just one index
-			if(!kv.tracking)
-			{
-				kv.trajectory.clear();
-			}
-
-			//draw bounding box to determine if ball will fall in place
-			int bound = (int)(x_param*160.0);
-			try
-			{
-				for(int y = kv.BALL.center_y-(bound/2); y < kv.BALL.center_y+(bound/2); y++)
-				{
-					kv.depthImg.setRGB(kv.BALL.center_x-(bound/2),y,0xFFFFFFFF);
-					kv.depthImg.setRGB(kv.BALL.center_x+(bound/2),y,0xFFFFFFFF);
-				}
-				for(int x = kv.BALL.center_x-(bound/2); x < kv.BALL.center_x+(bound/2); x++)
-				{
-					kv.depthImg.setRGB(x,kv.BALL.center_y-(bound/2),0xFFFFFFFF);
-					kv.depthImg.setRGB(x,kv.BALL.center_y+(bound/2),0xFFFFFFFF);
-				}
-			}
-			catch(Exception e){};
-				//System.println(kv.getDepth(kv.depthImg,kv.BALL.center_y*width+kv.BALL.center_x));
-
-			ballLCM.x = kv.BALL.center_x;
-			ballLCM.y = kv.BALL.center_y;
-			ballLCM.z = 4;
-			kv.lcm.publish("6_BALL",ballLCM);
-//			Point ballCenter = new Point(kv.BALL.center_x,kv.BALL.center_y);
-			ArrayList<Statistics> depthBlobs = new ArrayList<Statistics>();//kv.finder.analyzeDepthPartition(kv.depthStream.getBuf(),ballCenter,bound);
-			Statistics ClosestBall = new Statistics();
-			for(Statistics blob : depthBlobs)
-			{
-				if(blob.closestDepth < ClosestBall.closestDepth)
-				{
-					ClosestBall = blob;
-				}
-			}
-			if(ClosestBall.closestPixel != null)
-			{
-				ClosestBall.center();
-				for(int y = ClosestBall.closestPixel.y-3; y < ClosestBall.closestPixel.y+3; y++)
-						for(int x = ClosestBall.closestPixel.x-3; x < ClosestBall.closestPixel.x+3;x++)
-							try{
-								kv.depthImg.setRGB(x,y,0xFFFFFFFF);
-							}
-							catch(Exception e){};
-				//System.out.println(ClosestBall.closestDepth);
-			}
-			try
-			{
-				Point3D realWorld = kv.depthStream.getWorldCoords(ClosestBall.closestPixel);
-				System.out.println(realWorld.x + " " + realWorld.y + " " + realWorld.z);
-			}
-			catch(Exception e){};
-			
-			kv.rgbJim.setImage(kv.rgbImg);
-			kv.depthJim.setImage(kv.depthImg);
-			if (kv.display) {
-				if(kv.colorAnalyze)
-				{
-					params[0] = (double)kv.pg.gi("redValMin");
-					params[2] = (double)kv.pg.gi("greenValMin");
-					params[4] = (double)kv.pg.gi("blueValMin");
-					params[1] = (double)kv.pg.gi("redValMax");
-					params[3] = (double)kv.pg.gi("greenValMax");
-					params[5] = (double)kv.pg.gi("blueValMax");
-					x_param = kv.pg.gd("x_param");
-					y_param = kv.pg.gi("y_param");
-					kv.colorStream.changeThreshold((byte)2,params);
-				}
-				else if(kv.colorAnalyze2)
-				{
-					params[0] = kv.pg.gd("HueMin");
-					params[1] = kv.pg.gd("HueMax");
-					params[2] = kv.pg.gd("SatMin");
-					params[3] = kv.pg.gd("SatMax");
-					params[4] = kv.pg.gd("BrightMin");
-					params[5] = kv.pg.gd("BrightMax");
-					x_param = kv.pg.gd("x_param");
-					y_param = kv.pg.gi("y_param");
-					kv.colorStream.changeThreshold((byte)1,params);
+			// {
+			// // Point3D realWorld =
+			// depthStream.getWorldCoords(ClosestBall.closestPixel);
+			// // System.out.println(realWorld.x + " " + realWorld.y + " " +
+			// realWorld.z);
+			// }
+			// catch(Exception e){};
+			if (display) {
+				rgbJim.setImage(rgbImg);
+				depthJim.setImage(depthImg);
+				if (colorAnalyze) {
+					params[0] = (double) pg.gi("redValMin");
+					params[2] = (double) pg.gi("greenValMin");
+					params[4] = (double) pg.gi("blueValMin");
+					params[1] = (double) pg.gi("redValMax");
+					params[3] = (double) pg.gi("greenValMax");
+					params[5] = (double) pg.gi("blueValMax");
+					x_param = pg.gd("x_param");
+					y_param = pg.gi("y_param");
+					colorStream.changeThreshold((byte) 2, params);
+				} else if (colorAnalyze2) {
+					params[0] = pg.gd("HueMin");
+					params[1] = pg.gd("HueMax");
+					params[2] = pg.gd("SatMin");
+					params[3] = pg.gd("SatMax");
+					params[4] = pg.gd("BrightMin");
+					params[5] = pg.gd("BrightMax");
+					x_param = pg.gd("x_param");
+					y_param = pg.gi("y_param");
+					colorStream.changeThreshold((byte) 1, params);
 				}
 			}
 		}
 	}
-	
 	public float raw_depth_to_meters(int raw_depth)
 	{
- 		if (raw_depth < 2047)
-  		{
-   			return (1.0f / (raw_depth * -0.0030711016f + 3.3309495161f))+.05f;
-  		}
-  		return 0;
+		if (raw_depth < 2047)
+		{
+			return (1.0f / (raw_depth * -0.0030711016f + 3.3309495161f))+.05f;
+		}
+		return 0;
 	}
-	
+
 	//utility functions to copy/paste later	
 	public int getDepth(ByteBuffer bb, int index) 
 	{
@@ -535,9 +371,323 @@ public class KinectView
 		depth = depth | (byte1 & 0xFF);
 		return depth & 0x3FF;
 	}
-	
 
 }
+
+
+		
+		
+//	public ball_t update()
+//	{
+//		BALL = null;
+//		ball_t ballLCM = new ball_t();
+//		double params[] = new double[6];
+//		if(display)
+//		{
+//			rgbJim.setImage(rgbImg);
+//			depthJim.setImage(depthImg);
+//			if(colorAnalyze)
+//			{
+//				params[0] = (double)pg.gi("redValMin");
+//				params[2] = (double)pg.gi("greenValMin");
+//				params[4] = (double)pg.gi("blueValMin");
+//				params[1] = (double)pg.gi("redValMax");
+//				params[3] = (double)pg.gi("greenValMax");
+//				params[5] = (double)pg.gi("blueValMax");
+//				x_param = pg.gd("x_param");
+//				y_param = pg.gi("y_param");
+//				colorStream.changeThreshold((byte)2,params);
+//			}
+//			else if(colorAnalyze2)
+//			{
+//				params[0] = pg.gd("HueMin");
+//				params[1] = pg.gd("HueMax");
+//				params[2] = pg.gd("SatMin");
+//				params[3] = pg.gd("SatMax");
+//				params[4] = pg.gd("BrightMin");
+//				params[5] = pg.gd("BrightMax");
+//				x_param = pg.gd("x_param");
+//				y_param = pg.gi("y_param");
+//				colorStream.changeThreshold((byte)1,params);
+//			}
+//		}
+//		while(!depthStream.newImage);
+//		ballLCM.nanoTime = System.nanoTime();
+//		depthStream.newImage = false;
+//
+//		ArrayList<Statistics> blobs = finder.analyze2(depthStream.getValidImageArray());
+//		Statistics ball = null;
+//
+//		int size = 300;
+//		for (Statistics curr : blobs) {
+//			if (curr.N > size) {
+//				System.out.println("blob size: " + curr.N + ", blob abs: " + curr.abs());
+//				ball = curr;
+//				size = ball.N;
+//			}
+//
+//		}
+//
+//		if(ball != null)
+//			trajectory.add(ball);
+//		for(Statistics ballpoints : trajectory)
+//		{
+//			Point depthPix = ballpoints.center();
+//			for(int y = depthPix.y-3; y < depthPix.y+3; y++)
+//			{
+//				for(int x = depthPix.x-3; x < depthPix.x+3;x++)
+//				{
+//					try{
+//						depthImg.setRGB(x,y,0xFF000000);
+//					}
+//					catch(Exception e){
+//							// System.out.println(x + " " + y);
+//					};
+//				}
+//			}
+//		}
+//
+//		//if not tracking keep kv.trajectory to just one index
+//		if(!tracking)
+//		{
+//			trajectory.clear();
+//		}
+//
+//
+//		if(ball != null)
+//		{
+//
+//			Point depthPix = ball.center();
+////			Point depthCoord = new Point(depthPix.x - KinectVideo.C_X, KinectVideo.C_Y - depthPix.y);
+//			Point3D coord = depthStream.getWorldCoords(depthPix);
+//			if (depthPix != null) {
+//					// System.out.println("depth blobs: " + depthBlobs.size());
+//					// System.out.println("time diff: " + (depthStream.getLatestTime() - colorStream.getLatestTime()));
+//					//System.out.println("depthPix: " + depthPix.x + ", " + depthPix.y);
+//				for(int y = depthPix.y-3; y < depthPix.y+3; y++)
+//				{
+//					for(int x = depthPix.x-3; x < depthPix.x+3;x++)
+//					{
+//						try{
+//							depthImg.setRGB(x,y,0xFFFF0000);
+//						}
+//						catch(Exception e){
+//								// System.out.println(x + " " + y);
+//						};
+//					}
+//				}
+//				try {
+//						// coord.z = depthStream.getDepthFromDepthPixel(depthPix);
+//						// System.out.println("depth: " + coord.z);
+//				}
+//				catch(Exception e) {
+//
+//				} 
+//					// System.out.println("depth: " + depthStream.getDepthFromDepthPixel(depthPix));
+//				if(!display || (display && tracking))
+//				{
+//					ballLCM.x = coord.x;
+//					ballLCM.y = coord.y + 0.82;
+//					ballLCM.z = coord.z;
+//						//if(tracking)
+//					lcm.publish("6_BALL",ballLCM);
+//				}
+//			}
+//			// try
+//		}
+//
+//
+//		// {
+//		// 	// Point3D realWorld = depthStream.getWorldCoords(ClosestBall.closestPixel);
+//		// 	// System.out.println(realWorld.x + " " + realWorld.y + " " + realWorld.z);
+//		// }
+//		// catch(Exception e){};
+//		if(display)
+//		{
+//			rgbJim.setImage(rgbImg);
+//			depthJim.setImage(depthImg);
+//			if(colorAnalyze)
+//			{
+//				params[0] = (double)pg.gi("redValMin");
+//				params[2] = (double)pg.gi("greenValMin");
+//				params[4] = (double)pg.gi("blueValMin");
+//				params[1] = (double)pg.gi("redValMax");
+//				params[3] = (double)pg.gi("greenValMax");
+//				params[5] = (double)pg.gi("blueValMax");
+//				x_param = pg.gd("x_param");
+//				y_param = pg.gi("y_param");
+//				colorStream.changeThreshold((byte)2,params);
+//			}
+//			else if(colorAnalyze2)
+//			{
+//				params[0] = pg.gd("HueMin");
+//				params[1] = pg.gd("HueMax");
+//				params[2] = pg.gd("SatMin");
+//				params[3] = pg.gd("SatMax");
+//				params[4] = pg.gd("BrightMin");
+//				params[5] = pg.gd("BrightMax");
+//				x_param = pg.gd("x_param");
+//				y_param = pg.gi("y_param");
+//				colorStream.changeThreshold((byte)1,params);
+//			}
+//		}
+//		return ballLCM;
+//	}
+
+//	public static void main(String[] args)
+//	{
+//		final KinectView kv = new KinectView(true);
+//		double params[] = new double[6];
+//		if (kv.display) {
+//			if(kv.colorAnalyze)
+//			{
+//				params[0] = (double)kv.pg.gi("redValMin");
+//				params[2] = (double)kv.pg.gi("greenValMin");
+//				params[4] = (double)kv.pg.gi("blueValMin");
+//				params[1] = (double)kv.pg.gi("redValMax");
+//				params[3] = (double)kv.pg.gi("greenValMax");
+//				params[5] = (double)kv.pg.gi("blueValMax");
+//				x_param = kv.pg.gd("x_param");
+//				y_param = kv.pg.gi("y_param");
+//			}
+//			else if(kv.colorAnalyze2)
+//			{
+//				params[0] = kv.pg.gd("HueMin");
+//				params[1] = kv.pg.gd("HueMax");
+//				params[2] = kv.pg.gd("SatMin");
+//				params[3] = kv.pg.gd("SatMax");
+//				params[4] = kv.pg.gd("BrightMin");
+//				params[5] = kv.pg.gd("BrightMax");
+//				x_param = kv.pg.gd("x_param");
+//				y_param = kv.pg.gi("y_param");
+//			}
+//		}
+//		while(true) 
+//		{
+//			while(!kv.colorStream.newImage && !kv.depthStream.newImage);
+//			// System.out.println("Got new Image");
+//			// System.out.println(System.currentTimeMillis());
+//			ball_t ballLCM = new ball_t();
+//			ballLCM.nanoTime = kv.globalTime;
+//			kv.colorStream.newImage = false;
+//			kv.depthStream.newImage = false;
+//			Point poi = new Point();
+//			poi.x = 320;
+//			poi.y = 240;
+//			ArrayList<Statistics> blobs = kv.finder.analyzePartition(kv.colorStream.getValidImage(), poi, 640,480, "center");
+//			Statistics BiggestBlob = new Statistics();
+//			for(Statistics blob : blobs)
+//			{
+//				if(blob.N > 50)
+//				{
+//					if(BiggestBlob.N < blob.N)
+//						BiggestBlob = blob;
+//					blob.center();
+//				}
+//				kv.BALL = BiggestBlob;
+//				kv.BALL.center();
+//				
+//			}
+//			kv.trajectory.add(BiggestBlob);
+//			for(Statistics ball : kv.trajectory)
+//			{
+//				for(int y = ball.center_y-3; y < ball.center_y+3; y++)
+//					for(int x = ball.center_x-3; x < ball.center_x+3;x++)
+//						try{
+//								kv.rgbImg.setRGB(x,y,0xFF000000);
+//						}
+//						catch(Exception e){};	
+//			}
+//
+//			//if not tracking keep kv.trajectory to just one index
+//			if(!kv.tracking)
+//			{
+//				kv.trajectory.clear();
+//			}
+//
+//			//draw bounding box to determine if ball will fall in place
+//			int bound = (int)(x_param*160.0);
+//			try
+//			{
+//				for(int y = kv.BALL.center_y-(bound/2); y < kv.BALL.center_y+(bound/2); y++)
+//				{
+//					kv.depthImg.setRGB(kv.BALL.center_x-(bound/2),y,0xFFFFFFFF);
+//					kv.depthImg.setRGB(kv.BALL.center_x+(bound/2),y,0xFFFFFFFF);
+//				}
+//				for(int x = kv.BALL.center_x-(bound/2); x < kv.BALL.center_x+(bound/2); x++)
+//				{
+//					kv.depthImg.setRGB(x,kv.BALL.center_y-(bound/2),0xFFFFFFFF);
+//					kv.depthImg.setRGB(x,kv.BALL.center_y+(bound/2),0xFFFFFFFF);
+//				}
+//			}
+//			catch(Exception e){};
+//				//System.println(kv.getDepth(kv.depthImg,kv.BALL.center_y*width+kv.BALL.center_x));
+//
+//			ballLCM.x = kv.BALL.center_x;
+//			ballLCM.y = kv.BALL.center_y;
+//			ballLCM.z = 4;
+//			kv.lcm.publish("6_BALL",ballLCM);
+////			Point ballCenter = new Point(kv.BALL.center_x,kv.BALL.center_y);
+//			ArrayList<Statistics> depthBlobs = new ArrayList<Statistics>();//kv.finder.analyzeDepthPartition(kv.depthStream.getBuf(),ballCenter,bound);
+//			Statistics ClosestBall = new Statistics();
+//			for(Statistics blob : depthBlobs)
+//			{
+//				if(blob.closestDepth < ClosestBall.closestDepth)
+//				{
+//					ClosestBall = blob;
+//				}
+//			}
+//			if(ClosestBall.closestPixel != null)
+//			{
+//				ClosestBall.center();
+//				for(int y = ClosestBall.closestPixel.y-3; y < ClosestBall.closestPixel.y+3; y++)
+//						for(int x = ClosestBall.closestPixel.x-3; x < ClosestBall.closestPixel.x+3;x++)
+//							try{
+//								kv.depthImg.setRGB(x,y,0xFFFFFFFF);
+//							}
+//							catch(Exception e){};
+//				//System.out.println(ClosestBall.closestDepth);
+//			}
+//			try
+//			{
+//				Point3D realWorld = kv.depthStream.getWorldCoords(ClosestBall.closestPixel);
+//				System.out.println(realWorld.x + " " + realWorld.y + " " + realWorld.z);
+//			}
+//			catch(Exception e){};
+//			
+//			kv.rgbJim.setImage(kv.rgbImg);
+//			kv.depthJim.setImage(kv.depthImg);
+//			if (kv.display) {
+//				if(kv.colorAnalyze)
+//				{
+//					params[0] = (double)kv.pg.gi("redValMin");
+//					params[2] = (double)kv.pg.gi("greenValMin");
+//					params[4] = (double)kv.pg.gi("blueValMin");
+//					params[1] = (double)kv.pg.gi("redValMax");
+//					params[3] = (double)kv.pg.gi("greenValMax");
+//					params[5] = (double)kv.pg.gi("blueValMax");
+//					x_param = kv.pg.gd("x_param");
+//					y_param = kv.pg.gi("y_param");
+//					kv.colorStream.changeThreshold((byte)2,params);
+//				}
+//				else if(kv.colorAnalyze2)
+//				{
+//					params[0] = kv.pg.gd("HueMin");
+//					params[1] = kv.pg.gd("HueMax");
+//					params[2] = kv.pg.gd("SatMin");
+//					params[3] = kv.pg.gd("SatMax");
+//					params[4] = kv.pg.gd("BrightMin");
+//					params[5] = kv.pg.gd("BrightMax");
+//					x_param = kv.pg.gd("x_param");
+//					y_param = kv.pg.gi("y_param");
+//					kv.colorStream.changeThreshold((byte)1,params);
+//				}
+//			}
+//		}
+//	}
+	
+	
+
 
 	/*
 	public void convertToHSV(){
