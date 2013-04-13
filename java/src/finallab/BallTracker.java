@@ -58,7 +58,7 @@ public class BallTracker
 		}
 	}
 
-	public ArrayList<Statistics> analyze2(boolean[] thresholdMap)
+	public ArrayList<Statistics> analyze2(short[] thresholdMap)
 	{
 		finder = new UnionFind(size);
 		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
@@ -68,7 +68,7 @@ public class BallTracker
 			int access = x;
 			int plusX = x+1;
 			int plusY = width+x;
-			if(thresholdMap[access])
+			if(thresholdMap[access] != 0)
 			{
 				output.setRGB(x,y,0xFFFF0000);
 				if((x != width-1) && thresholdMap[plusX])
@@ -89,7 +89,7 @@ public class BallTracker
 				int access = y*width+x;
 				int plusX = y*width+x+1;
 				int plusY = (y+1)*width+x;
-				if(thresholdMap[access])
+				if(thresholdMap[access] != 0)
 				{
 					output.setRGB(x,y,0xFFFF0000);
 					if((x != width-1) && thresholdMap[plusX])
@@ -101,7 +101,7 @@ public class BallTracker
 				{
 					output.setRGB(x,y,0xFFFFFFFF);
 				}
-				if(!thresholdMap[delayedPointer])
+				if(thresholdMap[delayedPointer] == 0)
 					continue;
 				if(finder.find(delayedPointer) == delayedPointer)
 				{
@@ -121,7 +121,7 @@ public class BallTracker
 		for(int x = 0; x < width; x++)
 		{
 			int delayedPointer = y*width+x;
-			if(!thresholdMap[delayedPointer])
+			if(thresholdMap[delayedPointer] == 0)
 				continue;
 			if(finder.find(delayedPointer) == delayedPointer)
 			{
@@ -151,7 +151,7 @@ public class BallTracker
 		return blobs;
 	}
 
-	public ArrayList<Statistics> analyze(boolean[] thresholdMap)
+	public ArrayList<Statistics> analyze(short[] thresholdMap)
 	{
 		finder = new UnionFind(size);
 		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
@@ -162,7 +162,7 @@ public class BallTracker
 				int access = y*width+x;
 				int plusX = y*width+x+1;
 				int plusY = (y+1)*width+x;
-				if(thresholdMap[access])
+				if(thresholdMap[access] != 0)
 				{
 					output.setRGB(x,y,0xFFFF0000);
 					if((x != width-1) && thresholdMap[plusX])
@@ -181,7 +181,7 @@ public class BallTracker
 			for(int x = 0; x < width; x++)
 			{
 				int access = y*width+x;
-				if(!thresholdMap[access])
+				if(thresholdMap[access] == 0)
 					continue;
 				if(finder.find(access) == access)
 				{
