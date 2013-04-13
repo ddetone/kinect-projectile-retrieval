@@ -28,12 +28,15 @@ public class CatchController implements LCMSubscriber
 	LCM  lcm;
 	LCM recieve;
 
-	CatchController(boolean _display)
+	CatchController(boolean _display, boolean logs)
 	{
 		predictor = new ProjectileT();
 		display = _display;
-		viewer = new KinectView(_display);
-		viewer.start();
+		if(!logs)
+		{
+			viewer = new KinectView(_display);
+			viewer.start();
+		}
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
 		}
@@ -194,7 +197,14 @@ public class CatchController implements LCMSubscriber
 
 	public static void main(String[] args)
 	{
-		CatchController cc = new CatchController(true);
+		
+		boolean logs = false;
+		for(int i = 0; i < args.length; i++)
+		{
+			if(args[i].equals("log"))
+				logs = true;
+		}
+		CatchController cc = new CatchController(true, logs);
 		cc.catchStateMachine();
 	}
 
