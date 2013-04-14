@@ -1,18 +1,22 @@
 package finallab;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.imageio.*;
 
 import org.openkinect.freenect.*;
 
 import april.util.*;
 
 import finallab.lcmtypes.*;
+
+import java.util.concurrent.locks.*;
+
 import lcm.lcm.*;
 
 public class KinectView extends Thread
@@ -88,11 +92,15 @@ public class KinectView extends Thread
 					if(!tracking)
 					{
 						tracking = true;
+						colorStream.pause();
+						depthStream.pause();
 						startTracking.setText("Stop Tracking");
 					}
 					else
 					{
 						tracking = false;
+						colorStream.resume();
+						depthStream.resume();
 						startTracking.setText("Start Tracking Balls");
 					}
 				}
@@ -182,8 +190,12 @@ public class KinectView extends Thread
 		params[5] = 1.0;
 		kinect.setDepthFormat(DepthFormat.D11BIT);
 
-		colorStream = new KinectRGBVideo(kinect,0,params);
+		System.out.println("initializing depth stream");
 		depthStream = new KinectDepthVideo(kinect,display);
+		System.out.println("initializing rgb stream");
+		colorStream = new KinectRGBVideo(kinect,0,params);
+		System.out.println("done creating rgb stream");
+
 		if(display)
 		{
 			depthImg = depthStream.getFrame();
@@ -207,7 +219,7 @@ public class KinectView extends Thread
 	}
 	
 	public void run() {
-
+		int ballNum = 0;
 		while (true) {
 			BALL = null;
 			ball_t ballLCM = new ball_t();
@@ -241,9 +253,15 @@ public class KinectView extends Thread
 			while (!depthStream.newImage);
 			ballLCM.nanoTime = System.nanoTime();
 			depthStream.newImage = false;
-
-			ArrayList<Statistics> blobs = finder.analyze2(depthStream
-					.getValidImageArray());
+			ArrayList<Statistics> blobs;
+			depthStream.getReadLock().lock();
+			try {
+				blobs = finder.analyze2(depthStream
+						.getValidImageArray());
+			}
+			finally {
+				depthStream.getReadLock().unlock();
+			}
 			Statistics ball = null;
 
 			int size = 300;
@@ -262,13 +280,15 @@ public class KinectView extends Thread
 				for (int y = depthPix.y - 3; y < depthPix.y + 3; y++) {
 					for (int x = depthPix.x - 3; x < depthPix.x + 3; x++) {
 						try {
-							depthImg.setRGB(x, y, 0xFF000000);
+							depthImg.setRGB(x, y, 0xFFFFFFFF);
 						} catch (Exception e) {
 							// System.out.println(x + " " + y);
 						};
 					}
 				}
 			}
+			// System.out.println("balls points " + trajectory.size());
+
 
 			// if not tracking keep kv.trajectory to just one index
 			if (!tracking) {
@@ -278,9 +298,16 @@ public class KinectView extends Thread
 			if (ball != null) {
 
 				Point depthPix = ball.center();
+				Point depthCoord = new Point();
+				depthCoord.x = depthPix.x + KinectVideo.C_X;
+				depthCoord.y = KinectVideo.C_Y - depthPix.y;
+				// System.out.println("Depth at center: " + depthStream.getValidImageArray()[depthPix.y*640+depthPix.x]);
 				// Point depthCoord = new Point(depthPix.x - KinectVideo.C_X,
 				// KinectVideo.C_Y - depthPix.y);
-				Point3D coord = depthStream.getWorldCoords(depthPix);
+				System.out.println("center depth " + depthStream.getDepthValFromDepthPixel(depthPix));
+				System.out.println("avg depth " + ball.Uz());
+				double realDepth = raw_depth_to_meters(ball.Uz());
+				Point3D coord = depthStream.getWorldCoords(depthCoord, realDepth);
 				if (depthPix != null) {
 					// System.out.println("depth blobs: " + depthBlobs.size());
 					// System.out.println("time diff: " +
@@ -297,6 +324,23 @@ public class KinectView extends Thread
 							};
 						}
 					}
+					// if (tracking) {
+					// 	//save image
+					// 	depthStream.getReadLock().lock();
+					// 	try {
+					// 		File imgFile = new File("image" + ballNum++ + ".png");
+					// 		try {
+					// 			ImageIO.write(depthImg, "png", imgFile);
+					// 		}
+					// 		catch(Exception e) {
+					// 			System.out.println("can't save img");
+					// 		}
+					// 	}
+					// 	finally {
+					// 		depthStream.getReadLock().unlock();
+					// 	}
+					// }
+
 					try {
 						// coord.z =
 						// depthStream.getDepthFromDepthPixel(depthPix);
@@ -306,9 +350,9 @@ public class KinectView extends Thread
 					}
 					// System.out.println("depth: " +
 					// depthStream.getDepthFromDepthPixel(depthPix));
-					if (!display || (display && tracking)) {
+					if (tracking) {
 						ballLCM.x = coord.x;
-						ballLCM.y = coord.y + 0.82;
+						ballLCM.y = coord.y + 0.795;
 						ballLCM.z = coord.z;
 						// if(tracking)
 						lcm.publish("6_BALL", ballLCM);
@@ -324,9 +368,10 @@ public class KinectView extends Thread
 			// realWorld.z);
 			// }
 			// catch(Exception e){};
+			depthJim.setImage(depthImg);
 			if (display) {
 				rgbJim.setImage(rgbImg);
-				depthJim.setImage(depthImg);
+				
 				if (colorAnalyze) {
 					params[0] = (double) pg.gi("redValMin");
 					params[2] = (double) pg.gi("greenValMin");

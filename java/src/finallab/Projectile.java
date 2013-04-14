@@ -48,7 +48,7 @@ public class Projectile extends VisEventAdapter
 	Projectile()
 	{
 		//vis initializations
-		jf = new JFrame("RobotGUI");
+		jf = new JFrame("Projectile");
 		vw = new VisWorld();
 		vl = new VisLayer(vw);
 		vc = new VisCanvas(vl);
@@ -464,7 +464,8 @@ public class Projectile extends VisEventAdapter
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
 		vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),pandaBot));
 
-		VisChain path = new VisChain(LinAlg.rotateZ(xyzt[2]), LinAlg.translate(robotLoc.x, robotLoc.y), new VzBox(xyzt[0], 0.01, 0.01));
+		VisChain path = new VisChain(LinAlg.translate(xyzt[0],0),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), pandaBot);//new VzBox(xyzt[0], .1, .1));
+		vb.addBack(path);
 
 		vb.addBack(new VzAxes());
 		vb.swap();

@@ -9,7 +9,8 @@ public class Statistics
     private static final double DMAX_VALUE = 2147483647.0;
     public double Mxx, Mxy, Myy;
     public double Mx, My;
-    public int closestDepth = 2047;
+    public int Mz;
+    public int closestDepth;
     public Point closestPixel;
     int N;
     public int max_x, max_y, min_x, min_y;
@@ -19,7 +20,7 @@ public class Statistics
     public Statistics()
     {
         Mxx = 0; Mxy = 0; Myy = 0;
-        Mx = 0; My = 0;
+        Mx = 0; My = 0; Mz = 0;
         N = 0;
         max_x = 0;
         max_y = 0;
@@ -27,6 +28,7 @@ public class Statistics
         min_y = MAX_VALUE;
         center_y = 0;
         center_x = 0;
+        closestDepth = 2047;
     }
 
     public void update(int pixelX, int pixelY)
@@ -36,6 +38,7 @@ public class Statistics
         Myy += (pixelY * pixelY);
         Mx += pixelX;
         My += pixelY;
+
 
         N++;
 
@@ -59,6 +62,7 @@ public class Statistics
         Myy += (pixelY * pixelY);
         Mx += pixelX;
         My += pixelY;
+        Mz += depth;
 
         N++;
 
@@ -89,6 +93,10 @@ public class Statistics
     public double Uy()
     {
         return (My/(double) N);
+    }
+
+    public int Uz() {
+        return (Mz/N);
     }
 
     public double Cxx()

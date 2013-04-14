@@ -24,6 +24,7 @@ public class KinectRGBVideo extends KinectVideo
 		kinect.startVideo(new VideoHandler() {
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
+				
 				frameData = rgb;
 				timestamp = _timestamp; 
 				int[] pixelInts = new int[WIDTH * HEIGHT];
@@ -55,6 +56,8 @@ public class KinectRGBVideo extends KinectVideo
 				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
 					frameData = rgb;
 					timestamp = _timestamp; 
+					// if (!display)
+					// 	return;
 					int[] pixelInts = new int[WIDTH * HEIGHT];
 					for(int i = 0; i < WIDTH*HEIGHT; i++) {
 						int rgbVal = 0xFF;
@@ -91,6 +94,8 @@ public class KinectRGBVideo extends KinectVideo
 				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
 					frameData = rgb;
 					timestamp = _timestamp; 
+					if (!display)
+						return;
 					int[] pixelInts = new int[WIDTH * HEIGHT];
 
 					int red = 0;
@@ -148,6 +153,8 @@ public class KinectRGBVideo extends KinectVideo
 				public void onFrameReceived(FrameMode fm, ByteBuffer rgb, int _timestamp) {
 					frameData = rgb;
 					timestamp = _timestamp; 
+					if (!display)
+						return;
 					int[] pixelInts = new int[WIDTH * HEIGHT];
 
 					int red = 0;

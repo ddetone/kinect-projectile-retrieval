@@ -58,7 +58,7 @@ public class BallTracker
 		}
 	}
 
-	public ArrayList<Statistics> analyze2(short[] thresholdMap)
+	public ArrayList<Statistics> analyze2(short[] depthMap)
 	{
 		finder = new UnionFind(size);
 		HashMap <Integer, Statistics> map = new HashMap<Integer, Statistics>();
@@ -68,12 +68,12 @@ public class BallTracker
 			int access = x;
 			int plusX = x+1;
 			int plusY = width+x;
-			if(thresholdMap[access] != 0)
+			if(depthMap[access] != -1)
 			{
 				output.setRGB(x,y,0xFFFF0000);
-				if((x != width-1) && thresholdMap[plusX])
+				if((x != width-1) && depthMap[plusX] != -1)
 					finder.join(access,plusX);
-				if(thresholdMap[plusY])
+				if(depthMap[plusY] != -1)
 					finder.join(access,plusY);
 			}
 			else
@@ -89,30 +89,30 @@ public class BallTracker
 				int access = y*width+x;
 				int plusX = y*width+x+1;
 				int plusY = (y+1)*width+x;
-				if(thresholdMap[access] != 0)
+				if(depthMap[access] != -1)
 				{
 					output.setRGB(x,y,0xFFFF0000);
-					if((x != width-1) && thresholdMap[plusX])
+					if((x != width-1) && depthMap[plusX] != -1)
 						finder.join(access,plusX);
-					if((y != height-1) && thresholdMap[plusY])
+					if((y != height-1) && depthMap[plusY] != -1)
 						finder.join(access,plusY);
 				}
 				else
 				{
 					output.setRGB(x,y,0xFFFFFFFF);
 				}
-				if(thresholdMap[delayedPointer] == 0)
+				if(depthMap[delayedPointer] == -1)
 					continue;
 				if(finder.find(delayedPointer) == delayedPointer)
 				{
 					Statistics input = new Statistics();
-					input.update(x,y);
+					input.update(x,y, depthMap[delayedPointer]);
 					map.put(delayedPointer, input);
 				}
 				else if(map.containsKey(finder.find(delayedPointer)))
 				{
 					Statistics output = map.get(finder.find(delayedPointer));
-					output.update(x,y);
+					output.update(x,y, depthMap[delayedPointer]);
 					map.put(finder.find(delayedPointer),output);
 				}
 			}
@@ -121,18 +121,18 @@ public class BallTracker
 		for(int x = 0; x < width; x++)
 		{
 			int delayedPointer = y*width+x;
-			if(thresholdMap[delayedPointer] == 0)
+			if(depthMap[delayedPointer] == -1)
 				continue;
 			if(finder.find(delayedPointer) == delayedPointer)
 			{
 				Statistics input = new Statistics();
-				input.update(x,y);
+				input.update(x,y,depthMap[delayedPointer]);
 				map.put(delayedPointer, input);
 			}
 			else if(map.containsKey(finder.find(delayedPointer)))
 			{
 				Statistics output = map.get(finder.find(delayedPointer));
-				output.update(x,y);
+				output.update(x,y,depthMap[delayedPointer]);
 				map.put(finder.find(delayedPointer),output);
 			}
 		}
@@ -162,12 +162,12 @@ public class BallTracker
 				int access = y*width+x;
 				int plusX = y*width+x+1;
 				int plusY = (y+1)*width+x;
-				if(thresholdMap[access] != 0)
+				if(thresholdMap[access] != -1)
 				{
 					output.setRGB(x,y,0xFFFF0000);
-					if((x != width-1) && thresholdMap[plusX])
+					if((x != width-1) && thresholdMap[plusX] != -1)
 						finder.join(access,plusX);
-					if((y != height-1) && thresholdMap[plusY])
+					if((y != height-1) && thresholdMap[plusY] != -1)
 						finder.join(access,plusY);
 				}
 				else
@@ -181,7 +181,7 @@ public class BallTracker
 			for(int x = 0; x < width; x++)
 			{
 				int access = y*width+x;
-				if(thresholdMap[access] == 0)
+				if(thresholdMap[access] == -1)
 					continue;
 				if(finder.find(access) == access)
 				{

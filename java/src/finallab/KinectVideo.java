@@ -5,6 +5,7 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.awt.Point;
+import java.util.concurrent.locks.*;
 
 import javax.swing.JPanel;
 
@@ -22,7 +23,9 @@ public abstract class KinectVideo extends JPanel {
 	protected BufferedImage frame;
 	protected ByteBuffer frameData;
 	protected int timestamp;
-	protected boolean display;
+	protected volatile boolean display;
+
+	protected ReadWriteLock frameLock;
 
 	//calibration params
 	protected double f;
@@ -32,6 +35,7 @@ public abstract class KinectVideo extends JPanel {
 		display = _display;
 		if (display)
 			frame = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+		frameLock = new ReentrantReadWriteLock();
 	}
 	
     @Override
@@ -69,5 +73,11 @@ public abstract class KinectVideo extends JPanel {
     }
     public int getLatestTime() {
     	return timestamp;
+    }
+    public Lock getReadLock() {
+    	return frameLock.readLock();
+    }
+    public Lock getWriteLock() {
+    	return frameLock.writeLock();
     }
 }

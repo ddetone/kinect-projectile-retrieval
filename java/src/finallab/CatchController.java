@@ -16,7 +16,7 @@ import finallab.lcmtypes.*;
 
 public class CatchController implements LCMSubscriber
 {
-	ProjectileT predictor;
+	Projectile predictor;
 	KinectView viewer;
 	boolean display = true;
 
@@ -30,7 +30,7 @@ public class CatchController implements LCMSubscriber
 
 	CatchController(boolean _display, boolean logs)
 	{
-		predictor = new ProjectileT();
+		predictor = new Projectile();
 		display = _display;
 		if(!logs)
 		{
@@ -49,8 +49,8 @@ public class CatchController implements LCMSubscriber
 
 	public Point3D convertToPointRobotNonMat(double[] point)
 	{
-		double xDist = BOT_DIST_FROM_KINECT_X - point[0];
-		double yDist = BOT_DIST_FROM_KINECT_Y - point[2];
+		double xDist = -BOT_DIST_FROM_KINECT_X + point[0];
+		double yDist = -BOT_DIST_FROM_KINECT_Y + point[1];
 		return new Point3D(xDist,yDist,0);
 	}
 	
@@ -70,6 +70,7 @@ public class CatchController implements LCMSubscriber
 		for(Parabola bounce: bounces)
 		{
 			double [] point = bounce.pred_landing;
+			System.out.println("Ponits x y z :" + point[0] + " " + point[1] + " " + point[2]);
 			long timeToMove = 0;
 			//convert from points of kinect to points in front of robot
 			Point3D landing = convertToPointRobotNonMat(point);
@@ -121,6 +122,7 @@ public class CatchController implements LCMSubscriber
 					land = determineBounceCatch(bounces);
 					double r = Math.sqrt(land.x*land.x + land.y*land.y);
 					double theta = Math.atan2(land.y, land.x);
+					System.out.println("LX:" + land.x + "LY:" + land.y);
 					xyt_t spot = new xyt_t();
 					spot.xyt[0] = r;
 					spot.xyt[2] = theta;
@@ -129,6 +131,7 @@ public class CatchController implements LCMSubscriber
 					// go to point at bounce index
 						lcm.publish("6_WAYPONT",spot);
 						wayPoint = land;
+						predictor.DrawBallsWithRobot(new Point3D(0.0,1.0,0.0),spot.xyt);
 						return;
 					}
 					nextState = 1;
