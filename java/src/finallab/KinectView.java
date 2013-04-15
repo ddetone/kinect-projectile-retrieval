@@ -142,6 +142,7 @@ public class KinectView extends Thread
 				pg.addDoubleSlider("BrightMax","Brightness Max",0,1.0,1.0);
 				pg.addDoubleSlider("x_param","x_param",0d,1d,1d);
 				pg.addIntSlider("y_param","y_param",1,500,100);
+				pg.addIntSlider("blobThresh", "blob thresh", 1, 500, 125);
 				jf.add(pg, 1,0);
 				jf.add(rgbJim, 0, 0);
 				jf.add(depthJim, 0, 1);
@@ -179,7 +180,7 @@ public class KinectView extends Thread
 		BALL = new Statistics();
 		trajectory = new ArrayList<Statistics>();
 
-		finder = new BallTracker(width,height,false);
+		finder = new BallTracker(width,height,true);
 		
 		double params[] = new double[6];
 		params[0] = 0;
@@ -264,8 +265,11 @@ public class KinectView extends Thread
 			}
 			Statistics ball = null;
 
-			int size = 300;
+			int size = pg.gi("blobThresh");
 			for (Statistics curr : blobs) {
+				if (tracking) {
+					// System.out.println("blob size: " + curr.N);
+				}
 				if (curr.N > size) {
 					ball = curr;
 					size = ball.N;
@@ -299,13 +303,13 @@ public class KinectView extends Thread
 
 				Point depthPix = ball.center();
 				Point depthCoord = new Point();
-				depthCoord.x = depthPix.x + KinectVideo.C_X;
+				depthCoord.x = depthPix.x - KinectVideo.C_X;
 				depthCoord.y = KinectVideo.C_Y - depthPix.y;
 				// System.out.println("Depth at center: " + depthStream.getValidImageArray()[depthPix.y*640+depthPix.x]);
 				// Point depthCoord = new Point(depthPix.x - KinectVideo.C_X,
 				// KinectVideo.C_Y - depthPix.y);
-				System.out.println("center depth " + depthStream.getDepthValFromDepthPixel(depthPix));
-				System.out.println("avg depth " + ball.Uz());
+				// System.out.println("center depth " + depthStream.getDepthValFromDepthPixel(depthPix));
+				// System.out.println("avg depth " + ball.Uz());
 				double realDepth = raw_depth_to_meters(ball.Uz());
 				Point3D coord = depthStream.getWorldCoords(depthCoord, realDepth);
 				if (depthPix != null) {
@@ -352,7 +356,7 @@ public class KinectView extends Thread
 					// depthStream.getDepthFromDepthPixel(depthPix));
 					if (tracking) {
 						ballLCM.x = coord.x;
-						ballLCM.y = coord.y + 0.795;
+						ballLCM.y = coord.y;
 						ballLCM.z = coord.z;
 						// if(tracking)
 						lcm.publish("6_BALL", ballLCM);

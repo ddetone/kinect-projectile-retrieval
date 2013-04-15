@@ -34,7 +34,7 @@ public class Projectile extends VisEventAdapter
 	final double nano = 1000000000;
 	final double g = 9.806; 				//g in meters/second squared
 	final double ball_radius = 0.03; 		//must be in meters
-	final double DEFAULT_ERROR_THRESH = 0.01;
+	final double DEFAULT_ERROR_THRESH = 0.05;
 	final double bounce_factor = 0.75; 		//% bounce is retained
 	final int num_bounces = 3;
 	final int num_regression = 20; //the max number of recent balls used in regression
@@ -54,7 +54,7 @@ public class Projectile extends VisEventAdapter
 		vc = new VisCanvas(vl);
 		pg = new ParameterGUI();
 		pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
-		pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.025,DEFAULT_ERROR_THRESH);
+		pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
 			{
