@@ -23,13 +23,14 @@ public class PathFollower implements LCMSubscriber
 {
 
 	final boolean verbose = true;
-	final boolean verbose2 = true;
+	final boolean verbose2 = false;
 	LCM lcm;
 	bot_status_t bot_status;
 
 
 	//Robot is actively following if isFollow = true else if does not move
 	static boolean isFollow = false;
+	static boolean stop = false;
 	static double[] cXYT = new double[3];
 	static double[] dXYT = new double[3];
 	static double angleToDest;
@@ -39,8 +40,8 @@ public class PathFollower implements LCMSubscriber
 
 	static final double MAX_SPEED = 1.0f;
 	static final double SET_SPEED = 0.9f;
-	static final double ALLOWED_ANGLE = 360;
-	static final double STRAIGHT_DIST = 0.5; 
+	static final double ALLOWED_ANGLE = Math.toRadians(45);
+	static final double STRAIGHT_DIST = 0.35; 
 	static final double DEST_DIST = 0.20; 
 
 	//double Kp_turn = 0.7;
@@ -68,6 +69,7 @@ public class PathFollower implements LCMSubscriber
 		pidAngle.setIntegratorClamp(10);
 		
 		errorAngle = 0;
+		prev_errorDist = 9999;
 		left = SET_SPEED;
 		right = SET_SPEED;
 
@@ -88,12 +90,10 @@ public class PathFollower implements LCMSubscriber
 		errorAngle = angleToDest-curAngle;
 
 		if(verbose)System.out.println("curAngle:" + Math.toDegrees(curAngle) +
-				"angleToDest:" + Math.toDegrees(angleToDest)
-				+ "  errorAngle:" + Math.toDegrees(errorAngle));
+				" angleToDest:" + Math.toDegrees(angleToDest)
+				+ " errorAngle:" + Math.toDegrees(errorAngle));
 		
 		if(verbose)System.out.printf("errorDist:%f\n",errorDist);
-
-		prev_errorDist = errorDist;
 
 	}
 
@@ -108,7 +108,7 @@ public class PathFollower implements LCMSubscriber
 
 		if(verbose)System.out.println("pid:" + pid);
 				//+ "  integrator: " + pidAngle.integral);
-		
+	
 
 		right = SET_SPEED + pid;
 		left = SET_SPEED - pid;		
@@ -155,6 +155,8 @@ public class PathFollower implements LCMSubscriber
 	{
 		setMotorCommand(0.0F, 0.0F);
 		isFollow = false;
+		prev_errorDist = 9999;
+		stop = false;
 	}
 
 	public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
@@ -176,13 +178,14 @@ public class PathFollower implements LCMSubscriber
 					{
 						isFollow = false;
 						if(verbose)System.out.println("reached waypoint\n");						
-						stop();
+						stop = true;
 					}
-					else if (prev_errorDist < errorDist)
+					else if ((prev_errorDist+0.005) < errorDist)
 					{
 						isFollow = false;
-						if(verbose)System.out.println("reached waypoint...prev_errorDist > errorDist\n");						
-						stop();	
+						if(verbose)System.out.println("reached waypoint...prev_errorDist < errorDist\n");
+						if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);						
+						stop = true;	
 					}
 					else if (errorDist < STRAIGHT_DIST)
 					{
@@ -193,8 +196,13 @@ public class PathFollower implements LCMSubscriber
 					{
 						if(verbose)System.out.println("drive to waypoint\n");
 						moveRobot();
-
 					}
+
+					prev_errorDist = errorDist;
+
+					if (stop)
+						stop();
+					
 				}
 			}
 			else if(channel.equals("6_WAYPOINT"))
@@ -202,17 +210,30 @@ public class PathFollower implements LCMSubscriber
 				xyt_t dest = new xyt_t(dins);
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
+
+				calcErrors();
+
+				if(verbose2)System.out.println("curAngle:" + Math.toDegrees(cXYT[2]) +
+						"angleToDest:" + Math.toDegrees(angleToDest)
+						+ "  errorAngle:" + Math.toDegrees(errorAngle));
 			
-				if (errorAngle > Math.abs(Math.toRadians(ALLOWED_ANGLE)))
+				if (Math.abs(errorAngle) > Math.abs(ALLOWED_ANGLE))
 				{
 					if(verbose)System.out.printf("angle to waypoint too big, greater than: %f\n", ALLOWED_ANGLE);
 					if(verbose)System.out.printf("calculated angle to waypoint is: %f\n", errorAngle);
-					stop();
+					stop = true;
 				}
 				else
 				{
 					isFollow = true;
 				}
+
+				prev_errorDist = errorDist;
+
+				if (stop)
+					stop();
+
+
 			}
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);
