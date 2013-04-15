@@ -44,6 +44,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 	final boolean DEFAULT_DISP_CONV = false;
 	boolean sendWayPoint = DEFAULT_SEND_WAYPOINT;
 	boolean dispConv = DEFAULT_DISP_CONV;
+	//boolean def180 = DEFAULT_ROTATE;
 
 	RobotGUI()
 	{
@@ -68,6 +69,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 
 		pg.addCheckBoxes("sendWayPoint", "Send Waypoint", DEFAULT_SEND_WAYPOINT);
 		pg.addCheckBoxes("dispConv", "Display Exploded Wall Map", DEFAULT_DISP_CONV);
+		//pg.addCheckBoxes("rotate180", "Rotate 180 degrees", DEFAULT_ROTATE);
 		
 		pg.addDoubleSlider("kp", "kp", 0d, 2d, 0.1);
 		pg.addDoubleSlider("ki", "ki", 0d, 1d, 0d);
@@ -94,6 +96,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			{
 				if(name == "sendWayPoint")sendWayPoint = pg.gb("sendWayPoint");
 				else if(name == "dispConv")dispConv = pg.gb("dispConv");
+				//else if(name == "dispConv")dispConv = pg.gb("dispConv");
 			}
 		});
 

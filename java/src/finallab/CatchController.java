@@ -121,12 +121,15 @@ public class CatchController implements LCMSubscriber
 				case 0:
 					// determine if able to catch on first bounce or second bounce
 					land = determineBounceCatch(bounces);
-					double r = Math.sqrt(land.x*land.x + land.y*land.y);
-					double theta = Math.atan2(land.y, land.x);
-					System.out.println("LX:" + land.x + "LY:" + land.y);
+					//double r = Math.sqrt(land.x*land.x + land.y*land.y);
+					//double theta = Math.atan2(land.y, land.x);
+					//System.out.println("LX:" + land.x + "LY:" + land.y);
 					xyt_t spot = new xyt_t();
-					spot.xyt[0] = r;
-					spot.xyt[2] = theta;
+					//spot.xyt[0] = r;
+					//spot.xyt[2] = theta;
+					spot.xyt[0] = land.x;
+					spot.xyt[1] = land.y;
+					spot.xyt[2] = land.z;
 					if((land.x != wayPoint.x) || (land.y != wayPoint.y) || (land.z != wayPoint.z))
 					{
 					// go to point at bounce index
