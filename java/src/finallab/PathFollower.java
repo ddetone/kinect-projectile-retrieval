@@ -34,6 +34,7 @@ public class PathFollower implements LCMSubscriber
 	static double[] dXYT = new double[3];
 	static double angleToDest;
 	static double errorDist, errorAngle;
+	static double prev_errorDist;
 	static double left, right;
 
 	static final double MAX_SPEED = 1.0f;
@@ -58,7 +59,12 @@ public class PathFollower implements LCMSubscriber
 
 	PathFollower()
 	{
-		this.lcm =  LCM.getSingleton();
+		try{
+			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
+		}
+		catch(IOException e){
+			lcm = LCM.getSingleton();
+		}
 		pidAngle.setIntegratorClamp(10);
 		
 		errorAngle = 0;
@@ -81,13 +87,13 @@ public class PathFollower implements LCMSubscriber
 
 		errorAngle = angleToDest-curAngle;
 
-
-
 		if(verbose)System.out.println("curAngle:" + Math.toDegrees(curAngle) +
 				"angleToDest:" + Math.toDegrees(angleToDest)
 				+ "  errorAngle:" + Math.toDegrees(errorAngle));
 		
 		if(verbose)System.out.printf("errorDist:%f\n",errorDist);
+
+		prev_errorDist = errorDist;
 
 	}
 
@@ -166,21 +172,26 @@ public class PathFollower implements LCMSubscriber
 				{
 					calcErrors();
 
-
 					if (errorDist < DEST_DIST)
 					{
 						isFollow = false;
-						if(verbose)System.out.println("reached waypoint");						
+						if(verbose)System.out.println("reached waypoint\n");						
 						stop();
+					}
+					else if (prev_errorDist < errorDist)
+					{
+						isFollow = false;
+						if(verbose)System.out.println("reached waypoint...prev_errorDist > errorDist\n");						
+						stop();	
 					}
 					else if (errorDist < STRAIGHT_DIST)
 					{
-						if(verbose)System.out.println("continue straight");					
+						if(verbose)System.out.println("continue straight\n");					
 						setMotorCommand(SET_SPEED,SET_SPEED);
 					}
 					else	
 					{
-						if(verbose)System.out.println("drive to waypoint");
+						if(verbose)System.out.println("drive to waypoint\n");
 						moveRobot();
 
 					}
@@ -196,7 +207,6 @@ public class PathFollower implements LCMSubscriber
 				{
 					if(verbose)System.out.printf("angle to waypoint too big, greater than: %f\n", ALLOWED_ANGLE);
 					if(verbose)System.out.printf("calculated angle to waypoint is: %f\n", errorAngle);
-					isFollow = false;
 					stop();
 				}
 				else

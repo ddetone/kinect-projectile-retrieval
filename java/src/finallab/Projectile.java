@@ -129,6 +129,8 @@ public class Projectile extends VisEventAdapter
 		if (e > error_thresh)
 		{
 			System.out.printf("BOUNCE DETECTED\n");
+			double[] land = bounces.get(bounce_index).pred_landing;
+			System.out.printf("Bounce Index:%d, X_coord: %f, Y_coord: %f\n", bounce_index, land[0], land[1]);
 			bounce_index++;
 			if (bounce_index >= num_bounces)
 			{
@@ -550,7 +552,7 @@ public class Projectile extends VisEventAdapter
 		else
 			statestring = "UNKNOWN";
 
-		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.CENTER, new VzText(VzText.ANCHOR.CENTER, 
+		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.BOTTOM_LEFT, new VzText(VzText.ANCHOR.BOTTOM_LEFT, 
 			"<<sansserif-bold-16,white>>" + statestring)));
 		
 		vb.swap();
