@@ -23,11 +23,11 @@ public class CatchController implements LCMSubscriber
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
 	final double BOT_DIST_FROM_KINECT_X = 0.0;
-	final double BOT_DIST_FROM_KINECT_Y = 1.0;
+	final double BOT_DIST_FROM_KINECT_Y = 1.13;
 	final double KINECT_HEIGHT = .68;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	LCM  lcm;
-	LCM recieve;
+	//LCM recieve;
 
 	CatchController(boolean _display, boolean logs)
 	{
@@ -44,8 +44,9 @@ public class CatchController implements LCMSubscriber
 		catch(IOException e){
 			lcm = LCM.getSingleton();
 		}
-		recieve = LCM.getSingleton();
-		recieve.subscribe("6_BALL", this);	
+		//recieve = LCM.getSingleton();
+		//receive = lcm;
+		lcm.subscribe("6_BALL", this);	
 	}
 
 	public Point3D convertToPointRobotNonMat(double[] point)
@@ -112,7 +113,7 @@ public class CatchController implements LCMSubscriber
 			// System.out.println("x:"+ball.x+ " y:" +ball.y+ " z:" +ball.z);
 			bounces = predictor.getParabolas();
 			Point3D land;
-			Point3D wayPoint = new Point3D(0.0,0.0,0.0);
+			
 			switch(state)
 			{
 				//waiting state
@@ -123,21 +124,21 @@ public class CatchController implements LCMSubscriber
 					land = determineBounceCatch(bounces);
 					//double r = Math.sqrt(land.x*land.x + land.y*land.y);
 					//double theta = Math.atan2(land.y, land.x);
-					//System.out.println("LX:" + land.x + "LY:" + land.y);
 					xyt_t spot = new xyt_t();
+					spot.utime = TimeUtil.utime();
 					//spot.xyt[0] = r;
 					//spot.xyt[2] = theta;
 					spot.xyt[0] = land.x;
 					spot.xyt[1] = land.y;
 					spot.xyt[2] = land.z;
-					if((land.x != wayPoint.x) || (land.y != wayPoint.y) || (land.z != wayPoint.z))
-					{
+					
 					// go to point at bounce index
-						lcm.publish("6_WAYPONT",spot);
-						wayPoint = land;
-						predictor.DrawBallsWithRobot(new Point3D(0.0,1.0,0.0),spot.xyt);
-						return;
-					}
+					lcm.publish("6_WAYPOINT",spot);
+					System.out.println("LX:" + land.x + "LY:" + land.y);
+					
+					predictor.DrawBallsWithRobot(new Point3D(0.0,1.0,0.0),spot.xyt);
+						
+					
 					nextState = 1;
 				break;
 				

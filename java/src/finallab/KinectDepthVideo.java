@@ -40,8 +40,8 @@ public class KinectDepthVideo extends KinectVideo {
 
 		f = 585.124;
 		final ParameterGUI pg = new ParameterGUI();
-		pg.addDoubleSlider("thresh", "thresh", 1, 100, 50);
-		pg.addIntSlider("frames", "frames", 1, 1000, 200);
+		pg.addDoubleSlider("thresh", "thresh", 1, 100, 10);
+		pg.addIntSlider("frames", "frames", 1, 1000, 1);
 		pg.addDoubleSlider("learning", "learning", 0.0, 1.0, .05);
 		JFrame slider = new JFrame("thresh slider");
 

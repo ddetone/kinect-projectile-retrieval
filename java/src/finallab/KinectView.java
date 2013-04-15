@@ -267,7 +267,10 @@ public class KinectView extends Thread
 			Statistics robot = null;
 			int minSize = pg.gi("blobThresh");
 
+			//find robot and ball by blob size
 			Collections.sort(blobs, ComparatorFactory.getStatisticsCompareSize());
+			//find robot and ball by y pixel
+			// Collections.sort(blobs, ComparatorFactory.getStatisticsCompareYPix());
 
 			if (blobs.size() == 1) {
 				Statistics first = blobs.get(0);
@@ -286,6 +289,7 @@ public class KinectView extends Thread
 					ball = second;
 				}
 			}
+
 
 			if (ball != null)
 				trajectory.add(ball);

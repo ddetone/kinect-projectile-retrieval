@@ -40,7 +40,7 @@ public class PathFollower implements LCMSubscriber
 
 	static final double MAX_SPEED = 1.0f;
 	static final double SET_SPEED = 0.9f;
-	static final double ALLOWED_ANGLE = Math.toRadians(45);
+	static final double ALLOWED_ANGLE = Math.toRadians(90);
 	static final double STRAIGHT_DIST = 0.35; 
 	static final double DEST_DIST = 0.20; 
 
@@ -207,6 +207,7 @@ public class PathFollower implements LCMSubscriber
 			}
 			else if(channel.equals("6_WAYPOINT"))
 			{
+				System.out.printf("Waypoint RECIEVED\n");
 				xyt_t dest = new xyt_t(dins);
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
