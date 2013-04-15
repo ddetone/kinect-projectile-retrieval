@@ -39,7 +39,7 @@ public class Projectile extends VisEventAdapter
 	final int num_bounces = 3;
 	final int num_regression = 20; //the max number of recent balls used in regression
 	final boolean DEFAULT_RESET = false;	//used in debugging
-	final boolean verbose = true;
+	final boolean verbose = false;
 	final boolean verbose2 = false;
 
 	int num_balls;
