@@ -22,8 +22,14 @@ public class KinectDepthVideo extends KinectVideo {
 	public static int MAX_FRAMES = 100;
 	public static int THRESH = 50;
 
+	//figured the noisy pixels switch back and forth a lot so if we 
+	//stop allowing pixels to be valid after they've switched a certain 
+	//number of times, it might help eliminate them.
+	public static int SWITCHES = 200;
+
 	private double [] depthAvgs;
 	private short [] validPixels;
+	private int [] switchCount;
 	private int numFrames;
 
 	public ArrayList<Statistics> trajectory;
@@ -37,9 +43,11 @@ public class KinectDepthVideo extends KinectVideo {
 		depthAvgs = new double[WIDTH*HEIGHT];
 		validPixels = new short[WIDTH*HEIGHT];
 		trajectory = new ArrayList<Statistics>();
+		switchCount = new int[WIDTH*HEIGHT];
 		for (int i = 0; i < WIDTH*HEIGHT; i++) {
 			depthAvgs[i] = 0;
 			validPixels[i] = -1;
+			switchCount[i] = 0;
 			depthAvgs[i] = 2047.0;
 		}
 
@@ -87,9 +95,10 @@ public class KinectDepthVideo extends KinectVideo {
 						boolean valid = false;
 						if(depth < 1050)
 						{
-							if (/*depth<1000 &&*/ (depthAvgs[i] - (double)depth) > THRESH) {
+							if (/*depth<1000 &&*/ (depthAvgs[i] - (double)depth) > THRESH && switchCount[i] < SWITCHES) {
 								valid = true;
-								validPixels[i] = (short)depth;			
+								validPixels[i] = (short)depth;		
+								switchCount[i]++;	
 							}
 							//double depthFactor = (((depthAvgs[i] * (1.0-pg.gd("learning")) * (double)numFrames) + (pg.gd("learning")*(double)depth)) / (double)(numFrames + 1));
 							depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depth) / (double)(numFrames + 1));
@@ -252,6 +261,13 @@ public class KinectDepthVideo extends KinectVideo {
 
 	public short [] getValidImageArray() {
 		return validPixels;
+	}
+	public void resetSwitches() {
+		for (int i = 0; i < WIDTH*HEIGHT; i++) {
+			// depthAvgs[i] = 0;
+			// validPixels[i] = -1;
+			switchCount[i] = 0;
+		}
 	}
 	public float raw_depth_to_meters(int raw_depth)
 	{

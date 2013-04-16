@@ -28,6 +28,7 @@ public class KinectView extends Thread
 	// JImage depthJim;
 
 	JButton startTracking;
+	JButton resetSwitches;
 	boolean tracking = false;
 	boolean log = false;
 
@@ -76,7 +77,7 @@ public class KinectView extends Thread
 		display = _display;
 
 		controlFrame = new JFrame("Controls");
-		controlFrame.setLayout(new GridLayout(2,1));
+		controlFrame.setLayout(new GridLayout(3,1));
 		controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		pg = new ParameterGUI();
 		pg.addDoubleSlider("x_param","x_param",0d,1d,1d);
@@ -84,6 +85,7 @@ public class KinectView extends Thread
 		pg.addIntSlider("blobThresh", "blob thresh", 1, 500, 125);
 		pg.addIntSlider("thresh", "thresh", 1, 100, 10);
 		pg.addIntSlider("frames", "frames", 1, 1000, 1);
+		pg.addIntSlider("switches", "max switches", 1, 1000, 1000);
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI _pg, String name) {
 				if (name.equals("thresh")) {
@@ -91,6 +93,9 @@ public class KinectView extends Thread
 				}
 				else if (name.equals("frames")) {
 					depthStream.MAX_FRAMES = _pg.gi(name);
+				}
+				else if (name.equals("switches")) {
+					depthStream.SWITCHES = _pg.gi(name);
 				}
 			}
 		});
@@ -116,9 +121,17 @@ public class KinectView extends Thread
 					startTracking.setText("Start Tracking Balls");
 				}
 			}
-		});   
+		}); 
 		controlFrame.add(startTracking, 1, 0);
-		controlFrame.setSize(600, 200);
+
+		resetSwitches = new JButton ("Reset Switches");
+		resetSwitches.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				depthStream.resetSwitches();
+			}
+		});  
+		controlFrame.add(resetSwitches, 3, 0);
+		controlFrame.setSize(800, 200);
 		controlFrame.setVisible(true);
 
 		colorFrame = new JFrame("color feed");
