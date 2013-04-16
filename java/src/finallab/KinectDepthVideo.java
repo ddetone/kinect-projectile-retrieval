@@ -19,12 +19,14 @@ public class KinectDepthVideo extends KinectVideo {
 	
 	public volatile boolean newImage = false;
 
-	private final static int MAX_FRAMES = 100;
-	private final static int THRESH = 50;
+	public static int MAX_FRAMES = 100;
+	public static int THRESH = 50;
 
 	private double [] depthAvgs;
 	private short [] validPixels;
 	private int numFrames;
+
+	private volatile boolean showAll = true;
 	
 	public KinectDepthVideo(Device kinect, boolean _display) {
 		super(kinect, _display);	
@@ -39,15 +41,6 @@ public class KinectDepthVideo extends KinectVideo {
 		}
 
 		f = 585.124;
-		final ParameterGUI pg = new ParameterGUI();
-		pg.addDoubleSlider("thresh", "thresh", 1, 100, 10);
-		pg.addIntSlider("frames", "frames", 1, 1000, 1);
-		pg.addDoubleSlider("learning", "learning", 0.0, 1.0, .05);
-		JFrame slider = new JFrame("thresh slider");
-
-		slider.setSize(300, 100);
-		slider.add(pg);
-		slider.setVisible(true);
 
 		kinect.setDepthFormat(DepthFormat.D11BIT);
 		kinect.startDepth(new DepthHandler() {
@@ -78,7 +71,7 @@ public class KinectDepthVideo extends KinectVideo {
 						}
 						catch(Exception e)
 						{
-							System.out.println("depth recieveing error");
+							System.out.println("depth receiving error");
 							depthBuf.position(0);
 							return;
 						}
@@ -91,7 +84,7 @@ public class KinectDepthVideo extends KinectVideo {
 						boolean valid = false;
 						if(depth < 1050)
 						{
-							if (/*depth<1000 &&*/ (depthAvgs[i] - (double)depth) > pg.gd("thresh")) {
+							if (/*depth<1000 &&*/ (depthAvgs[i] - (double)depth) > THRESH) {
 								valid = true;
 								validPixels[i] = (short)depth;			
 							}
@@ -159,10 +152,12 @@ public class KinectDepthVideo extends KinectVideo {
 							depthColor = depthColor | (b & 0xFF);
 							try{
 
-							if(valid)
-								pixelInts[i] = depthColor;
-							else
-								pixelInts[i] = 0xFF000000;
+								if (showAll || valid) {
+									pixelInts[i] = depthColor;
+								}
+								else {
+									pixelInts[i] = 0xFF000000;
+								}
 							}
 							catch(Exception e)
 							{
@@ -173,18 +168,14 @@ public class KinectDepthVideo extends KinectVideo {
 						}
 					
 					}
+					//set position to 0 because ByteBuffer is reused to access byte array of new frame
+					//and get() below increments the iterator
 					depthBuf.position(0);
 					newImage = true;
+					numFrames = (numFrames + 1) % MAX_FRAMES;
 					if (display) {
 						frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
-						//if(numFrames >= pg.gi("frames"))
-							//numFrames--;
-						numFrames = (numFrames + 1) % pg.gi("frames");
-						//numFrames++;
-						//set position to 0 because ByteBuffer is reused to access byte array of new frame
-						//and get() below increments the iterator
-						// repaint();
-						
+						repaint();		
 					}
 				}
 				finally{
@@ -227,13 +218,19 @@ public class KinectDepthVideo extends KinectVideo {
 		return raw_depth_to_meters(ballStats.get(0).closestDepth);
 
 	}
-
+	//origin at top left
 	public Point3D getWorldCoords(Point p) {
 		Point pPix = new Point();
-		pPix.x = p.x + C_X;
+		pPix.x = p.x - C_X;
 		pPix.y = C_Y - p.y;
 		double depth = (double)getDepthFromDepthPixel(p);
 		return getWorldCoords(pPix, depth);
+	}
+	public void showAll() {
+		showAll = true;
+	}
+	public void showSubtraction() {
+		showAll = false;
 	}
 
 	public short [] getValidImageArray() {

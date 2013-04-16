@@ -15,4 +15,7 @@ public class Point3D {
 		y = _y;
 		z = _z;
 	}
+	public String toString() {
+		return "Point3D(" + x + ", " + y + ", " + z + ")";
+	}
 }
