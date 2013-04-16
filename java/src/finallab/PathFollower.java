@@ -41,7 +41,7 @@ public class PathFollower implements LCMSubscriber
 	static final double MAX_SPEED = 1.0f;
 	static final double FAST_SPEED = 0.9f;
 	static final double SLOW_SPEED = 0.4f;
-	static final double STRAIGHT_ANGLE = Math.toRadians(20);
+	static final double STRAIGHT_ANGLE = Math.toRadians(30);
 	static final double SLOW_DIST = 0.35; 
 	static final double DEST_DIST = 0.08; 
 
@@ -54,7 +54,7 @@ public class PathFollower implements LCMSubscriber
 	//boolean turnEnd = false;
 	//The PID controller for finer turning
 	
-	double[] sPID = new double[]{0.46, 0.006, 0.10}; //PID for straight driving
+	double[] sPID = new double[]{0.46, 0.006, -20000}; //PID for straight driving
 	double[] tPID = new double[]{0.35, 0.0, -30000};	 //PID for turning
 	static final double TURN_OFFSET = 0.2;
 
@@ -201,20 +201,16 @@ public class PathFollower implements LCMSubscriber
 						if(verbose)System.out.printf("Turning...\n");
 						turnRobot();
 					}
-					else
-						stop = true;
-
-						/*
 					else if (errorDist < SLOW_DIST)
 					{
-						if(verbose)System.out.println("Continue straight\n");					
+						if(verbose)System.out.println("Drive slow homie\n");					
 						moveRobotStraight(SLOW_SPEED);
 					}
 					else	
 					{
-						if(verbose)System.out.println("Drive to waypoint\n");
+						if(verbose)System.out.println("Drive fast\n");
 						moveRobotStraight(FAST_SPEED);
-					}*/
+					}
 
 					if(verbose)System.out.println("errorAngle:" +
 						Math.toDegrees(errorAngle) + " errorDist:" + errorDist);
@@ -236,7 +232,7 @@ public class PathFollower implements LCMSubscriber
 			}
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);
-				tPIDAngle.changeParams(params.xyt);
+				sPIDAngle.changeParams(params.xyt);
 			}
 		}
 		catch (IOException e)
