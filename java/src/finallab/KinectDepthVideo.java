@@ -26,6 +26,8 @@ public class KinectDepthVideo extends KinectVideo {
 	private short [] validPixels;
 	private int numFrames;
 
+	public ArrayList<Statistics> trajectory;
+
 	private volatile boolean showAll = true;
 	
 	public KinectDepthVideo(Device kinect, boolean _display) {
@@ -34,6 +36,7 @@ public class KinectDepthVideo extends KinectVideo {
 		numFrames = 0;
 		depthAvgs = new double[WIDTH*HEIGHT];
 		validPixels = new short[WIDTH*HEIGHT];
+		trajectory = new ArrayList<Statistics>();
 		for (int i = 0; i < WIDTH*HEIGHT; i++) {
 			depthAvgs[i] = 0;
 			validPixels[i] = -1;
@@ -175,6 +178,20 @@ public class KinectDepthVideo extends KinectVideo {
 					numFrames = (numFrames + 1) % MAX_FRAMES;
 					if (display) {
 						frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
+
+						for (Statistics ballpoints : trajectory) {
+							Point depthPix = ballpoints.center();
+							for (int y = depthPix.y - 3; y < depthPix.y + 3; y++) {
+								for (int x = depthPix.x - 3; x < depthPix.x + 3; x++) {
+									try {
+										frame.setRGB(x, y, 0xFFFFFFFF);
+									} catch (Exception e) {
+										// System.out.println(x + " " + y);
+									};
+								}
+							}
+						}
+
 						repaint();		
 					}
 				}

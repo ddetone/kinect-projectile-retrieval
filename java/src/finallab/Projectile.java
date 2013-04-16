@@ -498,6 +498,7 @@ public class Projectile extends VisEventAdapter
 
 	public void update(ball_t in_ball)
 	{
+		in_ball.y += KINECT_HEIGHT;
 		PrintState();
 		if (state == BallStatus.FINISHED)
 		{

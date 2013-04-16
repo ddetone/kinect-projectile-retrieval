@@ -23,7 +23,7 @@ public class CatchController implements LCMSubscriber
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
 	final double BOT_DIST_FROM_KINECT_X = 0.0;
-	final double BOT_DIST_FROM_KINECT_Y = 0.0;
+	final double BOT_DIST_FROM_KINECT_Y = 0.7;
 	final double KINECT_HEIGHT = 0.79;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	LCM  lcm;
@@ -135,11 +135,12 @@ public class CatchController implements LCMSubscriber
 					}
 					if(land.x != newWayPoint.x || land.y != newWayPoint.y || land.z != newWayPoint.z)
 					{
+						//bot takes waypoints looking down positive x
 						xyt_t spot = new xyt_t();
 						spot.utime = TimeUtil.utime();
-						spot.xyt[0] = land.x;
-						spot.xyt[1] = land.y;
-						spot.xyt[2] = land.z;
+						spot.xyt[0] = land.y;
+						spot.xyt[1] = -land.x;
+						spot.xyt[2] = 0d;
 						newWayPoint = land;
 						// go to point at bounce index
 						lcm.publish("6_WAYPOINT",spot);

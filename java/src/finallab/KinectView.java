@@ -37,7 +37,6 @@ public class KinectView extends Thread
 	BufferedImage depthImg;
 
 	Statistics BALL;
-	ArrayList<Statistics> trajectory;
 	boolean[] validImageValue;
 	
 	static double x_param = 0d;
@@ -146,7 +145,6 @@ public class KinectView extends Thread
 		if (log)
 			lcm = LCM.getSingleton();
 		BALL = new Statistics();
-		trajectory = new ArrayList<Statistics>();
 
 		finder = new BallTracker(KinectVideo.WIDTH,KinectVideo.HEIGHT,true);
 
@@ -210,31 +208,17 @@ public class KinectView extends Thread
 					ball = second;
 				}
 			}
+			
+			// System.out.println("balls points " + depthStream.trajectory.size());
 
 
-			if (ball != null)
-				trajectory.add(ball);
-			for (Statistics ballpoints : trajectory) {
-				Point depthPix = ballpoints.center();
-				for (int y = depthPix.y - 3; y < depthPix.y + 3; y++) {
-					for (int x = depthPix.x - 3; x < depthPix.x + 3; x++) {
-						try {
-							depthImg.setRGB(x, y, 0xFFFFFFFF);
-						} catch (Exception e) {
-							// System.out.println(x + " " + y);
-						};
-					}
-				}
-			}
-			// System.out.println("balls points " + trajectory.size());
-
-
-			// if not tracking keep kv.trajectory to just one index
+			// if not tracking keep kv.depthStream.trajectory to just one index
 			if (!tracking) {
-				trajectory.clear();
+				depthStream.trajectory.clear();
 			}
 
 			if (ball != null) {
+				depthStream.trajectory.add(ball);
 
 				Point depthPix = ball.center();
 				Point depthCoord = new Point();
