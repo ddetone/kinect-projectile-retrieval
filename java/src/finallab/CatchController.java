@@ -23,8 +23,8 @@ public class CatchController implements LCMSubscriber
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
 	final double BOT_DIST_FROM_KINECT_X = 0.0;
-	final double BOT_DIST_FROM_KINECT_Y = 1.13;
-	final double KINECT_HEIGHT = 1.1;
+	final double BOT_DIST_FROM_KINECT_Y = 0.0;
+	final double KINECT_HEIGHT = 0.79;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	LCM  lcm;
 	//LCM recieve;
@@ -156,9 +156,9 @@ public class CatchController implements LCMSubscriber
 						}
 					}	
 					//to continuously send waypoints of updated position of bounce index 0
-					nextState = 0;
+					// nextState = 0;
 					//to send the waypoint once when first calculated
-					//nextState = 1;
+					nextState = 1;
 				break;
 				
 				//retrieve state
