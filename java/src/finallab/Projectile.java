@@ -41,6 +41,7 @@ public class Projectile extends VisEventAdapter
 	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean verbose = false;
 	final boolean verbose2 = false;
+	final double KINECT_HEIGHT = 1.1;
 
 	int num_balls;
 	int bounce_index;
@@ -338,6 +339,20 @@ public class Projectile extends VisEventAdapter
 
 		}
 
+		public void DrawKinect(String buffer)
+		{
+			VisWorld.Buffer vb = vw.getBuffer(buffer);
+			VzBox kinectHead = new VzBox(.275,.055,.07, new VzMesh.Style(Color.black));
+			VzCylinder kinectCylBase = new VzCylinder(.01,.005, new VzMesh.Style(Color.black));
+			VzBox kinectSquareBase = new VzBox(.07,.07,.015, new VzMesh.Style(Color.black));
+			VisChain kinect = new VisChain(LinAlg.translate(0,0,KINECT_HEIGHT),kinectHead,LinAlg.translate(0,0,-.055/2),LinAlg.translate(0,0,-.005),kinectCylBase,LinAlg.translate(0,0,-.01),kinectSquareBase);
+			vb.addBack(kinect);
+			VzBox kinectTable = new VzBox(.4,.3,KINECT_HEIGHT-.07,new VzMesh.Style(Color.white));
+			VisChain table = new VisChain(LinAlg.translate(0,0,(KINECT_HEIGHT-.07)/2.0),kinectTable);
+			vb.addBack(table);
+		}
+
+
 		public void DrawBalls()
 		{
 
@@ -385,6 +400,7 @@ public class Projectile extends VisEventAdapter
 		}
 
 		vb.addBack(new VzAxes());
+		DrawKinect("Predicted Balls");
 		vb.swap();
 
 	}
@@ -445,8 +461,11 @@ public class Projectile extends VisEventAdapter
 				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
 		}
 		double wheelRadius = 0.04;
-		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.red));
+		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));
+		VzBox endBase = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.red));
+
 		VisObject vo_base = new VisChain(LinAlg.translate(0,0.06,0.10),base);
+		VisObject ve_base = new VisChain(LinAlg.translate(0,0.06,0.10),endBase);
 
 		VzBox cameraBase = new VzBox(0.05,0.01,0.04, new VzMesh.Style(Color.white));
 		VisObject vo_cameraBase = new VisChain(LinAlg.translate(0,0,0.145),cameraBase);
@@ -458,18 +477,21 @@ public class Projectile extends VisEventAdapter
 		VzCylinder castor = new VzCylinder(castorRad,0.02, new VzMesh.Style(Color.black));
 		VisObject vo_castor = new VisChain(LinAlg.rotateY(Math.PI/2), LinAlg.translate(-castorRad,0.115,0),castor);
 
-		VisChain pandaBot = new VisChain();
+		VisChain startPandaBot = new VisChain();
+		VisChain endPandaBot = new VisChain();
 
-		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor);
+		startPandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor);
+		endPandaBot.add(ve_base,vo_cameraBase,vo_wheels,vo_castor);
 
 		//vb.addBack(new VzAxes());
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
-		vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),pandaBot));
+		vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),startPandaBot));
 
-		VisChain path = new VisChain(LinAlg.translate(xyzt[0],0),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), pandaBot);//new VzBox(xyzt[0], .1, .1));
+		VisChain path = new VisChain(LinAlg.translate(xyzt[0],xyzt[1]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);//new VzBox(xyzt[0], .1, .1));
 		vb.addBack(path);
 
 		vb.addBack(new VzAxes());
+		DrawKinect("Predicted Balls");
 		vb.swap();
 
 	}

@@ -72,7 +72,7 @@ public class CatchController implements LCMSubscriber
 		for(Parabola bounce: bounces)
 		{
 			double [] point = bounce.pred_landing;
-			System.out.println("Ponits x y z :" + point[0] + " " + point[1] + " " + point[2]);
+			//System.out.println("Ponits x y z :" + point[0] + " " + point[1] + " " + point[2]);
 			long timeToMove = 0;
 			//convert from points of kinect to points in front of robot
 			Point3D landing = convertToPointRobotNonMat(point);
@@ -102,11 +102,17 @@ public class CatchController implements LCMSubscriber
 		int state = 0;
 		int nextState = 0;
 		ball_t ball;
+		Point3D newWayPoint = new Point3D(0.0,0.0,0.0);
 		do {
 			bounces = predictor.getParabolas();
 		}
 		while(!bounces.get(0).valid);
-		
+		double[][] startingBounces = new double[2][bounces.size()];
+		for(int i = 0; i < bounces.size(); i++)
+		{
+			startingBounces[0][i] = bounces.get(i).pred_landing[0];
+			startingBounces[1][i] = bounces.get(i).pred_landing[1];
+		}
 		while(true)
 		{
 			
@@ -122,24 +128,37 @@ public class CatchController implements LCMSubscriber
 				case 0:
 					// determine if able to catch on first bounce or second bounce
 					land = determineBounceCatch(bounces);
-					//double r = Math.sqrt(land.x*land.x + land.y*land.y);
-					//double theta = Math.atan2(land.y, land.x);
-					xyt_t spot = new xyt_t();
-					spot.utime = TimeUtil.utime();
-					//spot.xyt[0] = r;
-					//spot.xyt[2] = theta;
-					spot.xyt[0] = land.x;
-					spot.xyt[1] = land.y;
-					spot.xyt[2] = land.z;
+					if(land == null)
+					{
+						nextState = 0;
+						continue;
+					}
+					if(land.x != newWayPoint.x || land.y != newWayPoint.y || land.z != newWayPoint.z)
+					{
+						xyt_t spot = new xyt_t();
+						spot.utime = TimeUtil.utime();
+						spot.xyt[0] = land.x;
+						spot.xyt[1] = land.y;
+						spot.xyt[2] = land.z;
+						newWayPoint = land;
+						// go to point at bounce index
+						lcm.publish("6_WAYPOINT",spot);
+						System.out.println("LX:" + land.x + "LY:" + land.y);
 					
-					// go to point at bounce index
-					lcm.publish("6_WAYPOINT",spot);
-					System.out.println("LX:" + land.x + "LY:" + land.y);
-					
-					predictor.DrawBallsWithRobot(new Point3D(0.0,1.0,0.0),spot.xyt);
+						predictor.DrawBallsWithRobot(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
 						
-					
-					nextState = 1;
+						for(int i = 0; i < bounces.size(); i++)
+						{
+							double[] endPoint = bounces.get(i).pred_landing;
+							double xDiff = startingBounces[0][i] -endPoint[0], yDiff = startingBounces[1][i] - endPoint[i];
+							System.out.println("Difference From Starting in Bounce " + i + " x: " +xDiff+ " y: " +yDiff);
+															
+						}
+					}	
+					//to continuously send waypoints of updated position of bounce index 0
+					nextState = 0;
+					//to send the waypoint once when first calculated
+					//nextState = 1;
 				break;
 				
 				//retrieve state
