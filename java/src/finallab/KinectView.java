@@ -29,6 +29,7 @@ public class KinectView extends Thread
 
 	JButton startTracking;
 	boolean tracking = false;
+	boolean log = false;
 
 	ParameterGUI pg;
 
@@ -142,8 +143,8 @@ public class KinectView extends Thread
 		depthImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
 
 		validImageValue = new boolean[KinectVideo.WIDTH*KinectVideo.HEIGHT];
-
-		lcm = LCM.getSingleton();
+		if (log)
+			lcm = LCM.getSingleton();
 		BALL = new Statistics();
 		trajectory = new ArrayList<Statistics>();
 
@@ -287,6 +288,9 @@ public class KinectView extends Thread
 						ballLCM.z = coord.z;
 						// if(tracking)
 						predictor.update(ballLCM);
+						if (log) {
+							lcm.publish("6_BALL", ballLCM);
+						}
 					}
 				}
 				// try
@@ -320,6 +324,20 @@ public class KinectView extends Thread
 		depth = depth << 8;
 		depth = depth | (byte1 & 0xFF);
 		return depth & 0x3FF;
+	}
+	public void setLog(boolean b) {
+		log = b;
+	}
+
+	public static void main(String [] args) {
+		Projectile proj = new Projectile();
+		KinectView kv = new KinectView(proj, true);
+		for(int i = 0; i < args.length; i++)
+		{
+			if(args[i].equals("log"))
+				kv.setLog(true);
+		}
+		kv.start();
 	}
 
 }
