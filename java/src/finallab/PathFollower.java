@@ -39,10 +39,11 @@ public class PathFollower implements LCMSubscriber
 	static double left, right;
 
 	static final double MAX_SPEED = 1.0f;
-	static final double SET_SPEED = 0.9f;
-	static final double ALLOWED_ANGLE = Math.toRadians(90);
-	static final double STRAIGHT_DIST = 0.35; 
-	static final double DEST_DIST = 0.20; 
+	static final double FAST_SPEED = 0.9f;
+	static final double SLOW_SPEED = 0.4f;
+	static final double STRAIGHT_ANGLE = Math.toRadians(30);
+	static final double SLOW_DIST = 0.35; 
+	static final double DEST_DIST = 0.08; 
 
 	//double Kp_turn = 0.7;
 	//double Kp = 1;
@@ -52,11 +53,13 @@ public class PathFollower implements LCMSubscriber
 	//int state = 0;
 	//boolean turnEnd = false;
 	//The PID controller for finer turning
-	double[] KPID = new double[]{0.46, 0.006, 0.10};
-	//double[] KPID = new double[]{0.46, 0.015, 0.0};
+	
+	double[] sPID = new double[]{0.46, 0.006, -20000}; //PID for straight driving
+	double[] tPID = new double[]{0.35, 0.0, -30000};	 //PID for turning
+	static final double TURN_OFFSET = 0.2;
 
-	PidController pidAngle = new PidController(KPID[0], KPID[1], KPID[2]);
-
+	PidController sPIDAngle = new PidController(sPID[0], sPID[1], sPID[2]);
+	PidController tPIDAngle = new PidController(tPID[0], tPID[1], tPID[2]);
 
 	PathFollower()
 	{
@@ -66,12 +69,10 @@ public class PathFollower implements LCMSubscriber
 		catch(IOException e){
 			lcm = LCM.getSingleton();
 		}
-		pidAngle.setIntegratorClamp(10);
+		sPIDAngle.setIntegratorClamp(10);
 		
 		errorAngle = 0;
 		prev_errorDist = 9999;
-		left = SET_SPEED;
-		right = SET_SPEED;
 
 		lcm.subscribe("6_POSE",this);
 		lcm.subscribe("6_WAYPOINT",this);
@@ -84,40 +85,49 @@ public class PathFollower implements LCMSubscriber
 		
 		angleToDest = Math.atan2(dXYT[1]-cXYT[1],dXYT[0]-cXYT[0]);
 		double curAngle = cXYT[2];
-		while(curAngle > Math.PI)curAngle -= 2 * Math.PI;
-		while(curAngle < -Math.PI)curAngle += 2 * Math.PI;		
-
 		errorAngle = angleToDest-curAngle;
 
-		if(verbose)System.out.println("curAngle:" + Math.toDegrees(curAngle) +
-				" angleToDest:" + Math.toDegrees(angleToDest)
-				+ " errorAngle:" + Math.toDegrees(errorAngle));
+		while(errorAngle > Math.PI)errorAngle -= 2 * Math.PI;
+		while(errorAngle < -Math.PI)errorAngle += 2 * Math.PI;		
+
 		
-		if(verbose)System.out.printf("errorDist:%f\n",errorDist);
 
 	}
 
 
-	void moveRobot()
+	void moveRobotStraight(double speed)
 	{
-		
-		double pid = pidAngle.getOutput(errorAngle);
+		double pid = sPIDAngle.getOutput(errorAngle);
 		//if(verbose) System.out.println("PID preclamp: "+pid);
 		//pid = clampPid(pid);
 
-
-		if(verbose)System.out.println("pid:" + pid);
+		if(verbose)System.out.println("sPID:" + pid);
 				//+ "  integrator: " + pidAngle.integral);
-	
 
-		right = SET_SPEED + pid;
-		left = SET_SPEED - pid;		
-
-		if(verbose)System.out.println("left:" + left
-				+ "  right: " + right);
+		double right = speed + pid;
+		double left = speed - pid;	
 
 		setMotorCommand(left, right);
+	}
+
+	void turnRobot()
+	{
+		double pid = tPIDAngle.getOutput(errorAngle);
+		//double pid = 0.8;
 		
+		//+ "  integrator: " + pidAngle.integral);
+		if (pid > 0)
+			pid += TURN_OFFSET;
+		else
+			pid -= TURN_OFFSET;
+
+		double right = pid;
+		double left = -pid;
+		if(verbose)System.out.println("tPID:" + pid);	
+
+		setMotorCommand(left, right);
+
+
 	}
 
 	double clampPid(double pid)
@@ -145,12 +155,11 @@ public class PathFollower implements LCMSubscriber
 		motor.left = (float)left;
 		motor.right = (float)right;
 
-		if(verbose)System.out.println();
+		//if(verbose)System.out.println();
 
 		lcm.publish("6_DIFF_DRIVE", motor);
 	}
 	
-	//to stop the robot just in case
 	void stop()
 	{
 		setMotorCommand(0.0F, 0.0F);
@@ -173,31 +182,39 @@ public class PathFollower implements LCMSubscriber
 				if (isFollow) //if a waypoint is recieved
 				{
 					calcErrors();
-
+					
 					if (errorDist < DEST_DIST)
 					{
 						isFollow = false;
-						if(verbose)System.out.println("reached waypoint\n");						
+						if(verbose)System.out.println("STOP...reached waypoint\n");						
 						stop = true;
 					}
 					else if ((prev_errorDist+0.005) < errorDist)
 					{
 						isFollow = false;
-						if(verbose)System.out.println("reached waypoint...prev_errorDist < errorDist\n");
+						if(verbose)System.out.println("STOP...prev_errorDist < errorDist\n");
 						if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);						
 						stop = true;	
 					}
-					else if (errorDist < STRAIGHT_DIST)
+					else if (Math.abs(errorAngle) > Math.abs(STRAIGHT_ANGLE))
 					{
-						if(verbose)System.out.println("continue straight\n");					
-						setMotorCommand(SET_SPEED,SET_SPEED);
+						if(verbose)System.out.printf("Turning...\n");
+						turnRobot();
+					}
+					else if (errorDist < SLOW_DIST)
+					{
+						if(verbose)System.out.println("Drive slow homie\n");					
+						moveRobotStraight(SLOW_SPEED);
 					}
 					else	
 					{
-						if(verbose)System.out.println("drive to waypoint\n");
-						moveRobot();
+						if(verbose)System.out.println("Drive fast\n");
+						moveRobotStraight(FAST_SPEED);
 					}
 
+					if(verbose)System.out.println("errorAngle:" +
+						Math.toDegrees(errorAngle) + " errorDist:" + errorDist);
+		
 					prev_errorDist = errorDist;
 
 					if (stop)
@@ -211,34 +228,11 @@ public class PathFollower implements LCMSubscriber
 				xyt_t dest = new xyt_t(dins);
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
-
-				calcErrors();
-
-				if(verbose2)System.out.println("curAngle:" + Math.toDegrees(cXYT[2]) +
-						"angleToDest:" + Math.toDegrees(angleToDest)
-						+ "  errorAngle:" + Math.toDegrees(errorAngle));
-			
-				if (Math.abs(errorAngle) > Math.abs(ALLOWED_ANGLE))
-				{
-					if(verbose)System.out.printf("angle to waypoint too big, greater than: %f\n", ALLOWED_ANGLE);
-					if(verbose)System.out.printf("calculated angle to waypoint is: %f\n", errorAngle);
-					stop = true;
-				}
-				else
-				{
-					isFollow = true;
-				}
-
-				prev_errorDist = errorDist;
-
-				if (stop)
-					stop();
-
-
+				isFollow = true;
 			}
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);
-				pidAngle.changeParams(params.xyt);
+				sPIDAngle.changeParams(params.xyt);
 			}
 		}
 		catch (IOException e)

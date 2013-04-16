@@ -71,9 +71,9 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		pg.addCheckBoxes("dispConv", "Display Exploded Wall Map", DEFAULT_DISP_CONV);
 		//pg.addCheckBoxes("rotate180", "Rotate 180 degrees", DEFAULT_ROTATE);
 		
-		pg.addDoubleSlider("kp", "kp", 0d, 2d, 0.1);
+		pg.addDoubleSlider("kp", "kp", 0d, 1d, 0.35);
 		pg.addDoubleSlider("ki", "ki", 0d, 1d, 0d);
-		pg.addDoubleSlider("kd", "kd", 0d, 5d, 0.1);
+		pg.addDoubleSlider("kd", "kd", 0d, 50000d, 30000d);
 		pg.addListener(new ParameterListener() {
 			
 			@Override
