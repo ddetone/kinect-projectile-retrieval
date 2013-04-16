@@ -24,7 +24,7 @@ public class CatchController implements LCMSubscriber
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
 	final double BOT_DIST_FROM_KINECT_X = 0.0;
 	final double BOT_DIST_FROM_KINECT_Y = 1.13;
-	final double KINECT_HEIGHT = .68;
+	final double KINECT_HEIGHT = 1.1;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	LCM  lcm;
 	//LCM recieve;
@@ -35,7 +35,7 @@ public class CatchController implements LCMSubscriber
 		display = _display;
 		if(!logs)
 		{
-			viewer = new KinectView(_display);
+			viewer = new KinectView(predictor, _display);
 			viewer.start();
 		}
 		try{
