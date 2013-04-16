@@ -66,17 +66,19 @@ public class PidController
 
 		double output = Kp * error + Ki * integral - Kd * derivative;
 
+		System.out.printf("P:%f, I:%f, D:%f\n", Kp*error, Ki*integral, Kd*derivative);
+
 		prevError = error;
 		prevUtime = currUtime;
 
 		return(output);
 	}
-	public void changeParams(double [] p) {
+	public void changeParams(double [] p) 
+	{
 		Kp = p[0];
 		Ki = p[1];
-		Kd = p[2];
+		Kd = (-1)*p[2];
 	}
-
 
 }
 
