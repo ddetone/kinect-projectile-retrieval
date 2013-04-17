@@ -29,8 +29,6 @@ public class BallTracker
 	JFrame outputFrame;
 	JImage outputImage;
 
-	ParameterGUI pg;
-
 	boolean display;
 
 	public BallTracker(int _width, int _height, boolean _display)
@@ -40,10 +38,6 @@ public class BallTracker
 		size = width*height;
 		display = _display;
 
-		pg = new ParameterGUI();
-		pg.addIntSlider("AbsThres","AbsThres",0,200,0);
-
-
 		output = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
 		if(display)
 		{	
@@ -51,7 +45,6 @@ public class BallTracker
 			outputImage = new JImage();
 			outputFrame.setLayout(new GridLayout(1,2));
 			outputFrame.add(outputImage, 0, 0);
-			outputFrame.add(pg,0,1);
 			outputFrame.setSize(800,480);
 			outputFrame.setVisible(true);
 			outputFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -269,8 +262,8 @@ public class BallTracker
 		{
 			Integer key = (Integer) obIter.next();
 			Statistics value = (Statistics) map.get(key);
-			int absThres = pg.gi("AbsThres");
-			if(value.abs() < absThres)
+
+			if(value.abs() < 125)
 				blobs.add(value);
 		}
 		if(display)  {
