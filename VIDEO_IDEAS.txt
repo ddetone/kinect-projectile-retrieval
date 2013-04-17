@@ -1,0 +1,25 @@
+4 types of detection
+	-RGB UnionFind, translate to Depth
+	-RGB UnionFind (sections only), translate to depth
+	-Depth UnionFind only
+	-Depth UnionFind + Image Subtraction
+
+4 types of detection
+	-RGB UnionFind, translate to Depth
+	-RGB UnionFind (sections only), translate to depth
+	-Depth UnionFind only
+	-Depth UnionFind + Image Subtraction
+
+4 types of detection
+	-RGB UnionFind, translate to Depth
+	-RGB UnionFind (sections only), translate to depth
+	-Depth UnionFind only
+	-Depth UnionFind + Image Subtraction
+
+4 types of detection
+	-RGB UnionFind, translate to Depth
+	-RGB UnionFind (sections only), translate to depth
+	-Depth UnionFind only
+	-Depth UnionFind + Image Subtraction
+
+

@@ -1,0 +1,7 @@
+-Delay from transmission of WAYPOINT on groundstation to recieving of WAYPOINT on pandabot: 
+1-4 ms
+
+-Delay from reciving WAYPOINT to finishing execution of motor command: 
+20-60ms
+
+

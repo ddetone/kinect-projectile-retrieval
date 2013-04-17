@@ -41,9 +41,9 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 
 	ArrayList<double[]> robotTraj = new ArrayList<double[]>();
 	final boolean DEFAULT_SEND_WAYPOINT = false;
-	final boolean DEFAULT_DISP_CONV = false;
+	final boolean DEFAULT_GOHOME = false;
 	boolean sendWayPoint = DEFAULT_SEND_WAYPOINT;
-	boolean dispConv = DEFAULT_DISP_CONV;
+	boolean goHome = DEFAULT_GOHOME;
 	//boolean def180 = DEFAULT_ROTATE;
 
 	RobotGUI()
@@ -68,7 +68,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		pg.addCheckBoxes("sendWayPoint", "Send Waypoint", DEFAULT_SEND_WAYPOINT);
-		pg.addCheckBoxes("dispConv", "Display Exploded Wall Map", DEFAULT_DISP_CONV);
+		pg.addCheckBoxes("goHome", "Go Home", DEFAULT_GOHOME);
 		//pg.addCheckBoxes("rotate180", "Rotate 180 degrees", DEFAULT_ROTATE);
 		
 		pg.addDoubleSlider("kp", "kp", 0d, 1d, 0.35);
@@ -95,7 +95,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			public void parameterChanged(ParameterGUI pg, String name)
 			{
 				if(name == "sendWayPoint")sendWayPoint = pg.gb("sendWayPoint");
-				else if(name == "dispConv")dispConv = pg.gb("dispConv");
+				else if(name == "goHome")goHome = pg.gb("goHome");
 				//else if(name == "dispConv")dispConv = pg.gb("dispConv");
 			}
 		});
@@ -122,7 +122,6 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			xyt_t wayPoint = new xyt_t();
 			double temp[] = ray.intersectPlaneXY();
 			wayPoint.utime = TimeUtil.utime();
-			
 			wayPoint.xyt = new double[]{temp[0], temp[1], 100};
 			
 			if(curr_bot_status.xyt == null)
@@ -131,12 +130,32 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			
 			//double[] T = LinAlg.xytInvMul31(slamBot, wayPoint.xyt);
 			//wayPoint.xyt = LinAlg.xytMultiply(curr_bot_status.xyt, T);
+
+			System.out.printf("%d\n",System.currentTimeMillis());
 			
 			lcm.publish("6_WAYPOINT", wayPoint);
 
 			//pg.sb("sendWayPoint",false);
 			return true;
-		}else return false;
+		}
+		else if(goHome)
+		{
+			xyt_t wayPoint = new xyt_t();
+			wayPoint.utime = TimeUtil.utime();
+			wayPoint.xyt = new double[]{0, 0, -1};
+			pg.sb("goHome",false);
+			
+			if(curr_bot_status.xyt == null)
+				return true;
+
+			System.out.printf("%d\n",System.currentTimeMillis());
+			
+			lcm.publish("6_WAYPOINT", wayPoint);
+
+			return true;
+		}
+		else 
+			return false;
 	}
 
 /*
