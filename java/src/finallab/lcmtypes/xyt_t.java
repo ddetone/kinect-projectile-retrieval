@@ -13,6 +13,7 @@ public final class xyt_t implements lcm.lcm.LCMEncodable
 {
     public long utime;
     public double xyt[];
+    public boolean goFast;
  
     public xyt_t()
     {
@@ -20,7 +21,7 @@ public final class xyt_t implements lcm.lcm.LCMEncodable
     }
  
     public static final long LCM_FINGERPRINT;
-    public static final long LCM_FINGERPRINT_BASE = 0xb9fabd2b652a41afL;
+    public static final long LCM_FINGERPRINT_BASE = 0x5551a94bf2f07eceL;
  
     static {
         LCM_FINGERPRINT = _hashRecursive(new ArrayList<Class<?>>());
@@ -51,6 +52,8 @@ public final class xyt_t implements lcm.lcm.LCMEncodable
         for (int a = 0; a < 3; a++) {
             outs.writeDouble(this.xyt[a]); 
         }
+ 
+        outs.writeByte( this.goFast ? 1 : 0); 
  
     }
  
@@ -83,6 +86,8 @@ public final class xyt_t implements lcm.lcm.LCMEncodable
             this.xyt[a] = ins.readDouble();
         }
  
+        this.goFast = ins.readByte()!=0;
+ 
     }
  
     public finallab.lcmtypes.xyt_t copy()
@@ -92,6 +97,8 @@ public final class xyt_t implements lcm.lcm.LCMEncodable
  
         outobj.xyt = new double[(int) 3];
         System.arraycopy(this.xyt, 0, outobj.xyt, 0, 3); 
+        outobj.goFast = this.goFast;
+ 
         return outobj;
     }
  

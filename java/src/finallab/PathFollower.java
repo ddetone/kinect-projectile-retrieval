@@ -35,9 +35,10 @@ public class PathFollower implements LCMSubscriber
 	//Robot is actively following if isFollow = true else if does not move
 	static boolean isFollow = false;
 	static boolean stop = false;
-	static boolean home_rotate = false;
+	static boolean goFast = true;
 	static boolean calc_turn_params = false;
 	static boolean drive_straight = false;
+	static boolean dest_rotate = false;
 	static double[] cXYT = new double[3];
 	static double[] dXYT = new double[3];
 	static double angleToDest;
@@ -54,21 +55,23 @@ public class PathFollower implements LCMSubscriber
 	static final double PREVDIST_BUFFER = 0.005f;
 
 	//static final double TURN_OFFSET = 0.2;
-	static final double DEF_STRAIGHT_ANGLE = 13;
+	static final double FAST_STRAIGHT_ANGLE = 13;
+	static final double SLOW_STRAIGHT_ANGLE = 2;
 	static final double SLOW_DIST = 0.35; 
-	static final double DEST_DIST = 0.08; 
+	static final double FASTDEST_DIST = 0.08;
+	static final double SLOWDEST_DIST = 0.04; 
 
 	static final double SK_PID = 0.36;
 	static final double SI_PID = 0.0;
-	static final double SD_PID = 28000;
+	static final double SD_PID = 28000.0;
 
 	static final double TK_PID = 0.28;
 	static final double TI_PID = 0.0;
-	static final double TD_PID = 38000;	
+	static final double TD_PID = 38000.0;	
 
-	static final double HK_PID = 0.28;
+	static final double HK_PID = 0.15;
 	static final double HI_PID = 0.0;
-	static final double HD_PID = 38000;	
+	static final double HD_PID = 38000.0;	
 	//double Kp_turn = 0.7;
 	//double Kp = 1;
 	//double Kd_turn = 0.001;
@@ -106,7 +109,8 @@ public class PathFollower implements LCMSubscriber
 		pg.addDoubleSlider("voltageOffset", "Voltage Offset", 0d, 0.5d, 0.2d);
 
 		pg.addDoubleSlider("tvolts", "tvolts", 0d, 1d, 0.5d);
-		pg.addDoubleSlider("stopangle", "stopangle", 0d, 90d, DEF_STRAIGHT_ANGLE);
+		pg.addDoubleSlider("faststopangle", "faststopangle", 0d, 90d, FAST_STRAIGHT_ANGLE);
+		pg.addDoubleSlider("slowstopangle", "slowstopangle", 0d, 90d, SLOW_STRAIGHT_ANGLE);
 
 		pg.addDoubleSlider("skp", "skp", 0d, 1d, SK_PID);
 		pg.addDoubleSlider("ski", "ski", 0d, 1d, SI_PID);
@@ -172,7 +176,11 @@ public class PathFollower implements LCMSubscriber
 	{
 		errorDist = LinAlg.distance(new double[]{cXYT[0],cXYT[1]}, new double[]{dXYT[0], dXYT[1]});
 		
-		angleToDest = Math.atan2(dXYT[1]-cXYT[1],dXYT[0]-cXYT[0]);
+		if (dest_rotate)
+			angleToDest = dXYT[2];
+		else
+			angleToDest = Math.atan2(dXYT[1]-cXYT[1],dXYT[0]-cXYT[0]);
+		
 		double curAngle = cXYT[2];
 		errorAngle = angleToDest-curAngle;
 
@@ -185,8 +193,6 @@ public class PathFollower implements LCMSubscriber
 	void moveRobotStraight(double speed)
 	{
 		double pid = sPIDAngle.getOutput(errorAngle);
-		//if(verbose) System.out.println("PID preclamp: "+pid);
-		//pid = clampPid(pid);
 
 		if(verbose)System.out.println("sPID:" + pid);
 				//+ "  integrator: " + pidAngle.integral);
@@ -199,11 +205,14 @@ public class PathFollower implements LCMSubscriber
 
 	void turnRobot()
 	{
+
 		if(verbose)System.out.printf("Turning...\n");
 
-		double pid = tPIDAngle.getOutput(errorAngle);
-
-		//if(verbose2)System.out.println("preclamp,tvolts:" + tvolts);
+		double pid;
+		if (goFast)
+			pid = tPIDAngle.getOutput(errorAngle);
+		else
+			pid = hPIDAngle.getOutput(errorAngle);
 
 		double voltageOffset = pg.gd("voltageOffset");
 
@@ -217,84 +226,81 @@ public class PathFollower implements LCMSubscriber
 		double right = pid;
 		double left = -pid;
 		
-		System.out.printf("pid:%f\n",pid);
+		if(verbose)System.out.printf("pid:%f\n",pid);
 
 		setMotorCommand(left, right);
+	
 
 	}
-/*
-	void calcTvolts()
-	{
-
-		tvolts = errorAngle*pg.gd("turnRate");
-		double voltageOffset = pg.gd("voltageOffset");
-		
-		if(verbose2)System.out.printf("preoffset, tvolts: %f\n", tvolts);
-
-		if (tvolts > 0)
-			tvolts += voltageOffset;
-		else
-			tvolts -= voltageOffset;
-
-		tvolts = LinAlg.clamp(tvolts,-MAX_TURNSPEED, MAX_TURNSPEED);
-
-	}*/
-
 
 	boolean checkHalt()
 	{
-		if (errorDist < DEST_DIST)
+		if (goFast)
 		{
-			if(verbose)System.out.printf("STOP...reached waypoint\n");
-			return true;
+			if (errorDist < FASTDEST_DIST)
+			{
+				if(verbose)System.out.printf("STOP...reached waypoint\n");
+				return true;
+			}
+			else if ((prev_errorDist+PREVDIST_BUFFER) < errorDist)
+			{
+				if(verbose)System.out.printf("STOP...prev_errorDist < errorDist\n");
+				if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);
+				return true;
+			}
 		}
-		else if ((prev_errorDist+PREVDIST_BUFFER) < errorDist)
+		else
 		{
-			if(verbose)System.out.printf("STOP...prev_errorDist < errorDist\n");
-			if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);
-			return true;
+			if (errorDist < SLOWDEST_DIST)
+			{
+				if(verbose)System.out.printf("SLOWLY drove to dest, now slow rotate\n");
+				return true;
+			}
+			else if ((prev_errorDist+PREVDIST_BUFFER) < errorDist)
+			{
+				if(verbose)System.out.printf("STOP...prev_errorDist < errorDist\n");
+				if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);
+				return true;
+			}
 		}
+
 		return false;
 	}
 
-
-
 	boolean checkStraight()
 	{
-		double straightAngle = Math.toRadians(pg.gd("stopangle"));
+		double straightAngle;
+		if (goFast || !dest_rotate) //if not gofast, ust faststop angle
+			straightAngle = Math.toRadians(pg.gd("faststopangle"));
+		else 
+			straightAngle = Math.toRadians(pg.gd("slowstopangle"));
 
 		if (errorAngle >= 0)
+		{
 			if (errorAngle < straightAngle)
 			{
 				if(verbose)System.out.printf("Drive straight boolean is true\n");
 				return true;
 			}
-		if (errorAngle < 0)
+		}
+		else if (errorAngle < 0)
+		{
 			if (errorAngle > (-1)*straightAngle)
 			{
 				if(verbose)System.out.printf("Drive straight boolean is true\n");
 				return true;
 			}
-
+		}
 		return false;
 	}
-	
-	void stop()
+
+	void stopBot()
 	{
-		/*
-		if (home_rotate)
-		{
-			System.out.printf("Rotate Home\n");
-			errorAngle = -1*cXYT[2];
-			home_rotate = false; 
-		}
-		else
-		{*/
-			setMotorCommand(0.0F, 0.0F);
-			isFollow = false;
-			prev_errorDist = 9999;
-			stop = false;
-		//}
+		setMotorCommand(0.0F, 0.0F);
+		isFollow = false;
+		prev_errorDist = 9999;
+		stop = false;
+		return;
 	}
 
 	public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
@@ -313,23 +319,30 @@ public class PathFollower implements LCMSubscriber
 				{
 					calcErrors();
 
-					if (checkHalt())
+					if (drive_straight && checkHalt())
 					{
-						isFollow = false;
-						stop = true;
 						drive_straight = false;
+						if (goFast)
+							stop = true;
+						else
+						{
+							dest_rotate = true;
+							setMotorCommand(0.0F, 0.0F);
+						}
 					}
 
-					if (!drive_straight && checkStraight())
-						drive_straight = true;
-
-
+					if (!goFast && dest_rotate && checkStraight()) //2nd rotate phase, slow only
+					{
+						dest_rotate = false;
+						stop = true;
+					}
+						
+					if (!drive_straight && checkStraight() && !dest_rotate) //1st rotate phase, both fast and slow
+							drive_straight = true;
+					
 					if (drive_straight)
 					{
-						//isFollow = false;
-						//stop = true;
-						
-						if (errorDist < SLOW_DIST)
+						if (errorDist < SLOW_DIST || !goFast)
 						{
 							if(verbose)System.out.printf("Drive slow homie\n");					
 							moveRobotStraight(SLOW_SPEED);
@@ -340,7 +353,7 @@ public class PathFollower implements LCMSubscriber
 							moveRobotStraight(FAST_SPEED);
 						}
 					}
-					else
+					else if (!dest_rotate)
 						turnRobot();
 
 
@@ -351,11 +364,9 @@ public class PathFollower implements LCMSubscriber
 					if (time)System.out.printf("%d\n",System.currentTimeMillis());
 
 					if (stop)
-						stop();
-
-					//isFollow = false;
-					
+						stopBot();					
 				}
+
 			}
 			else if(channel.equals("6_WAYPOINT"))
 			{
@@ -367,12 +378,10 @@ public class PathFollower implements LCMSubscriber
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
 
+				goFast = dest.goFast;
 				drive_straight = false;
-
-				if (dest.xyt[2] == -1)
-					home_rotate = true;
-				else
-					isFollow = true;
+				dest_rotate = false;
+				isFollow = true;
 			}
 		}
 		catch (IOException e)

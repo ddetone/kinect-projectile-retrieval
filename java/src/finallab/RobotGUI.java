@@ -101,7 +101,8 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 	
 					xyt_t wayPoint = new xyt_t();
 					wayPoint.utime = TimeUtil.utime();
-					wayPoint.xyt = new double[]{0, 0, -1};
+					wayPoint.xyt = new double[]{0, 0, 0};
+					wayPoint.goFast = false;
 					pg.sb("goHome",false);
 					
 					//if(curr_bot_status.xyt == null)
@@ -139,6 +140,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			double temp[] = ray.intersectPlaneXY();
 			wayPoint.utime = TimeUtil.utime();
 			wayPoint.xyt = new double[]{temp[0], temp[1], 100};
+			wayPoint.goFast = true;
 			
 			if(curr_bot_status.xyt == null)
 				return true;
