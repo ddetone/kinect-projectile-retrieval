@@ -535,6 +535,10 @@ public class Projectile extends VisEventAdapter
 			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.cyan));
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
 				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
+			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
+					bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), 
+					new VzText("(" + bounces.get(i).pred_landing[0] + 
+					bounces.get(i).pred_landing[1] + bounces.get(i).pred_landing[2] + ")")));
 		}
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));
@@ -651,7 +655,7 @@ public class Projectile extends VisEventAdapter
 			statestring = "RESET";
 		else
 			statestring = "UNKNOWN";
-
+		
 		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.BOTTOM_LEFT, new VzText(VzText.ANCHOR.BOTTOM_LEFT, 
 			"<<sansserif-bold-16,white>>" + statestring)));
 		
