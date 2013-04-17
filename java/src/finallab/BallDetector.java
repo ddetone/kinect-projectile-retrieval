@@ -30,6 +30,7 @@ public class BallDetector extends Thread
 
 	JButton startTracking;
 	JButton resetProjectile;
+	JButton calibrateImage;
 	boolean tracking = false;
 	boolean log = false;
 
@@ -76,7 +77,7 @@ public class BallDetector extends Thread
 		display = _display;
 
 		controlFrame = new JFrame("Controls");
-		controlFrame.setLayout(new GridLayout(3,1));
+		controlFrame.setLayout(new GridLayout(4,1));
 		controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		pg = new ParameterGUI();
 		pg.addDoubleSlider("x_param","x_param",0d,1d,1d);
@@ -88,13 +89,10 @@ public class BallDetector extends Thread
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI _pg, String name) {
 				if (name.equals("thresh")) {
-					depthStream.THRESH = _pg.gi(name);
+					KinectDepthVideo.THRESH = _pg.gi(name);
 				}
 				else if (name.equals("frames")) {
-					depthStream.MAX_FRAMES = _pg.gi(name);
-				}
-				else if (name.equals("switches")) {
-					depthStream.SWITCHES = _pg.gi(name);
+					KinectDepthVideo.MAX_FRAMES = _pg.gi(name);
 				}
 			}
 		});
@@ -134,7 +132,14 @@ public class BallDetector extends Thread
 				}
 			}
 		});  
-		controlFrame.add(resetProjectile, 3, 0);
+		controlFrame.add(resetProjectile, 2, 0);
+		calibrateImage = new JButton ("Calibrate Image");
+		calibrateImage.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				calibrateImage();
+			}
+		});
+		controlFrame.add(calibrateImage, 3, 0);
 		controlFrame.setSize(800, 600);
 		controlFrame.setVisible(true);
 
@@ -181,10 +186,11 @@ public class BallDetector extends Thread
 				botStart = depthStream.getWorldCoords(botPix);	
 				botStart.z += 0.08;
 				System.out.println("botStart: " + botStart.toString());
-				//depthStream.showSubtraction();	
+				depthStream.showSubtraction();	
 				depthStream.botLoc = botPix;
 			}
 		});
+		calibrateImage();
 
 	}
 	
@@ -264,12 +270,6 @@ public class BallDetector extends Thread
 				double realDepth = raw_depth_to_meters(ball.Uz());
 				Point3D coord = depthStream.getWorldCoords(depthCoord, realDepth);
 				if (depthPix != null) {
-					// System.out.println("depth blobs: " + depthBlobs.size());
-					// System.out.println("time diff: " +
-					// (depthStream.getLatestTime() -
-					// colorStream.getLatestTime()));
-					// System.out.println("depthPix: " + depthPix.x + ", " +
-					// depthPix.y);
 					for (int y = depthPix.y - 3; y < depthPix.y + 3; y++) {
 						for (int x = depthPix.x - 3; x < depthPix.x + 3; x++) {
 							try {
@@ -296,30 +296,19 @@ public class BallDetector extends Thread
 					// 	}
 					// }
 
-					// System.out.println("depth: " +
-					// depthStream.getDepthFromDepthPixel(depthPix));
 					if (tracking) {
 						ballLCM.x = coord.x;
 						ballLCM.y = coord.y;
 						ballLCM.z = coord.z;
 						// if(tracking)
 						System.out.println("updating new ball (" + System.currentTimeMillis() + ")");
-//						predictor.update(ballLCM);
-//						if (log) {
 						lcm.publish("6_BALL", ballLCM);
-//						}
 					}
 				}
-				// try
+
 			}
 
-			// {
-			// // Point3D realWorld =
-			// depthStream.getWorldCoords(ClosestBall.closestPixel);
-			// // System.out.println(realWorld.x + " " + realWorld.y + " " +
-			// realWorld.z);
-			// }
-			// catch(Exception e){};
+
 		}
 	}
 	public float raw_depth_to_meters(int raw_depth)
@@ -344,6 +333,25 @@ public class BallDetector extends Thread
 	}
 	public void setLog(boolean b) {
 		log = b;
+	}
+	//set max_frames to 1 for 5 seconds then move up to 200
+	public void calibrateImage() {
+		pg.si("frames", 1);
+		try {
+			Thread.sleep(5000);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		for (int i = 1; i <= 100; i++) {
+			pg.si("frames", 2 * i);
+			try {
+				Thread.sleep(10);
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public static void main(String [] args) {
