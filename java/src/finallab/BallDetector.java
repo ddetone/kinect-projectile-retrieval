@@ -15,7 +15,7 @@ import finallab.lcmtypes.*;
 
 import lcm.lcm.*;
 
-public class KinectView extends Thread
+public class BallDetector extends Thread
 {
 	Context ctx;
 	Device kinect;
@@ -58,12 +58,11 @@ public class KinectView extends Thread
 	public Point3D botStart;
 
 	BallTracker finder;
-	Projectile predictor;
 
 	KinectRGBVideo colorStream;
 	KinectDepthVideo depthStream;
 
-	KinectView(Projectile _predictor, boolean _display)
+	BallDetector(boolean _display)
 	{
 
 		ctx = Freenect.createContext();
@@ -73,7 +72,6 @@ public class KinectView extends Thread
 			System.err.println("WARNING: No kinects detected");
 			return;
 		}
-		predictor = _predictor;
 		display = _display;
 
 		controlFrame = new JFrame("Controls");
@@ -109,8 +107,8 @@ public class KinectView extends Thread
 				if(!tracking)
 				{
 					tracking = true;
-					colorStream.pause();
-					depthStream.pause();
+					//colorStream.pause();
+					//depthStream.pause();
 					startTracking.setText("Stop Tracking");
 				}
 				else
@@ -131,7 +129,7 @@ public class KinectView extends Thread
 			}
 		});  
 		controlFrame.add(resetSwitches, 3, 0);
-		controlFrame.setSize(800, 200);
+		controlFrame.setSize(800, 600);
 		controlFrame.setVisible(true);
 
 		colorFrame = new JFrame("color feed");
@@ -155,11 +153,10 @@ public class KinectView extends Thread
 		depthImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
 
 		validImageValue = new boolean[KinectVideo.WIDTH*KinectVideo.HEIGHT];
-		if (log)
-			lcm = LCM.getSingleton();
+		lcm = LCM.getSingleton();
 		BALL = new Statistics();
 
-		finder = new BallTracker(KinectVideo.WIDTH,KinectVideo.HEIGHT,true);
+		finder = new BallTracker(KinectVideo.WIDTH,KinectVideo.HEIGHT,false);
 
 		if(display)
 		{
@@ -173,7 +170,8 @@ public class KinectView extends Thread
 				botStart = depthStream.getWorldCoords(botPix);	
 				botStart.z += 0.08;
 				System.out.println("botStart: " + botStart.toString());
-				depthStream.showSubtraction();		
+				depthStream.showSubtraction();	
+				depthStream.botLoc = botPix;
 			}
 		});
 
@@ -203,7 +201,15 @@ public class KinectView extends Thread
 			Collections.sort(blobs, ComparatorFactory.getStatisticsCompareSize());
 			//find robot and ball by y pixel
 			// Collections.sort(blobs, ComparatorFactory.getStatisticsCompareYPix());
-
+//			System.out.println("num blobs: " + blobs.size());
+//			for (Statistics blob : blobs) {
+//				if (blob.N > 10) {
+//					System.out.println("blob size: " + blob.N);
+//				}
+//				else {
+//					break;
+//				}
+//			}
 			if (blobs.size() == 1) {
 				Statistics first = blobs.get(0);
 				if (first.N > minSize) {
@@ -284,10 +290,11 @@ public class KinectView extends Thread
 						ballLCM.y = coord.y;
 						ballLCM.z = coord.z;
 						// if(tracking)
-						predictor.update(ballLCM);
-						if (log) {
-							lcm.publish("6_BALL", ballLCM);
-						}
+						System.out.println("updating new ball (" + System.currentTimeMillis() + ")");
+//						predictor.update(ballLCM);
+//						if (log) {
+						lcm.publish("6_BALL", ballLCM);
+//						}
 					}
 				}
 				// try
@@ -327,13 +334,13 @@ public class KinectView extends Thread
 	}
 
 	public static void main(String [] args) {
-		Projectile proj = new Projectile();
-		KinectView kv = new KinectView(proj, true);
-		for(int i = 0; i < args.length; i++)
-		{
-			if(args[i].equals("log"))
-				kv.setLog(true);
-		}
+//		Projectile proj = new Projectile();
+		BallDetector kv = new BallDetector(true);
+//		for(int i = 0; i < args.length; i++)
+//		{
+//			if(args[i].equals("log"))
+//				kv.setLog(true);
+//		}
 		kv.start();
 	}
 
