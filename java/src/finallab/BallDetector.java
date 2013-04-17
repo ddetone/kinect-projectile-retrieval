@@ -6,10 +6,12 @@ import java.util.*;
 import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
+
 import javax.swing.*;
 
 import org.openkinect.freenect.*;
 
+import april.jmat.Matrix;
 import april.util.*;
 
 import finallab.lcmtypes.*;
@@ -146,13 +148,14 @@ public class BallDetector extends Thread
 		colorFrame = new JFrame("color feed");
 		colorStream = new KinectRGBVideo(kinect,display);
 		colorFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		colorFrame.addWindowListener(new RGBClose());
 		colorFrame.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
 		colorFrame.setContentPane(colorStream);
 		colorFrame.setVisible(true);
 
 		depthFrame = new JFrame("depth feed");
 		depthStream = new KinectDepthVideo(kinect,display);
-		depthFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		depthFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		depthFrame.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
 		depthFrame.setContentPane(depthStream);
 		depthFrame.setVisible(true);
@@ -192,6 +195,21 @@ public class BallDetector extends Thread
 		});
 		calibrateImage();
 
+	}
+	
+	//stops rgb feed if user closes rgb window
+	public class RGBClose implements WindowListener {
+
+		public void windowClosing(WindowEvent e) {
+			kinect.stopVideo();
+			colorFrame.dispose();
+		}
+		public void windowOpened(WindowEvent e){   }
+      	public void windowClosed(WindowEvent e){   }
+	    public void windowActivated(WindowEvent e){   }
+	    public void windowDeactivated(WindowEvent e){   }
+	    public void windowIconified(WindowEvent e){   }
+	    public void windowDeiconified(WindowEvent e){   }
 	}
 	
 	public void run() {
