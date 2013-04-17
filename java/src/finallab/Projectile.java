@@ -65,7 +65,7 @@ public class Projectile extends VisEventAdapter
 				if(name == "Reset")
 				{
 					if(pg.gb("Reset"))
-						state = BallStatus.RESET;
+						reset();
 				}
 			}
 		});
@@ -143,6 +143,8 @@ public class Projectile extends VisEventAdapter
 				new double[] {0.33377, -0.09695,  0.93766 }, true);
 			VisWorld.Buffer vb = vw.getBuffer("Ground");
 			vb.addBack(new VisChain(LinAlg.translate(0,0,-0.025),new VzBox(30,30,0.05,new VzMesh.Style(Color.darkGray))));
+			vb.addBack(new VzAxes());
+			DrawKinect("Ground");
 			vb.swap();
 		}
 		else
@@ -660,7 +662,9 @@ public class Projectile extends VisEventAdapter
 	{
 		return bounces;
 	}
-
+	public void reset() {
+		state = BallStatus.RESET;
+	}
 	public static void main(String[] args) throws Exception
 	{
 		Projectile p = new Projectile();

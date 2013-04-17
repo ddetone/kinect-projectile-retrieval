@@ -50,6 +50,10 @@ public class CatchController implements LCMSubscriber
 		//recieve = LCM.getSingleton();
 		//receive = lcm;
 		lcm.subscribe("6_BALL", this);	
+		lcm.subscribe("6_RESET", this);
+		if (display) {
+			lcm.subscribe("6_WAYPOINT", this);
+		}
 	}
 
 	public Point3D convertToPointRobotNonMat(double[] point)
@@ -242,6 +246,7 @@ public class CatchController implements LCMSubscriber
 				display = false;
 			if(args[i].equals("DEMO"))
 			{
+				@SuppressWarnings("unused")
 				CatchController demo = new CatchController(true, true);
 				while(true);
 			}
@@ -262,6 +267,17 @@ public class CatchController implements LCMSubscriber
 				e.printStackTrace();
 			}
 			predictor.update(ball);
+		}
+		else if (channel.equals("6_RESET")) {
+			predictor.reset();
+		}
+		else if (channel.equals("6_WAYPOINT")) {
+			try {
+				xyt_t point = new xyt_t(dins);
+				predictor.DrawBallsWithRobot(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		
 	}

@@ -29,7 +29,7 @@ public class BallDetector extends Thread
 	// JImage depthJim;
 
 	JButton startTracking;
-	JButton resetSwitches;
+	JButton resetProjectile;
 	boolean tracking = false;
 	boolean log = false;
 
@@ -123,13 +123,18 @@ public class BallDetector extends Thread
 		}); 
 		controlFrame.add(startTracking, 1, 0);
 
-		resetSwitches = new JButton ("Reset Switches");
-		resetSwitches.addActionListener(new ActionListener() {
+		resetProjectile = new JButton ("Reset Projectile");
+		resetProjectile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				depthStream.resetSwitches();
+				try {
+					lcm.publish("6_RESET", "reset");
+				}
+				catch(IOException ex) {
+					System.out.println("can't publish reset");
+				}
 			}
 		});  
-		controlFrame.add(resetSwitches, 3, 0);
+		controlFrame.add(resetProjectile, 3, 0);
 		controlFrame.setSize(800, 600);
 		controlFrame.setVisible(true);
 
