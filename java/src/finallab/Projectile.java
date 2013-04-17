@@ -44,7 +44,7 @@ public class Projectile extends VisEventAdapter
 	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean verbose = false;
 	final boolean verbose2 = false;
-	final double KINECT_HEIGHT = 0.79;
+	final double KINECT_HEIGHT = 0.445;
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;
@@ -538,10 +538,11 @@ public class Projectile extends VisEventAdapter
 			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.cyan));
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
 				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
-			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
-					bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), 
-					new VzText("<<sansserif-bold-12,white>>(" + bounces.get(i).pred_landing[0] + 
-					bounces.get(i).pred_landing[1] + bounces.get(i).pred_landing[2] + ")")));
+			//TODO: fix the size of these
+//			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
+//					bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), 
+//					new VzText("<<sansserif-bold-12,white>>(" + bounces.get(i).pred_landing[0] + 
+//					bounces.get(i).pred_landing[1] + bounces.get(i).pred_landing[2] + ")")));
 		}
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));

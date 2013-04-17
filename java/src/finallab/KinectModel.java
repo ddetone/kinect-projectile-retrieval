@@ -56,8 +56,8 @@ public class KinectModel
 				new double[] {1.75367, -0.06226,  0.00000 },
 				new double[] {0.33377, -0.09695,  0.93766 }, true);
 
-		kdv = new KinectDepthVideo(kinect, false);
-		krv = new KinectRGBVideo(kinect, true);
+		kdv = new KinectDepthVideo(kinect, null, false);
+		krv = new KinectRGBVideo(kinect, null, true);
 		JFrame rgbFrame = new JFrame("rgb feed");
 		rgbFrame.setContentPane(krv);
 		rgbFrame.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);

@@ -17,7 +17,7 @@ public class KinectDepthVideo extends KinectVideo {
 	//from JPanel
 	private static final long serialVersionUID = 2;	
 	
-	public volatile boolean newImage = false;
+	public Object gotImage;
 
 	public static int MAX_FRAMES = 100;
 	public static int THRESH = 50;
@@ -32,9 +32,9 @@ public class KinectDepthVideo extends KinectVideo {
 
 	private volatile boolean showAll = true;
 	
-	public KinectDepthVideo(Device kinect, boolean _display) {
-		super(kinect, _display);	
-
+	public KinectDepthVideo(Device kinect, Object _imgMonitor, boolean _display) {
+		super(kinect, _imgMonitor, _display);	
+		gotImage = new Object();
 		numFrames = 0;
 		depthAvgs = new double[WIDTH*HEIGHT];
 		validPixels = new short[WIDTH*HEIGHT];
@@ -194,7 +194,9 @@ public class KinectDepthVideo extends KinectVideo {
 					//set position to 0 because ByteBuffer is reused to access byte array of new frame
 					//and get() below increments the iterator
 					depthBuf.position(0);
-					newImage = true;
+					synchronized(imgMonitor) {
+						imgMonitor.notify();
+					}
 					numFrames = (numFrames + 1) % MAX_FRAMES;
 					if (display) {
 						frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);

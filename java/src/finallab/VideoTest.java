@@ -47,14 +47,14 @@ public class VideoTest {
 		
 		windowRGB = new JFrame("RGB camera");
 		windowRGB.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		rgbVideo = new KinectRGBVideo(kinect,true);
+		rgbVideo = new KinectRGBVideo(kinect,null, true);
 		windowRGB.setSize(640, 480);
 		windowRGB.setContentPane(rgbVideo);
 		windowRGB.setVisible(true);
 		
 		windowDepth = new JFrame("Depth camera");
 		windowDepth.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		depthVideo = new KinectDepthVideo(kinect, true);
+		depthVideo = new KinectDepthVideo(kinect, null, true);
 		windowDepth.setSize(640, 480);
 		windowDepth.setContentPane(depthVideo);
 		windowDepth.setVisible(true);

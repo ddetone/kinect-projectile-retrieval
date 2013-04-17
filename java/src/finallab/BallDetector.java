@@ -64,7 +64,9 @@ public class BallDetector extends Thread
 	BallTracker finder;
 
 	KinectRGBVideo colorStream;
+	Object colorMonitor;
 	KinectDepthVideo depthStream;
+	Object depthMonitor;
 
 	BallDetector(boolean _display)
 	{
@@ -77,7 +79,7 @@ public class BallDetector extends Thread
 			return;
 		}
 		display = _display;
-
+		
 		controlFrame = new JFrame("Controls");
 		controlFrame.setLayout(new GridLayout(4,1));
 		controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -146,7 +148,8 @@ public class BallDetector extends Thread
 		controlFrame.setVisible(true);
 
 		colorFrame = new JFrame("color feed");
-		colorStream = new KinectRGBVideo(kinect,display);
+		colorMonitor = new Object();
+		colorStream = new KinectRGBVideo(kinect, colorMonitor, display);
 		colorFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		colorFrame.addWindowListener(new RGBClose());
 		colorFrame.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
@@ -154,7 +157,8 @@ public class BallDetector extends Thread
 		colorFrame.setVisible(true);
 
 		depthFrame = new JFrame("depth feed");
-		depthStream = new KinectDepthVideo(kinect,display);
+		depthMonitor = new Object();
+		depthStream = new KinectDepthVideo(kinect, depthMonitor, display);
 		depthFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		depthFrame.setSize(KinectVideo.WIDTH, KinectVideo.HEIGHT);
 		depthFrame.setContentPane(depthStream);
@@ -217,9 +221,15 @@ public class BallDetector extends Thread
 			BALL = null;
 			ball_t ballLCM = new ball_t();
 
-			while (!depthStream.newImage);
+			synchronized(depthMonitor) {
+				try {
+					depthMonitor.wait();
+				}
+				catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
 			ballLCM.nanoTime = System.nanoTime();
-			depthStream.newImage = false;
 			ArrayList<Statistics> blobs;
 			depthStream.getReadLock().lock();
 			try {
