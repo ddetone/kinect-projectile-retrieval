@@ -413,15 +413,53 @@ public class PathFollower implements LCMSubscriber
 	public static void main(String[] args) throws Exception
 	{
 		PathFollower pl = new PathFollower();
+		PandaState psm = new PandaState(pl);
 
 		//System.out.println(Math.atan2(12.0,0.0));
 		while(true)
 		{
-			Thread.sleep(1000);
+			psm.stateMachine();
+		}
+	}
+
+	public class PandaState
+	{
+		public enum State {
+			STOPPED, ROTATE_FAST, ROTATE_SLOW, GO_FAST, GO_SLOW
+		}
+
+		volatile State state = STOPPED;
+		State prevState = STOPPED;
+		PathFollower parent = null;
+
+		PandaState(PathFollower _parent)
+		{
+			parent = _parent;
+		}
+
+		public void stateMachine()
+		{
+				switch(state)
+				{
+					case State.STOPPED:
+						if(prevState != State.STOPPED)
+							parent.stopBot();
+					break;
+					case State.ROTATE_SLOW:
+					break;
+					case State.ROTATE_FAST:
+					break;
+					case State.GO_SLOW:
+					break;
+					case State.GO_FAST:
+					break;
+				}
+				prevState = state;
 		}
 
 
-	}
 
+
+	}
 
 }
