@@ -17,7 +17,7 @@ import finallab.lcmtypes.*;
 public class CatchController implements LCMSubscriber
 {
 	Projectile predictor;
-	KinectView viewer;
+	BallDetector viewer;
 	boolean display = true;
 
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
@@ -31,11 +31,12 @@ public class CatchController implements LCMSubscriber
 
 	CatchController(boolean _display, boolean logs)
 	{
-		predictor = new Projectile();
+		
 		display = _display;
+		predictor = new Projectile(_display);
 		if(!logs)
 		{
-			viewer = new KinectView(predictor, _display);
+			viewer = new BallDetector(true);
 			viewer.start();
 		}
 		try{
@@ -44,6 +45,8 @@ public class CatchController implements LCMSubscriber
 		catch(IOException e){
 			lcm = LCM.getSingleton();
 		}
+		
+
 		//recieve = LCM.getSingleton();
 		//receive = lcm;
 		lcm.subscribe("6_BALL", this);	
@@ -144,17 +147,18 @@ public class CatchController implements LCMSubscriber
 						newWayPoint = land;
 						// go to point at bounce index
 						lcm.publish("6_WAYPOINT",spot);
-						System.out.println("LX:" + land.x + "LY:" + land.y);
-					
-						predictor.DrawBallsWithRobot(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
+						System.out.println("sending waypoint:" + land.x + "LY:" + land.y + "  (" + System.currentTimeMillis() + ")");
 						
-						for(int i = 0; i < bounces.size(); i++)
-						{
-							double[] endPoint = bounces.get(i).pred_landing;
-							double xDiff = startingBounces[0][i] -endPoint[0], yDiff = startingBounces[1][i] - endPoint[i];
-							System.out.println("Difference From Starting in Bounce " + i + " x: " +xDiff+ " y: " +yDiff);
+						if (display)
+							predictor.DrawBallsWithRobot(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
+						
+//						for(int i = 0; i < bounces.size(); i++)
+//						{
+//							double[] endPoint = bounces.get(i).pred_landing;
+//							double xDiff = startingBounces[0][i] -endPoint[0], yDiff = startingBounces[1][i] - endPoint[i];
+//							System.out.println("Difference From Starting in Bounce " + i + " x: " +xDiff+ " y: " +yDiff);
 															
-						}
+//						}
 					}	
 					//to continuously send waypoints of updated position of bounce index 0
 					// nextState = 0;
@@ -227,12 +231,15 @@ public class CatchController implements LCMSubscriber
 	{
 		
 		boolean logs = false;
+		boolean display = true;
 		for(int i = 0; i < args.length; i++)
 		{
 			if(args[i].equals("log"))
 				logs = true;
+			if(args[i].equals("speed"))
+				display = false;
 		}
-		CatchController cc = new CatchController(true, logs);
+		CatchController cc = new CatchController(display, logs);
 		cc.catchStateMachine();
 	}
 

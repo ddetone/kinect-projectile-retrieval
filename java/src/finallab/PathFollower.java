@@ -29,9 +29,9 @@ public class PathFollower implements LCMSubscriber
 
 
 	//Robot is actively following if isFollow = true else if does not move
-	static boolean isFollow = false;
-	static boolean stop = false;
-	static double[] cXYT = new double[3];
+	volatile static boolean isFollow = false;
+	volatile static boolean stop = false;
+	volatile static double[] cXYT = new double[3];
 	static double[] dXYT = new double[3];
 	static double angleToDest;
 	static double errorDist, errorAngle;
@@ -167,6 +167,53 @@ public class PathFollower implements LCMSubscriber
 		prev_errorDist = 9999;
 		stop = false;
 	}
+	
+	void follow()
+	{
+		if (isFollow) //if a waypoint is received
+		{
+			
+			calcErrors();
+			
+			if (errorDist < DEST_DIST)
+			{
+				isFollow = false;
+				if(verbose)System.out.println("STOP...reached waypoint\n");						
+				stop = true;
+			}
+			else if ((prev_errorDist+0.005) < errorDist)
+			{
+				isFollow = false;
+				if(verbose)System.out.println("STOP...prev_errorDist < errorDist\n");
+				if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);						
+				stop = true;	
+			}
+			else if (Math.abs(errorAngle) > Math.abs(STRAIGHT_ANGLE))
+			{
+				if(verbose)System.out.printf("Turning...\n");
+				turnRobot();
+			}
+			else if (errorDist < SLOW_DIST)
+			{
+				if(verbose)System.out.println("Drive slow homie\n");					
+				moveRobotStraight(SLOW_SPEED);
+			}
+			else	
+			{
+				if(verbose)System.out.println("Drive fast\n");
+				moveRobotStraight(FAST_SPEED);
+			}
+
+			if(verbose)System.out.println("errorAngle:" +
+				Math.toDegrees(errorAngle) + " errorDist:" + errorDist);
+
+			prev_errorDist = errorDist;
+
+			if (stop)
+				stop();
+			
+		}
+	}
 
 	public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
 	{
@@ -178,57 +225,18 @@ public class PathFollower implements LCMSubscriber
 				cXYT[0] = bot_status.xyt[0];
 				cXYT[1] = bot_status.xyt[1];
 				cXYT[2] = bot_status.xyt[2];
-
-				if (isFollow) //if a waypoint is recieved
-				{
-					calcErrors();
-					
-					if (errorDist < DEST_DIST)
-					{
-						isFollow = false;
-						if(verbose)System.out.println("STOP...reached waypoint\n");						
-						stop = true;
-					}
-					else if ((prev_errorDist+0.005) < errorDist)
-					{
-						isFollow = false;
-						if(verbose)System.out.println("STOP...prev_errorDist < errorDist\n");
-						if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);						
-						stop = true;	
-					}
-					else if (Math.abs(errorAngle) > Math.abs(STRAIGHT_ANGLE))
-					{
-						if(verbose)System.out.printf("Turning...\n");
-						turnRobot();
-					}
-					else if (errorDist < SLOW_DIST)
-					{
-						if(verbose)System.out.println("Drive slow homie\n");					
-						moveRobotStraight(SLOW_SPEED);
-					}
-					else	
-					{
-						if(verbose)System.out.println("Drive fast\n");
-						moveRobotStraight(FAST_SPEED);
-					}
-
-					if(verbose)System.out.println("errorAngle:" +
-						Math.toDegrees(errorAngle) + " errorDist:" + errorDist);
-		
-					prev_errorDist = errorDist;
-
-					if (stop)
-						stop();
-					
-				}
+				follow();
+				
 			}
 			else if(channel.equals("6_WAYPOINT"))
 			{
-				System.out.printf("Waypoint RECIEVED\n");
+//				System.out.printf("Waypoint RECIEVED\n");
+				System.out.println("moving to waypoint (" + System.currentTimeMillis() + ")");
 				xyt_t dest = new xyt_t(dins);
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
 				isFollow = true;
+				follow();
 			}
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);

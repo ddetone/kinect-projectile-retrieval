@@ -42,6 +42,8 @@ public class Projectile extends VisEventAdapter
 	final boolean verbose = false;
 	final boolean verbose2 = false;
 	final double KINECT_HEIGHT = 0.79;
+	
+	boolean display = true;
 
 	int num_balls;
 	int bounce_index;
@@ -105,6 +107,72 @@ public class Projectile extends VisEventAdapter
 
 	}
 
+	Projectile(boolean _display)
+	{
+		if(_display)
+		{
+			//vis initializations
+			jf = new JFrame("Projectile");
+			vw = new VisWorld();
+			vl = new VisLayer(vw);
+			vc = new VisCanvas(vl);
+			pg = new ParameterGUI();
+			pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
+			pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
+			pg.addListener(new ParameterListener() {
+				public void parameterChanged(ParameterGUI pg, String name)
+				{
+					if(name == "Reset")
+					{
+						if(pg.gb("Reset"))
+							state = BallStatus.RESET;
+					}
+				}
+			});
+	
+			jf.setLayout(new BorderLayout());
+			jf.add(vc, BorderLayout.CENTER);
+			jf.add(pg, BorderLayout.SOUTH);
+			jf.setSize(800,600);
+			jf.setVisible(true);
+			jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			vl.addEventHandler(this);
+			vl.cameraManager.uiLookAt(new double[] {-2.66075, 1.22066, 1.70393 },
+				new double[] {1.75367, -0.06226,  0.00000 },
+				new double[] {0.33377, -0.09695,  0.93766 }, true);
+			VisWorld.Buffer vb = vw.getBuffer("Ground");
+			vb.addBack(new VisChain(LinAlg.translate(0,0,-0.025),new VzBox(30,30,0.05,new VzMesh.Style(Color.darkGray))));
+			vb.swap();
+		}
+		else
+		{
+			display = _display;
+		}
+		balls = new ArrayList<double[]>();
+		pballs = new ArrayList<double[]>();
+
+		//landings = new ArrayList<double[]>();
+		bounces = new ArrayList<Parabola>();
+		for (int i=0; i<num_bounces; i++)
+		{
+			Parabola emptyBounce = new Parabola();
+			bounces.add(emptyBounce);
+		}
+
+		state = BallStatus.WAIT;	
+		num_balls = 0;
+		bounce_index = 0;
+
+		/*
+		friction = new double[3]; //a factor for air/ground friction to help with better prediction
+		friction[0] = 0.02;	//subtract 2 cm per every 1 s
+		friction[1] = 0.02;
+		friction[2] = 0.02;
+		*/
+
+	}
+	
+	
 	public void CheckBounce()
 	{
 
@@ -554,8 +622,8 @@ public class Projectile extends VisEventAdapter
 
 			CalculateParabola();
 		}
-
-		DrawBalls();
+		if(display)
+			DrawBalls();
 	}
 
 	public void PrintState()
