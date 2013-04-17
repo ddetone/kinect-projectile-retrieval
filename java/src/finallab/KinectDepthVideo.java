@@ -31,6 +31,7 @@ public class KinectDepthVideo extends KinectVideo {
 	private short [] validPixels;
 	private int [] switchCount;
 	private int numFrames;
+	public Point botLoc;
 
 	public ArrayList<Statistics> trajectory;
 
@@ -45,11 +46,12 @@ public class KinectDepthVideo extends KinectVideo {
 		trajectory = new ArrayList<Statistics>();
 		switchCount = new int[WIDTH*HEIGHT];
 		for (int i = 0; i < WIDTH*HEIGHT; i++) {
-			depthAvgs[i] = 0;
+//			depthAvgs[i] = 0;
 			validPixels[i] = -1;
 			switchCount[i] = 0;
 			depthAvgs[i] = 2047.0;
 		}
+		
 
 		f = 585.124;
 
@@ -93,8 +95,11 @@ public class KinectDepthVideo extends KinectVideo {
 						//background subtraction
 						validPixels[i] = -1;
 						boolean valid = false;
-						if(depth < 1050)
+						if(depth != 2047)
 						{
+							if (depthAvgs[i] == 2047) {
+								depthAvgs[i] = depth;
+							}
 							if (/*depth<1000 &&*/ (depthAvgs[i] - (double)depth) > THRESH && switchCount[i] < SWITCHES) {
 								valid = true;
 								validPixels[i] = (short)depth;		
@@ -102,6 +107,14 @@ public class KinectDepthVideo extends KinectVideo {
 							}
 							//double depthFactor = (((depthAvgs[i] * (1.0-pg.gd("learning")) * (double)numFrames) + (pg.gd("learning")*(double)depth)) / (double)(numFrames + 1));
 							depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depth) / (double)(numFrames + 1));
+						}
+//						if (botLoc != null) {
+//							if (i == WIDTH*botLoc.y + botLoc.x) {
+//								System.out.println("botLoc depth: " + depth + ", avg: " + depthAvgs[i]);
+//							}
+//						}
+						else {
+							depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depthAvgs[i]) / (double)(numFrames + 1));
 						}
 
 
