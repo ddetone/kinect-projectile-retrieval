@@ -286,7 +286,7 @@ public class CatchController implements LCMSubscriber
 				spot.xyt[0] = .5d;
 				spot.xyt[1] = 0.0d;
 				spot.xyt[2] = 0.0d;
-				// go to point at bounce index
+				// go forward to save time
 				lcm.publish("6_WAYPOINT",spot);
 			}
 			predictor.update(ball);
@@ -296,6 +296,13 @@ public class CatchController implements LCMSubscriber
 		}
 		else if (channel.equals("6_RESET")) {
 			predictor.reset();
+			xyt_t home = new xyt_t();
+			home.utime = TimeUtil.utime();
+			home.xyt[0] = 0.0d;
+			home.xyt[1] = 0.0d;
+			home.xyt[2] = 0.0d;
+			// go home
+			lcm.publish("6_WAYPOINT",home);
 		}
 		else if (channel.equals("6_WAYPOINT")) {
 			try {

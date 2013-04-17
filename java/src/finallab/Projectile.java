@@ -1,6 +1,8 @@
 package finallab;
 
 import java.util.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.io.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -31,6 +33,7 @@ public class Projectile extends VisEventAdapter
 	BallStatus state;
 	ArrayList<double[]> balls;
 	ArrayList<double[]> pballs; //dashed line for predicted path
+	ReadWriteLock pballLock;
 	ArrayList<Parabola> bounces;
 
 
@@ -115,6 +118,7 @@ public class Projectile extends VisEventAdapter
 	{
 		if(_display)
 		{
+			pballLock = new ReentrantReadWriteLock();
 			//vis initializations
 			jf = new JFrame("Projectile");
 			vw = new VisWorld();
@@ -462,18 +466,38 @@ public class Projectile extends VisEventAdapter
 					double dt = (land_time/20)*j;
 				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 				pred[1] = x[2] + (x[3] * dt);
-				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
-				pballs.add(pred);	
+				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 
+				if (pballLock == null)
+					System.out.println("pballLock is null");
+				pballLock.writeLock().lock();
+				try {
+					pballs.add(pred);	
+				}
+				finally {
+					pballLock.writeLock().unlock();
+				}
 			} 
-
-			if (i%2 == 0)
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
-			else
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+				
+			pballLock.readLock().lock();
+			try {
+				if (i%2 == 0)
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
+				else
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+			}
+			finally {
+				pballLock.readLock().unlock();
+			}
 
 		}
-
-		pballs.clear();
+			
+		pballLock.writeLock().lock();
+		try {
+			pballs.clear();
+		}
+		finally {
+			pballLock.writeLock().unlock();
+		}
 
 		for (int i=0; i<num_bounces; i++)
 		{
@@ -515,13 +539,25 @@ public class Projectile extends VisEventAdapter
 				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 				pred[1] = x[2] + (x[3] * dt);
 				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
-				pballs.add(pred);	
+				pballLock.writeLock().lock();
+				try {
+					pballs.add(pred);	
+				}
+				finally {
+					pballLock.writeLock().unlock();
+				}
 			} 
-
-			if (i%2 == 0)
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
-			else
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+			
+			pballLock.readLock().lock();
+			try {
+				if (i%2 == 0)
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
+				else
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+			}
+			finally {
+				pballLock.readLock().unlock();
+			}
 
 
 		}
@@ -535,7 +571,13 @@ public class Projectile extends VisEventAdapter
 			vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[1],pballs.get(i)[2]),pball));			
 		}*/
 
-		pballs.clear();
+		pballLock.writeLock().lock();
+		try {
+			pballs.clear();	
+		}
+		finally {
+			pballLock.writeLock().unlock();
+		}
 
 		for (int i=0; i<num_bounces; i++)
 		{
@@ -669,7 +711,9 @@ public class Projectile extends VisEventAdapter
 		return bounces;
 	}
 	public void reset() {
-		DrawEnvironment("Predicted Balls");
+		DrawEnvironment("Environment");
+		VisWorld.Buffer vb = vw.getBuffer("Environment");
+		vb.swap();
 		num_balls = 0;
 		bounce_index = 0;
 		bounces.clear();
