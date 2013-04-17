@@ -596,19 +596,6 @@ public class Projectile extends VisEventAdapter
 		}
 		if(display)
 			PrintState();
-		if (state == BallStatus.RESET) //reset everything
-		{
-			num_balls = 0;
-			bounce_index = 0;
-			bounces.clear();
-			for (int i=0; i<num_bounces; i++)
-			{
-				Parabola emptyBounce = new Parabola();
-				bounces.add(emptyBounce);
-			}
-			balls.clear();
-			state = BallStatus.WAIT;
-		}
 
 		double[] xyzt = new double[4];
 		xyzt[0] = in_ball.x;
@@ -684,8 +671,17 @@ public class Projectile extends VisEventAdapter
 		return bounces;
 	}
 	public void reset() {
-		state = BallStatus.RESET;
 		DrawEnvironment("Predicted Balls");
+		num_balls = 0;
+		bounce_index = 0;
+		bounces.clear();
+		for (int i=0; i<num_bounces; i++)
+		{
+			Parabola emptyBounce = new Parabola();
+			bounces.add(emptyBounce);
+		}
+		balls.clear();
+		state = BallStatus.WAIT;
 	}
 	public static void main(String[] args) throws Exception
 	{
