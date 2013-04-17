@@ -70,7 +70,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		pg.addCheckBoxes("sendWayPoint", "Send Waypoint", DEFAULT_SEND_WAYPOINT);
 		pg.addCheckBoxes("goHome", "Go Home", DEFAULT_GOHOME);
 		//pg.addCheckBoxes("rotate180", "Rotate 180 degrees", DEFAULT_ROTATE);
-		
+		/*
 		pg.addDoubleSlider("kp", "kp", 0d, 1d, 0.35);
 		pg.addDoubleSlider("ki", "ki", 0d, 1d, 0d);
 		pg.addDoubleSlider("kd", "kd", 0d, 50000d, 30000d);
@@ -88,15 +88,31 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 				
 				
 			}
-		});
+		});*/
 
 
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
 			{
-				if(name == "sendWayPoint")sendWayPoint = pg.gb("sendWayPoint");
-				else if(name == "goHome")goHome = pg.gb("goHome");
-				//else if(name == "dispConv")dispConv = pg.gb("dispConv");
+				if(name == "sendWayPoint")
+					sendWayPoint = pg.gb("sendWayPoint");
+				else if(name == "goHome")
+				{
+	
+					xyt_t wayPoint = new xyt_t();
+					wayPoint.utime = TimeUtil.utime();
+					wayPoint.xyt = new double[]{0, 0, -1};
+					pg.sb("goHome",false);
+					
+					//if(curr_bot_status.xyt == null)
+						//return;
+
+					System.out.printf("%d\n",System.currentTimeMillis());
+					
+					lcm.publish("6_WAYPOINT", wayPoint);
+
+				}	
+
 			}
 		});
 
@@ -136,22 +152,6 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			lcm.publish("6_WAYPOINT", wayPoint);
 
 			//pg.sb("sendWayPoint",false);
-			return true;
-		}
-		else if(goHome)
-		{
-			xyt_t wayPoint = new xyt_t();
-			wayPoint.utime = TimeUtil.utime();
-			wayPoint.xyt = new double[]{0, 0, -1};
-			pg.sb("goHome",false);
-			
-			if(curr_bot_status.xyt == null)
-				return true;
-
-			System.out.printf("%d\n",System.currentTimeMillis());
-			
-			lcm.publish("6_WAYPOINT", wayPoint);
-
 			return true;
 		}
 		else 
@@ -367,9 +367,13 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		VzCylinder castor = new VzCylinder(castorRad,0.02, new VzMesh.Style(Color.black));
 		VisObject vo_castor = new VisChain(LinAlg.rotateY(Math.PI/2), LinAlg.translate(-castorRad,0.115,0),castor);
 
+		double rodLength = 1;
+		VzBox angleRod = new VzBox(0.01,0.01,rodLength, new VzMesh.Style(Color.black));
+		VisObject vo_rod = new VisChain(LinAlg.translate(0.0,0.0,0.145),LinAlg.rotateX(-Math.PI/2),LinAlg.translate(0.0,0.0,rodLength/2),angleRod);
+
 		VisChain pandaBot = new VisChain();
 
-		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor);
+		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor,vo_rod);
 
 		VisWorld.Buffer vb = vw.getBuffer("Robot");
 
@@ -385,6 +389,8 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0], xyt[1], 0), new VzPoints()));
 		vb.addBack(new VzPoints(new VisVertexData(robotTraj), new VzPoints.Style(Color.gray,2)));
 		vb.swap();
+
+
 
 	}
 

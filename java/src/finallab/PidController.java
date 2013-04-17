@@ -24,7 +24,7 @@ public class PidController
 	{
 		this.Kp = Kp;
 		this.Ki = Ki;
-		this.Kd = Kd;
+		this.Kd = (-1)*Kd;
 		prevUtime = 0;
 		prevError = 0;
 		integral = 0;

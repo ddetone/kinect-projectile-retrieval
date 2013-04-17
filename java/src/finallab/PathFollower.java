@@ -36,7 +36,7 @@ public class PathFollower implements LCMSubscriber
 	static boolean isFollow = false;
 	static boolean stop = false;
 	static boolean home_rotate = false;
-	static boolean calc_straight = false;
+	static boolean calc_turn_params = false;
 	static boolean drive_straight = false;
 	static double[] cXYT = new double[3];
 	static double[] dXYT = new double[3];
@@ -49,15 +49,26 @@ public class PathFollower implements LCMSubscriber
 
 	static final double MAX_SPEED = 1.0f;
 	static final double MAX_TURNSPEED = 0.6f;
-	static final double FAST_SPEED = 0.9f;
+	static final double FAST_SPEED = 0.98f;
 	static final double SLOW_SPEED = 0.4f;
 	static final double PREVDIST_BUFFER = 0.005f;
 
 	//static final double TURN_OFFSET = 0.2;
-	static final double DEF_STRAIGHT_ANGLE = Math.toRadians(25);
+	static final double DEF_STRAIGHT_ANGLE = 13;
 	static final double SLOW_DIST = 0.35; 
 	static final double DEST_DIST = 0.08; 
 
+	static final double SK_PID = 0.36;
+	static final double SI_PID = 0.0;
+	static final double SD_PID = 28000;
+
+	static final double TK_PID = 0.28;
+	static final double TI_PID = 0.0;
+	static final double TD_PID = 38000;	
+
+	static final double HK_PID = 0.28;
+	static final double HI_PID = 0.0;
+	static final double HD_PID = 38000;	
 	//double Kp_turn = 0.7;
 	//double Kp = 1;
 	//double Kd_turn = 0.001;
@@ -67,12 +78,14 @@ public class PathFollower implements LCMSubscriber
 	//boolean turnEnd = false;
 	//The PID controller for finer turning
 	
-	double[] sPID = new double[]{0.46, 0.006, -20000}; //PID for straight driving
-	double[] tPID = new double[]{0.30, 0.0, -30000};	 //PID for turning
+	double[] sPID = new double[]{SK_PID, SI_PID, SD_PID}; //PID for straight driving
+	double[] tPID = new double[]{TK_PID, TI_PID, TD_PID};	 //PID for turning
+	double[] hPID = new double[]{HK_PID, HI_PID, HD_PID};	//PID for rotating home
 	
 
 	PidController sPIDAngle = new PidController(sPID[0], sPID[1], sPID[2]);
 	PidController tPIDAngle = new PidController(tPID[0], tPID[1], tPID[2]);
+	PidController hPIDAngle = new PidController(hPID[0], hPID[1], hPID[2]);
 
 	PathFollower()
 	{
@@ -88,12 +101,63 @@ public class PathFollower implements LCMSubscriber
 		prev_errorDist = 9999;
 
 		pg = new ParameterGUI();
-		pg.addDoubleSlider("turnRate", "Turn Rate", 0d, 1d, 0.573d);
-		pg.addDoubleSlider("straightAngleRate","Straight Angle Rate", 0d, 2d, 1.018d);
+		//pg.addDoubleSlider("turnRate", "Turn Rate", 0d, 1d, 0.573d);
+		//pg.addDoubleSlider("straightAngleRate","Straight Angle Rate", 0d, 2d, DEF_STRAIGHT_ANGLE);
 		pg.addDoubleSlider("voltageOffset", "Voltage Offset", 0d, 0.5d, 0.2d);
+
+		pg.addDoubleSlider("tvolts", "tvolts", 0d, 1d, 0.5d);
+		pg.addDoubleSlider("stopangle", "stopangle", 0d, 90d, DEF_STRAIGHT_ANGLE);
+
+		pg.addDoubleSlider("skp", "skp", 0d, 1d, SK_PID);
+		pg.addDoubleSlider("ski", "ski", 0d, 1d, SI_PID);
+		pg.addDoubleSlider("skd", "skd", 0d, 50000d, SD_PID);
+
+		pg.addDoubleSlider("tkp", "tkp", 0d, 1d, TK_PID);
+		pg.addDoubleSlider("tki", "tki", 0d, 1d, TI_PID);
+		pg.addDoubleSlider("tkd", "tkd", 0d, 50000d, TD_PID);
+
+		pg.addDoubleSlider("hkp", "hkp", 0d, 1d, HK_PID);
+		pg.addDoubleSlider("hki", "hki", 0d, 1d, HI_PID);
+		pg.addDoubleSlider("hkd", "hkd", 0d, 50000d, HD_PID);
+
+		pg.addListener(new ParameterListener() {
+			public void parameterChanged(ParameterGUI pg, String name)
+			{
+				
+				if(name == "skp" || name == "ski" || name == "skd")
+				{
+					double[] params = new double[3];
+					params[0] = pg.gd("skp");
+					params[1] = pg.gd("ski");
+					params[2] = pg.gd("skd");
+					sPIDAngle.changeParams(params);
+				}
+				
+				if(name == "tkp" || name == "tki" || name == "tkd")
+				{
+					double[] params = new double[3];
+					params[0] = pg.gd("tkp");
+					params[1] = pg.gd("tki");
+					params[2] = pg.gd("tkd");
+					tPIDAngle.changeParams(params);
+				}
+				
+				if(name == "hkp" || name == "hki" || name == "hkd")
+				{
+					double[] params = new double[3];
+					params[0] = pg.gd("hkp");
+					params[1] = pg.gd("hki");
+					params[2] = pg.gd("hkd");
+					hPIDAngle.changeParams(params);
+				}
+
+			}
+		});
+
+
 		jf = new JFrame("PathFollow Params");
 		jf.add(pg);
-		jf.setSize(400,100);
+		jf.setSize(600,350);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		jf.setVisible(true);
 
@@ -102,7 +166,6 @@ public class PathFollower implements LCMSubscriber
 		lcm.subscribe("6_WAYPOINT",this);
 		lcm.subscribe("6_PARAMS", this);
 
-		tvolts = 0;
 	}
 
 	void calcErrors()
@@ -138,18 +201,28 @@ public class PathFollower implements LCMSubscriber
 	{
 		if(verbose)System.out.printf("Turning...\n");
 
-		//double pid = tPIDAngle.getOutput(errorAngle);
+		double pid = tPIDAngle.getOutput(errorAngle);
 
-		if(verbose2)System.out.println("preclamp,tvolts:" + tvolts);
+		//if(verbose2)System.out.println("preclamp,tvolts:" + tvolts);
 
-		double right = tvolts;
-		double left = -tvolts;
-		if(verbose)System.out.println("tvolts:" + tvolts);	
+		double voltageOffset = pg.gd("voltageOffset");
+
+		if (pid > 0)
+			pid += voltageOffset;
+		else
+			pid -= voltageOffset;
+
+		pid = LinAlg.clamp(pid,-MAX_TURNSPEED, MAX_TURNSPEED);
+
+		double right = pid;
+		double left = -pid;
+		
+		System.out.printf("pid:%f\n",pid);
 
 		setMotorCommand(left, right);
 
 	}
-
+/*
 	void calcTvolts()
 	{
 
@@ -165,7 +238,8 @@ public class PathFollower implements LCMSubscriber
 
 		tvolts = LinAlg.clamp(tvolts,-MAX_TURNSPEED, MAX_TURNSPEED);
 
-	}
+	}*/
+
 
 	boolean checkHalt()
 	{
@@ -183,24 +257,26 @@ public class PathFollower implements LCMSubscriber
 		return false;
 	}
 
-	void calcStraightAngle()
-	{
-		if (tvolts == 0)
-			straightAngle = Math.toRadians(20);
-		else
-			straightAngle = tvolts*pg.gd("straightAngleRate");
 
-		straightAngle = Math.abs(straightAngle);
-
-		if(verbose)System.out.printf("straightAngle:%f\n",straightAngle);
-	}
 
 	boolean checkStraight()
 	{
-		if (Math.abs(errorAngle) < straightAngle)
-			return true;
-		else
-			return false;
+		double straightAngle = Math.toRadians(pg.gd("stopangle"));
+
+		if (errorAngle >= 0)
+			if (errorAngle < straightAngle)
+			{
+				if(verbose)System.out.printf("Drive straight boolean is true\n");
+				return true;
+			}
+		if (errorAngle < 0)
+			if (errorAngle > (-1)*straightAngle)
+			{
+				if(verbose)System.out.printf("Drive straight boolean is true\n");
+				return true;
+			}
+
+		return false;
 	}
 	
 	void stop()
@@ -232,13 +308,10 @@ public class PathFollower implements LCMSubscriber
 				cXYT[1] = bot_status.xyt[1];
 				cXYT[2] = bot_status.xyt[2];
 
+
 				if (isFollow) //if a waypoint is recieved
 				{
 					calcErrors();
-					calcTvolts();
-
-					if (!drive_straight && calc_straight) //only calculate this once per waypoint sent
-						calcStraightAngle();
 
 					if (checkHalt())
 					{
@@ -247,11 +320,15 @@ public class PathFollower implements LCMSubscriber
 						drive_straight = false;
 					}
 
-					if (checkStraight() || drive_straight)
+					if (!drive_straight && checkStraight())
+						drive_straight = true;
+
+
+					if (drive_straight)
 					{
-						isFollow = false;
-						stop = true;
-						/*
+						//isFollow = false;
+						//stop = true;
+						
 						if (errorDist < SLOW_DIST)
 						{
 							if(verbose)System.out.printf("Drive slow homie\n");					
@@ -261,14 +338,14 @@ public class PathFollower implements LCMSubscriber
 						{
 							if(verbose)System.out.printf("Drive fast\n");
 							moveRobotStraight(FAST_SPEED);
-						}*/
+						}
 					}
 					else
 						turnRobot();
 
 
 					if(verbose)System.out.println("errorAngle:" +
-						Math.toDegrees(errorAngle) + " errorDist:" + errorDist);
+						errorAngle + " errorDist:" + errorDist);
 		
 					prev_errorDist = errorDist;
 					if (time)System.out.printf("%d\n",System.currentTimeMillis());
@@ -289,17 +366,13 @@ public class PathFollower implements LCMSubscriber
 
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
+
+				drive_straight = false;
+
 				if (dest.xyt[2] == -1)
 					home_rotate = true;
-
-				// dXYT[0] = dest.xyt[1];
-				// dXYT[1] = -dest.xyt[0];
-				isFollow = true;
-				calc_straight = true;
-			}
-			else if (channel.equals("6_PARAMS")) {
-				xyt_t params = new xyt_t(dins);
-				tPIDAngle.changeParams(params.xyt);
+				else
+					isFollow = true;
 			}
 		}
 		catch (IOException e)
