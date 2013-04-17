@@ -115,12 +115,14 @@ public class CatchController implements LCMSubscriber
 		int nextState = 0;
 		ball_t ball;
 		Point3D newWayPoint = new Point3D(0.0,0.0,0.0);
+		System.out.println("waiting for landing point");
 		do {
 			
 			bounces = predictor.getParabolas();
 		}
 		
 		while(bounces == null || bounces.size() == 0 || !bounces.get(0).valid);
+		System.out.println("done waiting for bounces");
 		double[][] startingBounces = new double[2][bounces.size()];
 		for(int i = 0; i < bounces.size(); i++)
 		{
@@ -155,7 +157,7 @@ public class CatchController implements LCMSubscriber
 						spot.xyt[0] = land.y;
 						spot.xyt[1] = -land.x;
 						spot.xyt[2] = 0d;
-						newWayPoint = land;
+						newWayPoint = land.clone();
 						// go to point at bounce index
 						lcm.publish("6_WAYPOINT",spot);
 						System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
@@ -170,7 +172,10 @@ public class CatchController implements LCMSubscriber
 //							System.out.println("Difference From Starting in Bounce " + i + " x: " +xDiff+ " y: " +yDiff);
 															
 //						}
-					}	
+					}
+					else {
+						System.out.println("waypoints are the same");
+					}
 					//to continuously send waypoints of updated position of bounce index 0
 					 nextState = 0;
 					//to send the waypoint once when first calculated
@@ -207,6 +212,7 @@ public class CatchController implements LCMSubscriber
 
 			}
 			state = nextState;
+			System.out.println("waiting for ball");
 			synchronized(ballLock) {
 				try {
 					ballLock.wait();

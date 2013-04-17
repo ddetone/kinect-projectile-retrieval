@@ -711,9 +711,11 @@ public class Projectile extends VisEventAdapter
 		return bounces;
 	}
 	public void reset() {
-		DrawEnvironment("Environment");
-		VisWorld.Buffer vb = vw.getBuffer("Environment");
-		vb.swap();
+		if (display) {
+			DrawEnvironment("Environment");
+			VisWorld.Buffer vb = vw.getBuffer("Environment");
+			vb.swap();
+		}
 		num_balls = 0;
 		bounce_index = 0;
 		bounces.clear();
