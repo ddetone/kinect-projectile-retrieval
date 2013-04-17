@@ -181,7 +181,7 @@ public class BallDetector extends Thread
 				botStart = depthStream.getWorldCoords(botPix);	
 				botStart.z += 0.08;
 				System.out.println("botStart: " + botStart.toString());
-				depthStream.showSubtraction();	
+				//depthStream.showSubtraction();	
 				depthStream.botLoc = botPix;
 			}
 		});
@@ -257,11 +257,10 @@ public class BallDetector extends Thread
 				Point depthCoord = new Point();
 				depthCoord.x = depthPix.x - KinectVideo.C_X;
 				depthCoord.y = KinectVideo.C_Y - depthPix.y;
-				// System.out.println("Depth at center: " + depthStream.getValidImageArray()[depthPix.y*640+depthPix.x]);
-				// Point depthCoord = new Point(depthPix.x - KinectVideo.C_X,
-				// KinectVideo.C_Y - depthPix.y);
-				// System.out.println("center depth " + depthStream.getDepthValFromDepthPixel(depthPix));
+				
 				// System.out.println("avg depth " + ball.Uz());
+				
+				//get depth from average depth of blob
 				double realDepth = raw_depth_to_meters(ball.Uz());
 				Point3D coord = depthStream.getWorldCoords(depthCoord, realDepth);
 				if (depthPix != null) {

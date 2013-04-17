@@ -3,10 +3,13 @@ package finallab;
 import java.util.*;
 import java.io.*;
 import java.awt.*;
+import java.awt.event.MouseEvent;
+
 import javax.swing.*;
 
 import april.util.*;
 import april.jmat.*;
+import april.jmat.geom.GRay3D;
 import april.vis.*;
 import april.image.*;
 
@@ -537,7 +540,7 @@ public class Projectile extends VisEventAdapter
 				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
 					bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), 
-					new VzText("(" + bounces.get(i).pred_landing[0] + 
+					new VzText("<<sansserif-bold-12,white>>(" + bounces.get(i).pred_landing[0] + 
 					bounces.get(i).pred_landing[1] + bounces.get(i).pred_landing[2] + ")")));
 		}
 		double wheelRadius = 0.04;
@@ -660,6 +663,15 @@ public class Projectile extends VisEventAdapter
 			"<<sansserif-bold-16,white>>" + statestring)));
 		
 		vb.swap();
+	}
+	
+	//prints point coords when user clicks
+	public boolean mouseReleased(VisCanvas vc, VisLayer vl,
+			VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e) {	
+		double temp[] = ray.intersectPlaneXY();
+		System.out.println("click@ (" + temp[0] + ", " + temp[1] + ", " + temp[2] + ")");
+
+		return true;
 	}
 
 	public ArrayList<Parabola> getParabolas()

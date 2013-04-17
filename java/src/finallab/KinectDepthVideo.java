@@ -108,11 +108,14 @@ public class KinectDepthVideo extends KinectVideo {
 							//double depthFactor = (((depthAvgs[i] * (1.0-pg.gd("learning")) * (double)numFrames) + (pg.gd("learning")*(double)depth)) / (double)(numFrames + 1));
 							depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depth) / (double)(numFrames + 1));
 						}
-//						if (botLoc != null) {
-//							if (i == WIDTH*botLoc.y + botLoc.x) {
-//								System.out.println("botLoc depth: " + depth + ", avg: " + depthAvgs[i]);
-//							}
-//						}
+						if (botLoc != null) {
+							if (i == WIDTH*botLoc.y + botLoc.x) {
+								Point estimatedPicPoint = new Point(botLoc.x-C_X,C_Y-botLoc.y);
+								Point3D estimate = getWorldCoords(estimatedPicPoint,raw_depth_to_meters(depth));
+								System.out.println("x: "+ estimate.x +" y: "+ estimate.y +" z: " + estimate.z);
+								System.out.println("botLoc depth: " + depth + ", avg: " + depthAvgs[i]);
+							}
+						}
 						else {
 							depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depthAvgs[i]) / (double)(numFrames + 1));
 						}
