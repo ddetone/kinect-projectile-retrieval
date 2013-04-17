@@ -19,7 +19,7 @@ public class Projectile extends VisEventAdapter
 {
 
 	public enum BallStatus {
-		WAIT, RELEASED, FINISHED, RESET
+		WAIT, RELEASED, FINISHED
 	}
 
 	JFrame jf;
@@ -129,7 +129,7 @@ public class Projectile extends VisEventAdapter
 					if(name == "Reset")
 					{
 						if(pg.gb("Reset"))
-							state = BallStatus.RESET;
+							reset();
 					}
 				}
 			});
@@ -646,8 +646,6 @@ public class Projectile extends VisEventAdapter
 			statestring = "RELEASED";
 		else if (state == BallStatus.FINISHED)
 			statestring = "FINISHED";
-		else if (state == BallStatus.RESET)
-			statestring = "RESET";
 		else
 			statestring = "UNKNOWN";
 		
