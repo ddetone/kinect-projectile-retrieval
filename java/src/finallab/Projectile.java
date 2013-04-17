@@ -42,6 +42,7 @@ public class Projectile extends VisEventAdapter
 	final boolean verbose = false;
 	final boolean verbose2 = false;
 	final double KINECT_HEIGHT = 0.79;
+	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;
 
@@ -194,7 +195,12 @@ public class Projectile extends VisEventAdapter
 		prediction[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt;
 		double e = LinAlg.squaredDistance(actual, prediction);
 		if (verbose) System.out.printf("error:%f\n",e);
-		double error_thresh = pg.gd("error_thresh");
+		
+		double error_thresh;
+		if(display)
+			error_thresh = pg.gd("error_thresh");
+		else
+			error_thresh = GLOBAL_ERROR_THRESH;
 		if (e > error_thresh)
 		{
 			System.out.printf("BOUNCE DETECTED\n");
@@ -221,7 +227,7 @@ public class Projectile extends VisEventAdapter
 		boolean is_parab = false;
 		double error;
 
-		System.out.printf("num_balls:%d\n",num_balls);
+//		System.out.printf("num_balls:%d\n",num_balls);
 		//need at least three balls for release determination
 
 		// data.add(balls.get(num_balls-1));
@@ -567,14 +573,15 @@ public class Projectile extends VisEventAdapter
 	public void update(ball_t in_ball)
 	{
 		in_ball.y += KINECT_HEIGHT;
-		PrintState();
+		if(display)
+			PrintState();
 		if (state == BallStatus.FINISHED)
 		{
 			if (verbose) System.out.printf("Reset to continue\n");
 			return;
 		}
-
-		PrintState();
+		if(display)
+			PrintState();
 		if (state == BallStatus.RESET) //reset everything
 		{
 			num_balls = 0;
@@ -602,8 +609,8 @@ public class Projectile extends VisEventAdapter
 		//add a ball
 		balls.add(xyzt);
 		num_balls++;
-
-		PrintState();
+		if(display)
+			PrintState();
 		if (balls.size() >= 3 && state == BallStatus.WAIT) //wait for 3 balls
 		{	
 			state = BallStatus.RELEASED;
@@ -611,8 +618,8 @@ public class Projectile extends VisEventAdapter
 			bounces.get(0).starttime = balls.get(0)[3];
 			bounces.get(0).balls_in_parab = 3;
 		}
-
-		PrintState();
+		if(display)
+			PrintState();
 		if (state == BallStatus.RELEASED)
 		{
 			if (num_balls >= 4)

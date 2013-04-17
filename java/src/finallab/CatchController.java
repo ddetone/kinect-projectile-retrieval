@@ -23,7 +23,7 @@ public class CatchController implements LCMSubscriber
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
 	final double BOT_DIST_FROM_KINECT_X = 0.0;
-	final double BOT_DIST_FROM_KINECT_Y = 0.7;
+	final double BOT_DIST_FROM_KINECT_Y = 0.33;
 	final double KINECT_HEIGHT = 0.79;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	LCM  lcm;
@@ -79,7 +79,8 @@ public class CatchController implements LCMSubscriber
 			long timeToMove = 0;
 			//convert from points of kinect to points in front of robot
 			Point3D landing = convertToPointRobotNonMat(point);
-			return landing;
+			if(i == 1)
+				return landing;
 			/*double angle = Math.atan2(landing.y,landing.x);
 			//if rotation is required then add to time .2 is scale factor for turning .2 sec per radian
 			if(Math.abs(angle) > Math.PI/6)
@@ -90,8 +91,8 @@ public class CatchController implements LCMSubscriber
 			long destinationTime = System.nanoTime();
 			destinationTime += (long)(timeToMove)*1000000000;
 			if(destinationTime < (long)(point[3]))
-				return i; 
-			i++;*/
+				return i; */
+			i++;
 		}
 		return null;
 	}
@@ -107,6 +108,7 @@ public class CatchController implements LCMSubscriber
 		ball_t ball;
 		Point3D newWayPoint = new Point3D(0.0,0.0,0.0);
 		do {
+			
 			bounces = predictor.getParabolas();
 		}
 		while(!bounces.get(0).valid);
@@ -161,9 +163,9 @@ public class CatchController implements LCMSubscriber
 //						}
 					}	
 					//to continuously send waypoints of updated position of bounce index 0
-					// nextState = 0;
+					 nextState = 0;
 					//to send the waypoint once when first calculated
-					nextState = 1;
+//					nextState = 1;
 				break;
 				
 				//retrieve state
@@ -238,6 +240,11 @@ public class CatchController implements LCMSubscriber
 				logs = true;
 			if(args[i].equals("speed"))
 				display = false;
+			if(args[i].equals("DEMO"))
+			{
+				CatchController demo = new CatchController(true, true);
+				while(true);
+			}
 		}
 		CatchController cc = new CatchController(display, logs);
 		cc.catchStateMachine();
@@ -246,11 +253,11 @@ public class CatchController implements LCMSubscriber
 	@Override
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins) {
 		if (channel.equals("6_BALL")) {
-			System.out.println("Got Ball");
+			System.out.println("got ball from detector (" + System.currentTimeMillis() + ")");
 			ball_t ball = null;
 			try {
 				ball = new ball_t(dins);
-				ball.y += KINECT_HEIGHT;
+//				ball.y += KINECT_HEIGHT;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

@@ -1,5 +1,6 @@
 package finallab;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.awt.*;
@@ -64,7 +65,7 @@ public class BallDetector extends Thread
 
 	BallDetector(boolean _display)
 	{
-
+		
 		ctx = Freenect.createContext();
 		if (ctx.numDevices() > 0) {
 			kinect = ctx.openDevice(0);
@@ -107,8 +108,8 @@ public class BallDetector extends Thread
 				if(!tracking)
 				{
 					tracking = true;
-					//colorStream.pause();
-					//depthStream.pause();
+					colorStream.pause();
+					depthStream.pause();
 					startTracking.setText("Stop Tracking");
 				}
 				else
@@ -153,7 +154,12 @@ public class BallDetector extends Thread
 		depthImg = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
 
 		validImageValue = new boolean[KinectVideo.WIDTH*KinectVideo.HEIGHT];
-		lcm = LCM.getSingleton();
+		try{
+			lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
+		}
+		catch(IOException e){
+			lcm = LCM.getSingleton();
+		}
 		BALL = new Statistics();
 
 		finder = new BallTracker(KinectVideo.WIDTH,KinectVideo.HEIGHT,false);
@@ -201,7 +207,10 @@ public class BallDetector extends Thread
 			Collections.sort(blobs, ComparatorFactory.getStatisticsCompareSize());
 			//find robot and ball by y pixel
 			// Collections.sort(blobs, ComparatorFactory.getStatisticsCompareYPix());
-//			System.out.println("num blobs: " + blobs.size());
+//			if (tracking) {
+//				System.out.println("num blobs: " + blobs.size());
+//				System.out.println("biggest blob size: " + blobs.get(0).N);
+//			}
 //			for (Statistics blob : blobs) {
 //				if (blob.N > 10) {
 //					System.out.println("blob size: " + blob.N);
