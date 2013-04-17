@@ -32,7 +32,7 @@ public class BallDetector extends Thread
 
 	JButton startTracking;
 	JButton resetProjectile;
-	JButton calibrateImage;
+	JButton resetDepth;
 	boolean tracking = false;
 	boolean log = false;
 
@@ -89,7 +89,6 @@ public class BallDetector extends Thread
 		pg.addIntSlider("blobThresh", "blob thresh", 1, 500, 125);
 		pg.addIntSlider("thresh", "thresh", 1, 100, 10);
 		pg.addIntSlider("frames", "frames", 1, 1000, 1);
-		pg.addIntSlider("switches", "max switches", 1, 1000, 1000);
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI _pg, String name) {
 				if (name.equals("thresh")) {
@@ -137,13 +136,14 @@ public class BallDetector extends Thread
 			}
 		});  
 		controlFrame.add(resetProjectile, 2, 0);
-		calibrateImage = new JButton ("Calibrate Image");
-		calibrateImage.addActionListener(new ActionListener() {
+		resetDepth = new JButton ("Reset Depth Avgs");
+		resetDepth.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				calibrateImage();
+				DepthClearer ic = new DepthClearer(pg);
+				ic.start();
 			}
 		});
-		controlFrame.add(calibrateImage, 3, 0);
+		controlFrame.add(resetDepth, 3, 0);
 		controlFrame.setSize(800, 600);
 		controlFrame.setVisible(true);
 
@@ -197,7 +197,8 @@ public class BallDetector extends Thread
 				depthStream.botLoc = botPix;
 			}
 		});
-		calibrateImage();
+		DepthClearer ic = new DepthClearer(pg);
+		ic.start();
 
 	}
 	
@@ -362,22 +363,28 @@ public class BallDetector extends Thread
 	public void setLog(boolean b) {
 		log = b;
 	}
-	//set max_frames to 1 for 5 seconds then move up to 200
-	public void calibrateImage() {
-		pg.si("frames", 1);
-		try {
-			Thread.sleep(5000);
+	
+	
+	public class DepthClearer extends Thread {
+		ParameterGUI pg;
+		public DepthClearer(ParameterGUI _pg) {
+			pg = _pg;
 		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
-		for (int i = 1; i <= 100; i++) {
-			pg.si("frames", 2 * i);
+		//set max_frames to 1 for 5 seconds then move up to 200
+		public void run() {
+			pg.si("frames", 1);
 			try {
-				Thread.sleep(10);
-			}
-			catch(Exception e) {
+				Thread.sleep(5000);
+			} catch (Exception e) {
 				e.printStackTrace();
+			}
+			for (int i = 1; i <= 100; i++) {
+				pg.si("frames", 2 * i);
+				try {
+					Thread.sleep(10);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
