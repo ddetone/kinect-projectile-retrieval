@@ -147,7 +147,7 @@ public class Projectile extends VisEventAdapter
 			VisWorld.Buffer vb = vw.getBuffer("Ground");
 			vb.addBack(new VisChain(LinAlg.translate(0,0,-0.025),new VzBox(30,30,0.05,new VzMesh.Style(Color.darkGray))));
 			vb.addBack(new VzAxes());
-			DrawKinect("Ground");
+			DrawEnvironment("Ground");
 			vb.swap();
 		}
 		else
@@ -418,7 +418,7 @@ public class Projectile extends VisEventAdapter
 
 		}
 
-		public void DrawKinect(String buffer)
+		public void DrawEnvironment(String buffer)
 		{
 			VisWorld.Buffer vb = vw.getBuffer(buffer);
 			VzBox kinectHead = new VzBox(.275,.055,.07, new VzMesh.Style(Color.black));
@@ -429,6 +429,10 @@ public class Projectile extends VisEventAdapter
 			VzBox kinectTable = new VzBox(.4,.3,KINECT_HEIGHT-.07,new VzMesh.Style(Color.white));
 			VisChain table = new VisChain(LinAlg.translate(0,0,(KINECT_HEIGHT-.07)/2.0),kinectTable);
 			vb.addBack(table);
+			VzBox targetZone = new VzBox(0.91, 0.91, 0.001, new VzMesh.Style(Color.green));
+			//TODO: hard-coded target
+			VisChain target = new VisChain(LinAlg.translate(-.91, 1.67, 0.0001), targetZone);
+			vb.addBack(target);
 		}
 
 
@@ -479,7 +483,7 @@ public class Projectile extends VisEventAdapter
 		}
 
 		vb.addBack(new VzAxes());
-		DrawKinect("Predicted Balls");
+		DrawEnvironment("Predicted Balls");
 		vb.swap();
 
 	}
@@ -575,7 +579,7 @@ public class Projectile extends VisEventAdapter
 		vb.addBack(path);
 
 		vb.addBack(new VzAxes());
-		DrawKinect("Predicted Balls");
+		DrawEnvironment("Predicted Balls");
 		vb.swap();
 
 	}
@@ -681,6 +685,7 @@ public class Projectile extends VisEventAdapter
 	}
 	public void reset() {
 		state = BallStatus.RESET;
+		DrawEnvironment("Predicted Balls");
 	}
 	public static void main(String[] args) throws Exception
 	{

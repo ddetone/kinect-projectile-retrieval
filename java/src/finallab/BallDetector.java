@@ -11,7 +11,6 @@ import javax.swing.*;
 
 import org.openkinect.freenect.*;
 
-import april.jmat.Matrix;
 import april.util.*;
 
 import finallab.lcmtypes.*;
