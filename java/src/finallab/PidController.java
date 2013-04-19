@@ -66,7 +66,7 @@ public class PidController
 
 		double output = Kp * error + Ki * integral - Kd * derivative;
 
-		System.out.printf("P:%f, I:%f, D:%f\n", Kp*error, Ki*integral, Kd*derivative);
+		//System.out.printf("P:%f, I:%f, D:%f\n", Kp*error, Ki*integral, Kd*derivative);
 
 		prevError = error;
 		prevUtime = currUtime;
