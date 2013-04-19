@@ -47,7 +47,7 @@ public class Projectile extends VisEventAdapter
 	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean verbose = false;
 	final boolean verbose2 = false;
-	final double KINECT_HEIGHT = 0.445;
+	final double KINECT_HEIGHT = 0.77;
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;
