@@ -41,8 +41,10 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 
 	ArrayList<double[]> robotTraj = new ArrayList<double[]>();
 	final boolean DEFAULT_SEND_WAYPOINT = false;
+	final boolean DEFAULT_DRIVESLOW = false;
 	final boolean DEFAULT_GOHOME = false;
 	boolean sendWayPoint = DEFAULT_SEND_WAYPOINT;
+	boolean driveslow = DEFAULT_DRIVESLOW;
 	boolean goHome = DEFAULT_GOHOME;
 	//boolean def180 = DEFAULT_ROTATE;
 
@@ -68,6 +70,7 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		pg.addCheckBoxes("sendWayPoint", "Send Waypoint", DEFAULT_SEND_WAYPOINT);
+		pg.addCheckBoxes("driveslow", "Drive Slow Homie", DEFAULT_DRIVESLOW);
 		pg.addCheckBoxes("goHome", "Go Home", DEFAULT_GOHOME);
 		//pg.addCheckBoxes("rotate180", "Rotate 180 degrees", DEFAULT_ROTATE);
 		/*
@@ -96,6 +99,13 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			{
 				if(name == "sendWayPoint")
 					sendWayPoint = pg.gb("sendWayPoint");
+				else if(name == "driveslow")
+				{
+					if (driveslow)
+						driveslow = false;
+					else
+						driveslow = true;
+				}
 				else if(name == "goHome")
 				{
 	
@@ -140,7 +150,11 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			double temp[] = ray.intersectPlaneXY();
 			wayPoint.utime = TimeUtil.utime();
 			wayPoint.xyt = new double[]{temp[0], temp[1], 100};
-			wayPoint.goFast = true;
+			
+			if (driveslow)
+				wayPoint.goFast = false;
+			else
+				wayPoint.goFast = true;
 			
 			if(curr_bot_status.xyt == null)
 				return true;

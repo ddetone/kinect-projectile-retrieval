@@ -6,7 +6,7 @@ import java.util.*;
 public class PathStateMachine
 {
 	public enum State {
-		STOP, ROTATE_FAST, ROTATE_SLOW, ROTATE_TO_ANGLE, GO_FAST, GO_SLOW
+		STOP, ROTATE_FAST, ROTATE_SLOW, ROTATE_TO_ANGLE, GO_FAST, GO_MED, GO_SLOW
 	}
 
 	volatile State state = State.STOP;
@@ -22,124 +22,149 @@ public class PathStateMachine
 		p = _parent;
 	}
 
+	//public void addParent()
+
 	public void stateMachine()
 	{
-			if(verbose)printState();
-			switch(state)
-			{				
-				case STOP:
-					if(prevState != State.STOP)
-						p.stopBot();
+		if (!p)
+			return;
 
-					if (p.newWaypoint == true)
-					{
-						if(verbose)System.out.printf("New Waypoint in StateMachine\n");
-						p.newWaypoint = false;
-						p.calcErrors();
+		if(verbose)printState();
+		switch(state)
+		{				
+			case STOP:
+				if(prevState != State.STOP)
+					p.stopBot();
 
-						if (p.errorDist > p.LEAVE_DIST)
-						{
-							if(verbose)System.out.printf("ErrorDist > LEAVE_DIST\n");
-
-							if (p.dFast == true)
-								nextState = State.ROTATE_FAST;
-							else
-								nextState = State.ROTATE_SLOW;
-						}
-					}
-					break;
-
-				case ROTATE_SLOW:
-					
-					p.calcErrors();
-					if (Math.abs(p.errorAngle) < Math.abs(p.SLOW_STRAIGHT_ANGLE))
-					{
-						nextState = State.GO_SLOW;
-						break;
-					}
-					p.turnRobot(p.errorAngle, false);
-					break;
-
-				case ROTATE_FAST:
-
-					p.calcErrors();
-					if (Math.abs(p.errorAngle) < Math.abs(p.FAST_STRAIGHT_ANGLE))
-					{
-						nextState = State.GO_FAST;
-						break;
-					}
-					p.turnRobot(p.errorAngle, true);
-					break;
-
-				case ROTATE_TO_ANGLE:
-
-					double rotate_angle = p.calcAngleToWaypointTheta();
-					if (Math.abs(rotate_angle) < Math.abs(p.SLOW_STRAIGHT_ANGLE))
-					{
-						nextState = State.STOP;
-						break;
-					}
-					p.turnRobot(rotate_angle, false);
-					break;
-
-				case GO_SLOW:
-
+				if (p.newWaypoint == true)
+				{
+					if(verbose)System.out.printf("New Waypoint in StateMachine\n");
+					p.newWaypoint = false;
 					p.calcErrors();
 
-					if (p.errorDist > (p.prev_errorDist+p.PREVDIST_BUFFER))
+					if (p.errorDist > p.LEAVE_DIST)
 					{
-						if(verbose)System.out.printf("Current Distance to Waypoint > Previous Distance to Waypoint + BufVal\n");
-						if(verbose2)System.out.printf("PrevDist:%f , Dist:%f",p.prev_errorDist, p.errorDist);
-						nextState = State.STOP;
-						break;
+						if(verbose)System.out.printf("ErrorDist > LEAVE_DIST\n");
+
+						if (p.dFast == true)
+							nextState = State.ROTATE_FAST;
+						else
+							nextState = State.ROTATE_SLOW;
 					}
-					if (p.errorDist < p.SLOWDEST_DIST)
-					{
-						if(verbose)System.out.printf("Current Distance to Waypoint < Slow Speed Destination Distance\n");
-						nextState = State.STOP;
-						break;
-					}
-					p.moveRobotStraight(p.errorAngle, false);
+				}
+				break;
+
+			case ROTATE_SLOW:
+				
+				p.calcErrors();
+				if (Math.abs(p.errorAngle) < Math.abs(p.SLOW_STRAIGHT_ANGLE))
+				{
+					nextState = State.GO_SLOW;
 					break;
+				}
+				p.turnRobot(p.errorAngle, false);
+				break;
 
-				case GO_FAST:
+			case ROTATE_FAST:
 
-					p.calcErrors();
-
-					if (p.errorDist > (p.prev_errorDist+p.PREVDIST_BUFFER))
-					{
-						if(verbose)System.out.printf("......Current Distance to Waypoint > Previous Distance to Waypoint + BufVal\n");
-						nextState = State.STOP;
-						break;
-					}
-					if (p.errorDist < p.FASTDEST_DIST)
-					{
-						if(verbose)System.out.printf("Current Distance to Waypoint < Fast Speed Destination Distance\n");
-						nextState = State.STOP;
-						break;							
-					}
-					p.moveRobotStraight(p.errorAngle, true);
+				p.calcErrors();
+				if (Math.abs(p.errorAngle) < Math.abs(p.FAST_STRAIGHT_ANGLE))
+				{
+					nextState = State.GO_FAST;
 					break;
-			}
+				}
+				p.turnRobot(p.errorAngle, true);
+				break;
 
-			p.prev_errorDist = p.errorDist;
-			prevState = state;
-			state = nextState;
+			case ROTATE_TO_ANGLE:
 
-			try {
- 				Thread.sleep(10);
-			}
-			catch(Exception e) {}
+				double rotate_angle = p.calcAngleToWaypointTheta();
+				if(verbose)System.out.printf("Rotate Angle Error:%f\n", rotate_angle);
+				if (Math.abs(rotate_angle) < Math.abs(p.SLOW_STRAIGHT_ANGLE))
+				{
+					nextState = State.STOP;
+					break;
+				}
+				p.turnRobot(rotate_angle, false);
+				break;
+
+			case GO_SLOW:
+
+				p.calcErrors();
+
+				// if (p.errorDist > (p.prev_errorDist+p.PREVDIST_BUFFER))
+				// {
+				// 	if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
+				// 	if(verbose2)System.out.printf("PrevDist:%f , Dist:%f",p.prev_errorDist, p.errorDist);
+				// 	nextState = State.STOP;
+				// 	break;
+				// }
+				if (p.errorDist < p.SLOWDEST_DIST)
+				{
+					if(verbose)System.out.printf("Current Waypoint Dist < Slow Speed Destination Dist\n");
+					nextState = State.ROTATE_TO_ANGLE;
+					break;
+				}
+				p.moveRobotStraight(p.errorAngle, p.SLOW_SPEED);
+				break;
+
+			case GO_MED:
+
+				p.calcErrors();
+				if (p.errorDist > (p.prev_errorDist+p.PREVDIST_BUFFER))
+				{
+					if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
+					if(verbose2)System.out.printf("PrevDist:%f , Dist:%f",p.prev_errorDist, p.errorDist);
+					nextState = State.STOP;
+					break;
+				}
+				if (p.errorDist < p.MEDDEST_DIST)
+				{
+					if(verbose)System.out.printf("Current Waypoint Dist < Slow Speed Destination Dist\n");
+					nextState = State.STOP;
+					break;
+				}
+				p.moveRobotStraight(p.errorAngle, p.MED_SPEED);
+				break;
+
+			case GO_FAST:
+
+				p.calcErrors();
+
+				if (p.errorDist > (p.prev_errorDist+p.PREVDIST_BUFFER))
+				{
+					if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
+					nextState = State.GO_MED;
+					break;
+				}
+				if (p.errorDist < p.SLOW_DOWN_DIST)
+				{
+					if(verbose)System.out.printf("Slowing Down\n");
+					nextState = State.GO_MED;
+					break;							
+				}
+				p.moveRobotStraight(p.errorAngle, p.FAST_SPEED);
+				break;
+		}
+
+		p.prev_errorDist = p.errorDist;
+		prevState = state;
+		state = nextState;
+
+		try {
+			Thread.sleep(10);
+		}
+		catch(Exception e) {}
 
 	}
 
 	public void printState()
 	{
-		if (printcount++ > 40)
+		if (printcount++ > 5 && prevState != State.STOP)
 		{
 			printcount = 0;
 
-			if (state != prevState) System.out.println();
+			if (nextState != state) System.out.println();
 			String statestring;
 			if (state == State.STOP)
 				statestring = "STOP";
@@ -151,8 +176,10 @@ public class PathStateMachine
 				statestring = "ROTATE_TO_ANGLE";
 			else if (state == State.GO_FAST)
 				statestring = "GO_FAST";
+			else if (state == State.GO_MED)
+				statestring = "GO_MED";			
 			else if (state == State.GO_SLOW)
-				statestring = "GO_SLOW";
+				statestring = "DRIVE SLOW HOMIE";
 			else
 				statestring = "UNKNOWN";
 			System.out.println("Current State is: " + statestring);

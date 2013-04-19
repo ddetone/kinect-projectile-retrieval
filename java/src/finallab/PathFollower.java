@@ -51,24 +51,30 @@ public class PathFollower implements LCMSubscriber
 	static double angleToDest;
 	static double errorDist, errorAngle;
 	static double prev_errorDist;
+
+
+
 	//static double left, right;
 	//static double tvolts;
 	//static double straightAngle;
 
+	static final double DEFAULT_VOLTAGEOFFSET = 0.15;
+	static double voltageOffset = DEFAULT_VOLTAGEOFFSET;
+
 	static final double MAX_SPEED = 1.0f;
-	static final double MAX_TURNSPEED = 0.6f;
 	static final double FAST_SPEED = 0.95f;
-	static final double SLOW_SPEED = 0.4f;
-
-	static final double PREVDIST_BUFFER = 0.005f;
+	static final double MED_SPEED = 0.3f;
+	static final double SLOW_SPEED = 0.3f;
+	static final double MAX_TURNSPEED = 0.6;
 	static final double FAST_STRAIGHT_ANGLE = Math.toRadians(13);
-	static final double SLOW_STRAIGHT_ANGLE = Math.toRadians(2);
+	static final double SLOW_STRAIGHT_ANGLE = Math.toRadians(1);
 
-	static final double SLOW_DIST = 0.35; 
-	static final double FASTDEST_DIST = 0.08;
+	static final double MEDDEST_DIST = 0.08;
 	static final double SLOWDEST_DIST = 0.04; 
 	static final double LEAVE_DIST_BUFFER = 0.01;
-	static final double LEAVE_DIST = FASTDEST_DIST + LEAVE_DIST_BUFFER;
+	static final double PREVDIST_BUFFER = 0.005f;
+	static final double SLOW_DOWN_DIST = 0.4f;
+	static final double LEAVE_DIST = MEDDEST_DIST + LEAVE_DIST_BUFFER;
 
 	static final double SK_PID = 0.36;
 	static final double SI_PID = 0.0;
@@ -78,9 +84,9 @@ public class PathFollower implements LCMSubscriber
 	static final double TI_PID = 0.0;
 	static final double TD_PID = 38000.0;	
 
-	static final double HK_PID = 0.15;
+	static final double HK_PID = 0.05;
 	static final double HI_PID = 0.0;
-	static final double HD_PID = 38000.0;	
+	static final double HD_PID = 10000.0;	
 	//double Kp_turn = 0.7;
 	//double Kp = 1;
 	//double Kd_turn = 0.001;
@@ -115,23 +121,21 @@ public class PathFollower implements LCMSubscriber
 		pg = new ParameterGUI();
 		//pg.addDoubleSlider("turnRate", "Turn Rate", 0d, 1d, 0.573d);
 		//pg.addDoubleSlider("straightAngleRate","Straight Angle Rate", 0d, 2d, DEF_STRAIGHT_ANGLE);
-		pg.addDoubleSlider("voltageOffset", "Voltage Offset", 0d, 0.5d, 0.2d);
-
-		pg.addDoubleSlider("tvolts", "tvolts", 0d, 1d, 0.5d);
-		pg.addDoubleSlider("faststopangle", "faststopangle", 0d, 90d, FAST_STRAIGHT_ANGLE);
-		pg.addDoubleSlider("slowstopangle", "slowstopangle", 0d, 90d, SLOW_STRAIGHT_ANGLE);
+		pg.addDoubleSlider("voltageOffset", "Voltage Offset", 0d, 0.5d, 0.15d);
+		//pg.addDoubleSlider("faststopangle", "faststopangle", 0d, 90d, Math.toDegrees(FAST_STRAIGHT_ANGLE));
+		//pg.addDoubleSlider("slowstopangle", "slowstopangle", 0d, 90d, Math.toDegrees(SLOW_STRAIGHT_ANGLE));
 
 		pg.addDoubleSlider("skp", "skp", 0d, 1d, SK_PID);
 		pg.addDoubleSlider("ski", "ski", 0d, 1d, SI_PID);
-		pg.addDoubleSlider("skd", "skd", 0d, 50000d, SD_PID);
+		pg.addDoubleSlider("skd", "skd", 0d, 80000d, SD_PID);
 
 		pg.addDoubleSlider("tkp", "tkp", 0d, 1d, TK_PID);
 		pg.addDoubleSlider("tki", "tki", 0d, 1d, TI_PID);
-		pg.addDoubleSlider("tkd", "tkd", 0d, 50000d, TD_PID);
+		pg.addDoubleSlider("tkd", "tkd", 0d, 80000d, TD_PID);
 
 		pg.addDoubleSlider("hkp", "hkp", 0d, 1d, HK_PID);
 		pg.addDoubleSlider("hki", "hki", 0d, 1d, HI_PID);
-		pg.addDoubleSlider("hkd", "hkd", 0d, 50000d, HD_PID);
+		pg.addDoubleSlider("hkd", "hkd", 0d, 80000d, HD_PID);
 
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
@@ -163,6 +167,8 @@ public class PathFollower implements LCMSubscriber
 					params[2] = pg.gd("hkd");
 					hPIDAngle.changeParams(params);
 				}
+				if (name == "voltageOffset")
+					voltageOffset = pg.gd("voltageOffset");
 
 			}
 		});
@@ -205,24 +211,18 @@ public class PathFollower implements LCMSubscriber
 	double calcAngleToWaypointTheta()
 	{
 		double angle = dXYT[2] - cXYT[2];
-		while(errorAngle > Math.PI)errorAngle -= 2 * Math.PI;
-		while(errorAngle < -Math.PI)errorAngle += 2 * Math.PI;	
+		while(angle > Math.PI)angle -= 2 * Math.PI;
+		while(angle < -Math.PI)angle += 2 * Math.PI;	
 		return angle;
 	}
 
 
-	void moveRobotStraight(double angle, boolean fast)
+	void moveRobotStraight(double angle, double speed)
 	{
 		double pid = sPIDAngle.getOutput(angle);
 
 		if(verbose)System.out.println("sPID:" + pid);
 				//+ "  integrator: " + pidAngle.integral);
-
-		double speed;
-		if (fast)
-			speed = FAST_SPEED;
-		else
-			speed = SLOW_SPEED;
 
 		double right = speed + pid;
 		double left = speed - pid;	
@@ -241,7 +241,6 @@ public class PathFollower implements LCMSubscriber
 		else
 			pid = hPIDAngle.getOutput(angle);
 
-		double voltageOffset = pg.gd("voltageOffset");
 
 		if (pid > 0)
 			pid += voltageOffset;
