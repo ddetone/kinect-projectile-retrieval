@@ -17,16 +17,16 @@ public class PathStateMachine
 	boolean verbose2 = false;
 	int printcount = 0;
 
-	PathStateMachine(PathFollower _parent)
-	{
-		p = _parent;
-	}
+	PathStateMachine() {}
 
-	//public void addParent()
+	public void addParent(PathFollower _parent)
+	{
+		p = _parent;		
+	}
 
 	public void stateMachine()
 	{
-		if (!p)
+		if (p == null)
 			return;
 
 		if(verbose)printState();
@@ -86,6 +86,12 @@ public class PathStateMachine
 					break;
 				}
 				p.turnRobot(rotate_angle, false);
+				
+				/*try {
+					Thread.sleep(100);
+				}
+				catch(Exception e) {}*/
+
 				break;
 
 			case GO_SLOW:
@@ -106,7 +112,6 @@ public class PathStateMachine
 					break;
 				}
 				p.moveRobotStraight(p.errorAngle, p.SLOW_SPEED);
-				break;
 
 			case GO_MED:
 
@@ -151,16 +156,18 @@ public class PathStateMachine
 		prevState = state;
 		state = nextState;
 
+		/*
 		try {
 			Thread.sleep(10);
 		}
 		catch(Exception e) {}
+		*/
 
 	}
 
 	public void printState()
 	{
-		if (printcount++ > 5 && prevState != State.STOP)
+		if (printcount++ > -1 && prevState != State.STOP)
 		{
 			printcount = 0;
 

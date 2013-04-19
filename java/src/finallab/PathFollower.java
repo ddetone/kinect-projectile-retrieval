@@ -30,6 +30,7 @@ public class PathFollower implements LCMSubscriber
 
 	ParameterGUI pg;
 	JFrame jf;
+	PathStateMachine psm;
 
 
 	
@@ -67,7 +68,7 @@ public class PathFollower implements LCMSubscriber
 	static final double SLOW_SPEED = 0.3f;
 	static final double MAX_TURNSPEED = 0.6;
 	static final double FAST_STRAIGHT_ANGLE = Math.toRadians(13);
-	static final double SLOW_STRAIGHT_ANGLE = Math.toRadians(1);
+	static final double SLOW_STRAIGHT_ANGLE = Math.toRadians(2);
 
 	static final double MEDDEST_DIST = 0.08;
 	static final double SLOWDEST_DIST = 0.04; 
@@ -85,8 +86,8 @@ public class PathFollower implements LCMSubscriber
 	static final double TD_PID = 38000.0;	
 
 	static final double HK_PID = 0.05;
-	static final double HI_PID = 0.0;
-	static final double HD_PID = 10000.0;	
+	static final double HI_PID = 0.2;
+	static final double HD_PID = 30000.0;	
 	//double Kp_turn = 0.7;
 	//double Kp = 1;
 	//double Kd_turn = 0.001;
@@ -105,7 +106,7 @@ public class PathFollower implements LCMSubscriber
 	PidController tPIDAngle = new PidController(tPID[0], tPID[1], tPID[2]);
 	PidController hPIDAngle = new PidController(hPID[0], hPID[1], hPID[2]);
 
-	PathFollower()
+	PathFollower(PathStateMachine _psm, boolean _gs)
 	{
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
@@ -118,68 +119,72 @@ public class PathFollower implements LCMSubscriber
 		errorAngle = 0;
 		prev_errorDist = 9999;
 
-		pg = new ParameterGUI();
-		//pg.addDoubleSlider("turnRate", "Turn Rate", 0d, 1d, 0.573d);
-		//pg.addDoubleSlider("straightAngleRate","Straight Angle Rate", 0d, 2d, DEF_STRAIGHT_ANGLE);
-		pg.addDoubleSlider("voltageOffset", "Voltage Offset", 0d, 0.5d, 0.15d);
-		//pg.addDoubleSlider("faststopangle", "faststopangle", 0d, 90d, Math.toDegrees(FAST_STRAIGHT_ANGLE));
-		//pg.addDoubleSlider("slowstopangle", "slowstopangle", 0d, 90d, Math.toDegrees(SLOW_STRAIGHT_ANGLE));
+		if (_gs == true)
+		{
+			pg = new ParameterGUI();
+			//pg.addDoubleSlider("turnRate", "Turn Rate", 0d, 1d, 0.573d);
+			//pg.addDoubleSlider("straightAngleRate","Straight Angle Rate", 0d, 2d, DEF_STRAIGHT_ANGLE);
+			pg.addDoubleSlider("voltageOffset", "Voltage Offset", 0d, 0.5d, 0.15d);
+			//pg.addDoubleSlider("faststopangle", "faststopangle", 0d, 90d, Math.toDegrees(FAST_STRAIGHT_ANGLE));
+			//pg.addDoubleSlider("slowstopangle", "slowstopangle", 0d, 90d, Math.toDegrees(SLOW_STRAIGHT_ANGLE));
 
-		pg.addDoubleSlider("skp", "skp", 0d, 1d, SK_PID);
-		pg.addDoubleSlider("ski", "ski", 0d, 1d, SI_PID);
-		pg.addDoubleSlider("skd", "skd", 0d, 80000d, SD_PID);
+			pg.addDoubleSlider("skp", "skp", 0d, 1d, SK_PID);
+			pg.addDoubleSlider("ski", "ski", 0d, 1d, SI_PID);
+			pg.addDoubleSlider("skd", "skd", 0d, 80000d, SD_PID);
 
-		pg.addDoubleSlider("tkp", "tkp", 0d, 1d, TK_PID);
-		pg.addDoubleSlider("tki", "tki", 0d, 1d, TI_PID);
-		pg.addDoubleSlider("tkd", "tkd", 0d, 80000d, TD_PID);
+			pg.addDoubleSlider("tkp", "tkp", 0d, 1d, TK_PID);
+			pg.addDoubleSlider("tki", "tki", 0d, 1d, TI_PID);
+			pg.addDoubleSlider("tkd", "tkd", 0d, 80000d, TD_PID);
 
-		pg.addDoubleSlider("hkp", "hkp", 0d, 1d, HK_PID);
-		pg.addDoubleSlider("hki", "hki", 0d, 1d, HI_PID);
-		pg.addDoubleSlider("hkd", "hkd", 0d, 80000d, HD_PID);
+			pg.addDoubleSlider("hkp", "hkp", 0d, 1d, HK_PID);
+			pg.addDoubleSlider("hki", "hki", 0d, 1d, HI_PID);
+			pg.addDoubleSlider("hkd", "hkd", 0d, 80000d, HD_PID);
 
-		pg.addListener(new ParameterListener() {
-			public void parameterChanged(ParameterGUI pg, String name)
-			{
-				
-				if(name == "skp" || name == "ski" || name == "skd")
+			pg.addListener(new ParameterListener() {
+				public void parameterChanged(ParameterGUI pg, String name)
 				{
-					double[] params = new double[3];
-					params[0] = pg.gd("skp");
-					params[1] = pg.gd("ski");
-					params[2] = pg.gd("skd");
-					sPIDAngle.changeParams(params);
-				}
-				
-				if(name == "tkp" || name == "tki" || name == "tkd")
-				{
-					double[] params = new double[3];
-					params[0] = pg.gd("tkp");
-					params[1] = pg.gd("tki");
-					params[2] = pg.gd("tkd");
-					tPIDAngle.changeParams(params);
-				}
-				
-				if(name == "hkp" || name == "hki" || name == "hkd")
-				{
-					double[] params = new double[3];
-					params[0] = pg.gd("hkp");
-					params[1] = pg.gd("hki");
-					params[2] = pg.gd("hkd");
-					hPIDAngle.changeParams(params);
-				}
-				if (name == "voltageOffset")
-					voltageOffset = pg.gd("voltageOffset");
+					
+					if(name == "skp" || name == "ski" || name == "skd")
+					{
+						double[] params = new double[3];
+						params[0] = pg.gd("skp");
+						params[1] = pg.gd("ski");
+						params[2] = pg.gd("skd");
+						sPIDAngle.changeParams(params);
+					}
+						
+						if(name == "tkp" || name == "tki" || name == "tkd")
+						{
+							double[] params = new double[3];
+							params[0] = pg.gd("tkp");
+							params[1] = pg.gd("tki");
+							params[2] = pg.gd("tkd");
+							tPIDAngle.changeParams(params);
+						}
+						
+						if(name == "hkp" || name == "hki" || name == "hkd")
+						{
+							double[] params = new double[3];
+							params[0] = pg.gd("hkp");
+							params[1] = pg.gd("hki");
+							params[2] = pg.gd("hkd");
+							hPIDAngle.changeParams(params);
+						}
+						if (name == "voltageOffset")
+							voltageOffset = pg.gd("voltageOffset");
 
-			}
-		});
+					}
+				});
 
 
-		jf = new JFrame("PathFollow Params");
-		jf.add(pg);
-		jf.setSize(600,350);
-		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		jf.setVisible(true);
+			jf = new JFrame("PathFollow Params");
+			jf.add(pg);
+			jf.setSize(600,350);
+			jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			jf.setVisible(true);
+		}
 
+		psm = _psm;
 
 		lcm.subscribe("6_POSE",this);
 		lcm.subscribe("6_WAYPOINT",this);
@@ -341,6 +346,8 @@ public class PathFollower implements LCMSubscriber
 				cXYT[1] = bot_status.xyt[1];
 				cXYT[2] = bot_status.xyt[2];
 
+				psm.stateMachine();
+
 				/*
 				if (isFollow) //if a waypoint is recieved
 				{
@@ -444,12 +451,20 @@ public class PathFollower implements LCMSubscriber
 
 	public static void main(String[] args) throws Exception
 	{
-		PathFollower pl = new PathFollower();
-		PathStateMachine psm = new PathStateMachine(pl);
-
-		while(true)
+		//boolean gs = false;
+		/*
+		for(int i = 0; i < args.length; i++)
 		{
-			psm.stateMachine();
+			if(args[i].equals("gs"))
+				gs = true;
 		}
+		*/
+
+		boolean gs = true;
+		PathStateMachine psm = new PathStateMachine();
+		PathFollower pl = new PathFollower(psm, gs);
+		psm.addParent(pl);
+
+		while(true){}
 	}
 }
