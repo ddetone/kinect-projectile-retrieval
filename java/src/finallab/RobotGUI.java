@@ -41,9 +41,11 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 
 	ArrayList<double[]> robotTraj = new ArrayList<double[]>();
 	final boolean DEFAULT_SEND_WAYPOINT = false;
-	final boolean DEFAULT_DISP_CONV = false;
+	final boolean DEFAULT_DRIVESLOW = false;
+	final boolean DEFAULT_GOHOME = false;
 	boolean sendWayPoint = DEFAULT_SEND_WAYPOINT;
-	boolean dispConv = DEFAULT_DISP_CONV;
+	boolean driveslow = DEFAULT_DRIVESLOW;
+	boolean goHome = DEFAULT_GOHOME;
 	//boolean def180 = DEFAULT_ROTATE;
 
 	RobotGUI()
@@ -68,9 +70,10 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		pg.addCheckBoxes("sendWayPoint", "Send Waypoint", DEFAULT_SEND_WAYPOINT);
-		pg.addCheckBoxes("dispConv", "Display Exploded Wall Map", DEFAULT_DISP_CONV);
+		pg.addCheckBoxes("driveslow", "Drive Slow Homie", DEFAULT_DRIVESLOW);
+		pg.addCheckBoxes("goHome", "Go Home", DEFAULT_GOHOME);
 		//pg.addCheckBoxes("rotate180", "Rotate 180 degrees", DEFAULT_ROTATE);
-		
+		/*
 		pg.addDoubleSlider("kp", "kp", 0d, 1d, 0.35);
 		pg.addDoubleSlider("ki", "ki", 0d, 1d, 0d);
 		pg.addDoubleSlider("kd", "kd", 0d, 50000d, 30000d);
@@ -88,15 +91,39 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 				
 				
 			}
-		});
+		});*/
 
 
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
 			{
-				if(name == "sendWayPoint")sendWayPoint = pg.gb("sendWayPoint");
-				else if(name == "dispConv")dispConv = pg.gb("dispConv");
-				//else if(name == "dispConv")dispConv = pg.gb("dispConv");
+				if(name == "sendWayPoint")
+					sendWayPoint = pg.gb("sendWayPoint");
+				else if(name == "driveslow")
+				{
+					if (driveslow)
+						driveslow = false;
+					else
+						driveslow = true;
+				}
+				else if(name == "goHome")
+				{
+	
+					xyt_t wayPoint = new xyt_t();
+					wayPoint.utime = TimeUtil.utime();
+					wayPoint.xyt = new double[]{0, 0, 0};
+					wayPoint.goFast = false;
+					pg.sb("goHome",false);
+					
+					//if(curr_bot_status.xyt == null)
+						//return;
+
+					System.out.printf("%d\n",System.currentTimeMillis());
+					
+					lcm.publish("6_WAYPOINT", wayPoint);
+
+				}	
+
 			}
 		});
 
@@ -122,8 +149,12 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			xyt_t wayPoint = new xyt_t();
 			double temp[] = ray.intersectPlaneXY();
 			wayPoint.utime = TimeUtil.utime();
-			
 			wayPoint.xyt = new double[]{temp[0], temp[1], 100};
+			
+			if (driveslow)
+				wayPoint.goFast = false;
+			else
+				wayPoint.goFast = true;
 			
 			if(curr_bot_status.xyt == null)
 				return true;
@@ -131,12 +162,16 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 			
 			//double[] T = LinAlg.xytInvMul31(slamBot, wayPoint.xyt);
 			//wayPoint.xyt = LinAlg.xytMultiply(curr_bot_status.xyt, T);
+
+			System.out.printf("%d\n",System.currentTimeMillis());
 			
 			lcm.publish("6_WAYPOINT", wayPoint);
 
 			//pg.sb("sendWayPoint",false);
 			return true;
-		}else return false;
+		}
+		else 
+			return false;
 	}
 
 /*
@@ -348,9 +383,13 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		VzCylinder castor = new VzCylinder(castorRad,0.02, new VzMesh.Style(Color.black));
 		VisObject vo_castor = new VisChain(LinAlg.rotateY(Math.PI/2), LinAlg.translate(-castorRad,0.115,0),castor);
 
+		double rodLength = 1;
+		VzBox angleRod = new VzBox(0.01,0.01,rodLength, new VzMesh.Style(Color.black));
+		VisObject vo_rod = new VisChain(LinAlg.translate(0.0,0.0,0.145),LinAlg.rotateX(-Math.PI/2),LinAlg.translate(0.0,0.0,rodLength/2),angleRod);
+
 		VisChain pandaBot = new VisChain();
 
-		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor);
+		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor,vo_rod);
 
 		VisWorld.Buffer vb = vw.getBuffer("Robot");
 
@@ -366,6 +405,8 @@ public class RobotGUI extends VisEventAdapter implements LCMSubscriber
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0], xyt[1], 0), new VzPoints()));
 		vb.addBack(new VzPoints(new VisVertexData(robotTraj), new VzPoints.Style(Color.gray,2)));
 		vb.swap();
+
+
 
 	}
 

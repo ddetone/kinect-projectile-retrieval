@@ -1,5 +1,6 @@
 package finallab;
 
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -51,6 +52,7 @@ public class Projectile extends VisEventAdapter
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;
+
 
 	int num_balls;
 	int bounce_index;
@@ -585,10 +587,14 @@ public class Projectile extends VisEventAdapter
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
 				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
 			//TODO: fix the size of these
-//			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
-//					bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), 
-//					new VzText("<<sansserif-bold-12,white>>(" + bounces.get(i).pred_landing[0] + 
-//					bounces.get(i).pred_landing[1] + bounces.get(i).pred_landing[2] + ")")));
+			DecimalFormat twoPlaces = new DecimalFormat("0.00");
+			VzText coord = new VzText("<<sansserif-bold-12,blue>>(" + twoPlaces.format(bounces.get(i).pred_landing[0]) + ", " +  
+					twoPlaces.format(bounces.get(i).pred_landing[1]) + ")");
+			VisChain coordScaled = new VisChain(LinAlg.scale(.005, .005, 1), coord);
+//			vb.addBack(coord);
+			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
+					bounces.get(i).pred_landing[1], 0.05), 
+					coordScaled));
 		}
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));

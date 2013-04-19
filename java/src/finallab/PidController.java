@@ -24,7 +24,7 @@ public class PidController
 	{
 		this.Kp = Kp;
 		this.Ki = Ki;
-		this.Kd = Kd;
+		this.Kd = (-1)*Kd;
 		prevUtime = 0;
 		prevError = 0;
 		integral = 0;
@@ -66,7 +66,7 @@ public class PidController
 
 		double output = Kp * error + Ki * integral - Kd * derivative;
 
-		System.out.printf("P:%f, I:%f, D:%f\n", Kp*error, Ki*integral, Kd*derivative);
+		//System.out.printf("P:%f, I:%f, D:%f\n", Kp*error, Ki*integral, Kd*derivative);
 
 		prevError = error;
 		prevUtime = currUtime;
