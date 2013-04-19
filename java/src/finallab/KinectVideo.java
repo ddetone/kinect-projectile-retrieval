@@ -24,15 +24,17 @@ public abstract class KinectVideo extends JPanel {
 	protected ByteBuffer frameData;
 	protected int timestamp;
 	protected volatile boolean display;
+	protected Object imgMonitor;
 
 	protected ReadWriteLock frameLock;
 
 	//calibration params
 	protected double f;
 	
-	public KinectVideo(Device kinect, boolean _display) {
+	public KinectVideo(Device kinect, Object _imgMonitor, boolean _display) {
 		setPreferredSize(new Dimension(WIDTH, HEIGHT));
 		display = _display;
+		imgMonitor = _imgMonitor;
 		if (display)
 			frame = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
 		frameLock = new ReentrantReadWriteLock();

@@ -11,15 +11,15 @@ import org.openkinect.freenect.VideoHandler;
 public class KinectRGBVideo extends KinectVideo 
 {	
 	private static final long serialVersionUID = 1L;
-	public volatile boolean newImage = false;
 	
 	Boolean [] validImageValue;
 	byte colorAnalyzeMode;
 	double hueMin,hueMax,satMin,satMax,brightMin,brightMax;
 	int redMin, redMax, greenMin, greenMax, blueMin, blueMax;
 
-	public KinectRGBVideo(Device kinect, boolean _display) {
-		super(kinect, _display);
+	public KinectRGBVideo(Device kinect, Object _imgMonitor, boolean _display) {
+		super(kinect, _imgMonitor, _display);
+		
 		f = 527.273;
 		kinect.startVideo(new VideoHandler() {
 			@Override
@@ -43,7 +43,6 @@ public class KinectRGBVideo extends KinectVideo
 						frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
 						rgb.position(0);
 						repaint();
-						newImage = true;
 					}
 					finally {
 						frameLock.writeLock().unlock();

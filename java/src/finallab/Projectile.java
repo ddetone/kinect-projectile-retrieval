@@ -1,12 +1,17 @@
 package finallab;
 
 import java.util.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.io.*;
 import java.awt.*;
+import java.awt.event.MouseEvent;
+
 import javax.swing.*;
 
 import april.util.*;
 import april.jmat.*;
+import april.jmat.geom.GRay3D;
 import april.vis.*;
 import april.image.*;
 
@@ -16,7 +21,7 @@ public class Projectile extends VisEventAdapter
 {
 
 	public enum BallStatus {
-		WAIT, RELEASED, FINISHED, RESET
+		WAIT, RELEASED, FINISHED
 	}
 
 	JFrame jf;
@@ -28,6 +33,7 @@ public class Projectile extends VisEventAdapter
 	BallStatus state;
 	ArrayList<double[]> balls;
 	ArrayList<double[]> pballs; //dashed line for predicted path
+	ReadWriteLock pballLock;
 	ArrayList<Parabola> bounces;
 
 
@@ -42,6 +48,10 @@ public class Projectile extends VisEventAdapter
 	final boolean verbose = false;
 	final boolean verbose2 = false;
 	final double KINECT_HEIGHT = 0.445;
+	final double GLOBAL_ERROR_THRESH = 0.05;
+	
+	boolean display = true;
+
 
 	int num_balls;
 	int bounce_index;
@@ -62,7 +72,7 @@ public class Projectile extends VisEventAdapter
 				if(name == "Reset")
 				{
 					if(pg.gb("Reset"))
-						state = BallStatus.RESET;
+						reset();
 				}
 			}
 		});
@@ -105,6 +115,75 @@ public class Projectile extends VisEventAdapter
 
 	}
 
+	Projectile(boolean _display)
+	{
+		if(_display)
+		{
+			pballLock = new ReentrantReadWriteLock();
+			//vis initializations
+			jf = new JFrame("Projectile");
+			vw = new VisWorld();
+			vl = new VisLayer(vw);
+			vc = new VisCanvas(vl);
+			pg = new ParameterGUI();
+			pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
+			pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
+			pg.addListener(new ParameterListener() {
+				public void parameterChanged(ParameterGUI pg, String name)
+				{
+					if(name == "Reset")
+					{
+						if(pg.gb("Reset"))
+							reset();
+					}
+				}
+			});
+	
+			jf.setLayout(new BorderLayout());
+			jf.add(vc, BorderLayout.CENTER);
+			jf.add(pg, BorderLayout.SOUTH);
+			jf.setSize(800,600);
+			jf.setVisible(true);
+			jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			vl.addEventHandler(this);
+			vl.cameraManager.uiLookAt(new double[] {-2.66075, 1.22066, 1.70393 },
+				new double[] {1.75367, -0.06226,  0.00000 },
+				new double[] {0.33377, -0.09695,  0.93766 }, true);
+			VisWorld.Buffer vb = vw.getBuffer("Ground");
+			vb.addBack(new VisChain(LinAlg.translate(0,0,-0.025),new VzBox(30,30,0.05,new VzMesh.Style(Color.darkGray))));
+			vb.addBack(new VzAxes());
+			DrawEnvironment("Ground");
+			vb.swap();
+		}
+		else
+		{
+			display = _display;
+		}
+		balls = new ArrayList<double[]>();
+		pballs = new ArrayList<double[]>();
+
+		//landings = new ArrayList<double[]>();
+		bounces = new ArrayList<Parabola>();
+		for (int i=0; i<num_bounces; i++)
+		{
+			Parabola emptyBounce = new Parabola();
+			bounces.add(emptyBounce);
+		}
+
+		state = BallStatus.WAIT;	
+		num_balls = 0;
+		bounce_index = 0;
+
+		/*
+		friction = new double[3]; //a factor for air/ground friction to help with better prediction
+		friction[0] = 0.02;	//subtract 2 cm per every 1 s
+		friction[1] = 0.02;
+		friction[2] = 0.02;
+		*/
+
+	}
+	
+	
 	public void CheckBounce()
 	{
 
@@ -126,7 +205,12 @@ public class Projectile extends VisEventAdapter
 		prediction[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt;
 		double e = LinAlg.squaredDistance(actual, prediction);
 		if (verbose) System.out.printf("error:%f\n",e);
-		double error_thresh = pg.gd("error_thresh");
+		
+		double error_thresh;
+		if(display)
+			error_thresh = pg.gd("error_thresh");
+		else
+			error_thresh = GLOBAL_ERROR_THRESH;
 		if (e > error_thresh)
 		{
 			System.out.printf("BOUNCE DETECTED\n");
@@ -153,7 +237,7 @@ public class Projectile extends VisEventAdapter
 		boolean is_parab = false;
 		double error;
 
-		System.out.printf("num_balls:%d\n",num_balls);
+//		System.out.printf("num_balls:%d\n",num_balls);
 		//need at least three balls for release determination
 
 		// data.add(balls.get(num_balls-1));
@@ -339,7 +423,7 @@ public class Projectile extends VisEventAdapter
 
 		}
 
-		public void DrawKinect(String buffer)
+		public void DrawEnvironment(String buffer)
 		{
 			VisWorld.Buffer vb = vw.getBuffer(buffer);
 			VzBox kinectHead = new VzBox(.275,.055,.07, new VzMesh.Style(Color.black));
@@ -350,6 +434,10 @@ public class Projectile extends VisEventAdapter
 			VzBox kinectTable = new VzBox(.4,.3,KINECT_HEIGHT-.07,new VzMesh.Style(Color.white));
 			VisChain table = new VisChain(LinAlg.translate(0,0,(KINECT_HEIGHT-.07)/2.0),kinectTable);
 			vb.addBack(table);
+			VzBox targetZone = new VzBox(0.91, 0.91, 0.001, new VzMesh.Style(Color.green));
+			//TODO: hard-coded target
+			VisChain target = new VisChain(LinAlg.translate(-.91, 1.67, 0.0001), targetZone);
+			vb.addBack(target);
 		}
 
 
@@ -379,18 +467,38 @@ public class Projectile extends VisEventAdapter
 					double dt = (land_time/20)*j;
 				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 				pred[1] = x[2] + (x[3] * dt);
-				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
-				pballs.add(pred);	
+				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 
+				if (pballLock == null)
+					System.out.println("pballLock is null");
+				pballLock.writeLock().lock();
+				try {
+					pballs.add(pred);	
+				}
+				finally {
+					pballLock.writeLock().unlock();
+				}
 			} 
-
-			if (i%2 == 0)
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
-			else
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+				
+			pballLock.readLock().lock();
+			try {
+				if (i%2 == 0)
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
+				else
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+			}
+			finally {
+				pballLock.readLock().unlock();
+			}
 
 		}
-
-		pballs.clear();
+			
+		pballLock.writeLock().lock();
+		try {
+			pballs.clear();
+		}
+		finally {
+			pballLock.writeLock().unlock();
+		}
 
 		for (int i=0; i<num_bounces; i++)
 		{
@@ -400,7 +508,7 @@ public class Projectile extends VisEventAdapter
 		}
 
 		vb.addBack(new VzAxes());
-		DrawKinect("Predicted Balls");
+		DrawEnvironment("Predicted Balls");
 		vb.swap();
 
 	}
@@ -432,13 +540,25 @@ public class Projectile extends VisEventAdapter
 				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 				pred[1] = x[2] + (x[3] * dt);
 				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
-				pballs.add(pred);	
+				pballLock.writeLock().lock();
+				try {
+					pballs.add(pred);	
+				}
+				finally {
+					pballLock.writeLock().unlock();
+				}
 			} 
-
-			if (i%2 == 0)
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
-			else
-				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+			
+			pballLock.readLock().lock();
+			try {
+				if (i%2 == 0)
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
+				else
+					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+			}
+			finally {
+				pballLock.readLock().unlock();
+			}
 
 
 		}
@@ -452,13 +572,24 @@ public class Projectile extends VisEventAdapter
 			vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[1],pballs.get(i)[2]),pball));			
 		}*/
 
-		pballs.clear();
+		pballLock.writeLock().lock();
+		try {
+			pballs.clear();	
+		}
+		finally {
+			pballLock.writeLock().unlock();
+		}
 
 		for (int i=0; i<num_bounces; i++)
 		{
 			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.cyan));
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
 				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
+			//TODO: fix the size of these
+//			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
+//					bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), 
+//					new VzText("<<sansserif-bold-12,white>>(" + bounces.get(i).pred_landing[0] + 
+//					bounces.get(i).pred_landing[1] + bounces.get(i).pred_landing[2] + ")")));
 		}
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));
@@ -487,38 +618,27 @@ public class Projectile extends VisEventAdapter
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
 		vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),startPandaBot));
 
-		VisChain path = new VisChain(LinAlg.translate(xyzt[0],xyzt[1]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);//new VzBox(xyzt[0], .1, .1));
+		VisChain path = new VisChain(LinAlg.translate(-xyzt[1],xyzt[0]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);//new VzBox(xyzt[0], .1, .1));
 		vb.addBack(path);
 
 		vb.addBack(new VzAxes());
-		DrawKinect("Predicted Balls");
+		DrawEnvironment("Predicted Balls");
 		vb.swap();
 
 	}
 
 	public void update(ball_t in_ball)
 	{
-		PrintState();
+		in_ball.y += KINECT_HEIGHT;
+		if(display)
+			PrintState();
 		if (state == BallStatus.FINISHED)
 		{
 			if (verbose) System.out.printf("Reset to continue\n");
 			return;
 		}
-
-		PrintState();
-		if (state == BallStatus.RESET) //reset everything
-		{
-			num_balls = 0;
-			bounce_index = 0;
-			bounces.clear();
-			for (int i=0; i<num_bounces; i++)
-			{
-				Parabola emptyBounce = new Parabola();
-				bounces.add(emptyBounce);
-			}
-			balls.clear();
-			state = BallStatus.WAIT;
-		}
+		if(display)
+			PrintState();
 
 		double[] xyzt = new double[4];
 		xyzt[0] = in_ball.x;
@@ -533,8 +653,8 @@ public class Projectile extends VisEventAdapter
 		//add a ball
 		balls.add(xyzt);
 		num_balls++;
-
-		PrintState();
+		if(display)
+			PrintState();
 		if (balls.size() >= 3 && state == BallStatus.WAIT) //wait for 3 balls
 		{	
 			state = BallStatus.RELEASED;
@@ -542,8 +662,8 @@ public class Projectile extends VisEventAdapter
 			bounces.get(0).starttime = balls.get(0)[3];
 			bounces.get(0).balls_in_parab = 3;
 		}
-
-		PrintState();
+		if(display)
+			PrintState();
 		if (state == BallStatus.RELEASED)
 		{
 			if (num_balls >= 4)
@@ -553,8 +673,8 @@ public class Projectile extends VisEventAdapter
 
 			CalculateParabola();
 		}
-
-		DrawBalls();
+		if(display)
+			DrawBalls();
 	}
 
 	public void PrintState()
@@ -569,22 +689,45 @@ public class Projectile extends VisEventAdapter
 			statestring = "RELEASED";
 		else if (state == BallStatus.FINISHED)
 			statestring = "FINISHED";
-		else if (state == BallStatus.RESET)
-			statestring = "RESET";
 		else
 			statestring = "UNKNOWN";
-
+		
 		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.BOTTOM_LEFT, new VzText(VzText.ANCHOR.BOTTOM_LEFT, 
 			"<<sansserif-bold-16,white>>" + statestring)));
 		
 		vb.swap();
+	}
+	
+	//prints point coords when user clicks
+	public boolean mouseReleased(VisCanvas vc, VisLayer vl,
+			VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e) {	
+		double temp[] = ray.intersectPlaneXY();
+		System.out.println("click@ (" + temp[0] + ", " + temp[1] + ", " + temp[2] + ")");
+
+		return true;
 	}
 
 	public ArrayList<Parabola> getParabolas()
 	{
 		return bounces;
 	}
-
+	public void reset() {
+		if (display) {
+			DrawEnvironment("Environment");
+			VisWorld.Buffer vb = vw.getBuffer("Environment");
+			vb.swap();
+		}
+		num_balls = 0;
+		bounce_index = 0;
+		bounces.clear();
+		for (int i=0; i<num_bounces; i++)
+		{
+			Parabola emptyBounce = new Parabola();
+			bounces.add(emptyBounce);
+		}
+		balls.clear();
+		state = BallStatus.WAIT;
+	}
 	public static void main(String[] args) throws Exception
 	{
 		Projectile p = new Projectile();

@@ -68,7 +68,7 @@ public class CalibrateCam
 		window.setVisible(true);
 		KinectVideo cameraFeed;
 		if (rgb) {
-			rgbFeed = new KinectRGBVideo(kinect, true);
+			rgbFeed = new KinectRGBVideo(kinect, null, true);
 			// depthFeed = new KinectDepthVideo(kinect, true);
 			// depthFeed.addMouseListener(depthPrinter);
 			// windowD = new JFrame("depth");
@@ -80,7 +80,7 @@ public class CalibrateCam
 			cameraFeed = rgbFeed;
 		}
 		else {
-			depthFeed = new KinectDepthVideo(kinect, true);
+			depthFeed = new KinectDepthVideo(kinect, null, true);
 			cameraFeed = depthFeed;
 		}
 		// cameraFeed.addMouseListener(calibrater);

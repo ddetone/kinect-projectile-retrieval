@@ -17,25 +17,30 @@ import finallab.lcmtypes.*;
 public class CatchController implements LCMSubscriber
 {
 	Projectile predictor;
-	KinectView viewer;
+	BallDetector viewer;
 	boolean display = true;
+	boolean started = false;
 
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
-	final double BOT_DIST_FROM_KINECT_X = 0.0;
-	final double BOT_DIST_FROM_KINECT_Y = 1.13;
-	final double KINECT_HEIGHT = 1.1;
+	final double BOT_DIST_FROM_KINECT_X = -0.91;
+	final double BOT_DIST_FROM_KINECT_Y = 0.91;
+	final double KINECT_HEIGHT = 0.79;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	LCM  lcm;
 	//LCM recieve;
+	
+	Object ballLock;
 
 	CatchController(boolean _display, boolean logs)
 	{
-		predictor = new Projectile();
+		
 		display = _display;
+		predictor = new Projectile(_display);
+		ballLock = new Object();
 		if(!logs)
 		{
-			viewer = new KinectView(predictor, _display);
+			viewer = new BallDetector(true);
 			viewer.start();
 		}
 		try{
@@ -44,9 +49,15 @@ public class CatchController implements LCMSubscriber
 		catch(IOException e){
 			lcm = LCM.getSingleton();
 		}
+		
+
 		//recieve = LCM.getSingleton();
 		//receive = lcm;
 		lcm.subscribe("6_BALL", this);	
+		lcm.subscribe("6_RESET", this);
+		if (display) {
+			lcm.subscribe("6_WAYPOINT", this);
+		}
 	}
 
 	public Point3D convertToPointRobotNonMat(double[] point)
@@ -72,11 +83,12 @@ public class CatchController implements LCMSubscriber
 		for(Parabola bounce: bounces)
 		{
 			double [] point = bounce.pred_landing;
-			//System.out.println("Ponits x y z :" + point[0] + " " + point[1] + " " + point[2]);
+			System.out.println("Points x y z :" + point[0] + " " + point[1] + " " + point[2]);
 			long timeToMove = 0;
 			//convert from points of kinect to points in front of robot
 			Point3D landing = convertToPointRobotNonMat(point);
-			return landing;
+			if(i == 1)
+				return landing;
 			/*double angle = Math.atan2(landing.y,landing.x);
 			//if rotation is required then add to time .2 is scale factor for turning .2 sec per radian
 			if(Math.abs(angle) > Math.PI/6)
@@ -87,8 +99,8 @@ public class CatchController implements LCMSubscriber
 			long destinationTime = System.nanoTime();
 			destinationTime += (long)(timeToMove)*1000000000;
 			if(destinationTime < (long)(point[3]))
-				return i; 
-			i++;*/
+				return i; */
+			i++;
 		}
 		return null;
 	}
@@ -103,10 +115,14 @@ public class CatchController implements LCMSubscriber
 		int nextState = 0;
 		ball_t ball;
 		Point3D newWayPoint = new Point3D(0.0,0.0,0.0);
+		System.out.println("waiting for landing point");
 		do {
+			
 			bounces = predictor.getParabolas();
 		}
-		while(!bounces.get(0).valid);
+		
+		while(bounces == null || bounces.size() == 0 || !bounces.get(0).valid);
+		System.out.println("done waiting for bounces");
 		double[][] startingBounces = new double[2][bounces.size()];
 		for(int i = 0; i < bounces.size(); i++)
 		{
@@ -135,30 +151,35 @@ public class CatchController implements LCMSubscriber
 					}
 					if(land.x != newWayPoint.x || land.y != newWayPoint.y || land.z != newWayPoint.z)
 					{
+						//bot takes waypoints looking down positive x
 						xyt_t spot = new xyt_t();
 						spot.utime = TimeUtil.utime();
-						spot.xyt[0] = land.x;
-						spot.xyt[1] = land.y;
-						spot.xyt[2] = land.z;
-						newWayPoint = land;
+						spot.xyt[0] = land.y;
+						spot.xyt[1] = -land.x;
+						spot.xyt[2] = 0d;
+						newWayPoint = land.clone();
 						// go to point at bounce index
 						lcm.publish("6_WAYPOINT",spot);
-						System.out.println("LX:" + land.x + "LY:" + land.y);
-					
-						predictor.DrawBallsWithRobot(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
+						System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
 						
-						for(int i = 0; i < bounces.size(); i++)
-						{
-							double[] endPoint = bounces.get(i).pred_landing;
-							double xDiff = startingBounces[0][i] -endPoint[0], yDiff = startingBounces[1][i] - endPoint[i];
-							System.out.println("Difference From Starting in Bounce " + i + " x: " +xDiff+ " y: " +yDiff);
+						if (display)
+							predictor.DrawBallsWithRobot(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
+						
+//						for(int i = 0; i < bounces.size(); i++)
+//						{
+//							double[] endPoint = bounces.get(i).pred_landing;
+//							double xDiff = startingBounces[0][i] -endPoint[0], yDiff = startingBounces[1][i] - endPoint[i];
+//							System.out.println("Difference From Starting in Bounce " + i + " x: " +xDiff+ " y: " +yDiff);
 															
-						}
-					}	
+//						}
+					}
+					else {
+						System.out.println("waypoints are the same");
+					}
 					//to continuously send waypoints of updated position of bounce index 0
-					nextState = 0;
+					 nextState = 0;
 					//to send the waypoint once when first calculated
-					//nextState = 1;
+//					nextState = 1;
 				break;
 				
 				//retrieve state
@@ -191,6 +212,14 @@ public class CatchController implements LCMSubscriber
 
 			}
 			state = nextState;
+			System.out.println("waiting for ball");
+			synchronized(ballLock) {
+				try {
+					ballLock.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -226,27 +255,68 @@ public class CatchController implements LCMSubscriber
 	{
 		
 		boolean logs = false;
+		boolean display = true;
 		for(int i = 0; i < args.length; i++)
 		{
 			if(args[i].equals("log"))
 				logs = true;
+			if(args[i].equals("speed"))
+				display = false;
+			if(args[i].equals("DEMO"))
+			{
+				@SuppressWarnings("unused")
+				CatchController demo = new CatchController(true, true);
+				while(true);
+			}
 		}
-		CatchController cc = new CatchController(true, logs);
+		CatchController cc = new CatchController(display, logs);
 		cc.catchStateMachine();
 	}
 
 	@Override
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins) {
 		if (channel.equals("6_BALL")) {
-			System.out.println("Got Ball");
+			System.out.println("got ball from detector (" + System.currentTimeMillis() + ")");
 			ball_t ball = null;
 			try {
 				ball = new ball_t(dins);
-				ball.y += KINECT_HEIGHT;
+//				ball.y += KINECT_HEIGHT;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			if(!started)
+			{
+				started = true;
+				xyt_t spot = new xyt_t();
+				spot.utime = TimeUtil.utime();
+				spot.xyt[0] = .5d;
+				spot.xyt[1] = 0.0d;
+				spot.xyt[2] = 0.0d;
+				// go forward to save time
+				lcm.publish("6_WAYPOINT",spot);
+			}
 			predictor.update(ball);
+			synchronized (ballLock) {
+				ballLock.notify();
+			}
+		}
+		else if (channel.equals("6_RESET")) {
+			predictor.reset();
+			xyt_t home = new xyt_t();
+			home.utime = TimeUtil.utime();
+			home.xyt[0] = 0.0d;
+			home.xyt[1] = 0.0d;
+			home.xyt[2] = 0.0d;
+			// go home
+			lcm.publish("6_WAYPOINT",home);
+		}
+		else if (channel.equals("6_WAYPOINT")) {
+			try {
+				xyt_t point = new xyt_t(dins);
+				predictor.DrawBallsWithRobot(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		
 	}

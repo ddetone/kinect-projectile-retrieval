@@ -17,28 +17,36 @@ public class KinectDepthVideo extends KinectVideo {
 	//from JPanel
 	private static final long serialVersionUID = 2;	
 	
-	public volatile boolean newImage = false;
+	public Object gotImage;
 
 	public static int MAX_FRAMES = 100;
 	public static int THRESH = 50;
 
 	private double [] depthAvgs;
 	private short [] validPixels;
+	private int [] switchCount;
 	private int numFrames;
+	public Point botLoc;
+
+	public ArrayList<Statistics> trajectory;
 
 	private volatile boolean showAll = true;
 	
-	public KinectDepthVideo(Device kinect, boolean _display) {
-		super(kinect, _display);	
-
+	public KinectDepthVideo(Device kinect, Object _imgMonitor, boolean _display) {
+		super(kinect, _imgMonitor, _display);	
+		gotImage = new Object();
 		numFrames = 0;
 		depthAvgs = new double[WIDTH*HEIGHT];
 		validPixels = new short[WIDTH*HEIGHT];
+		trajectory = new ArrayList<Statistics>();
+		switchCount = new int[WIDTH*HEIGHT];
 		for (int i = 0; i < WIDTH*HEIGHT; i++) {
-			depthAvgs[i] = 0;
+//			depthAvgs[i] = 0;
 			validPixels[i] = -1;
+			switchCount[i] = 0;
 			depthAvgs[i] = 2047.0;
 		}
+		
 
 		f = 585.124;
 
@@ -82,14 +90,29 @@ public class KinectDepthVideo extends KinectVideo {
 						//background subtraction
 						validPixels[i] = -1;
 						boolean valid = false;
-						if(depth < 1050)
+						if(depth != 2047)
 						{
+							if (depthAvgs[i] == 2047) {
+								depthAvgs[i] = depth;
+							}
 							if (/*depth<1000 &&*/ (depthAvgs[i] - (double)depth) > THRESH) {
 								valid = true;
-								validPixels[i] = (short)depth;			
+								validPixels[i] = (short)depth;		
+								switchCount[i]++;	
 							}
 							//double depthFactor = (((depthAvgs[i] * (1.0-pg.gd("learning")) * (double)numFrames) + (pg.gd("learning")*(double)depth)) / (double)(numFrames + 1));
 							depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depth) / (double)(numFrames + 1));
+						}
+//						if (botLoc != null) {
+//							if (i == WIDTH*botLoc.y + botLoc.x) {
+//								Point estimatedPicPoint = new Point(botLoc.x-C_X,C_Y-botLoc.y);
+//								Point3D estimate = getWorldCoords(estimatedPicPoint,raw_depth_to_meters(depth));
+//								System.out.println("x: "+ estimate.x +" y: "+ estimate.y +" z: " + estimate.z);
+//								System.out.println("botLoc depth: " + depth + ", avg: " + depthAvgs[i]);
+//							}
+//						}
+						else {
+							depthAvgs[i] = (((depthAvgs[i] * (double)numFrames) + (double)depthAvgs[i]) / (double)(numFrames + 1));
 						}
 
 
@@ -171,10 +194,26 @@ public class KinectDepthVideo extends KinectVideo {
 					//set position to 0 because ByteBuffer is reused to access byte array of new frame
 					//and get() below increments the iterator
 					depthBuf.position(0);
-					newImage = true;
+					synchronized(imgMonitor) {
+						imgMonitor.notify();
+					}
 					numFrames = (numFrames + 1) % MAX_FRAMES;
 					if (display) {
 						frame.setRGB(0, 0, WIDTH, HEIGHT, pixelInts, 0, WIDTH);
+
+						for (Statistics ballpoints : trajectory) {
+							Point depthPix = ballpoints.center();
+							for (int y = depthPix.y - 3; y < depthPix.y + 3; y++) {
+								for (int x = depthPix.x - 3; x < depthPix.x + 3; x++) {
+									try {
+										frame.setRGB(x, y, 0xFFFFFFFF);
+									} catch (Exception e) {
+										// System.out.println(x + " " + y);
+									};
+								}
+							}
+						}
+
 						repaint();		
 					}
 				}
@@ -235,6 +274,13 @@ public class KinectDepthVideo extends KinectVideo {
 
 	public short [] getValidImageArray() {
 		return validPixels;
+	}
+	public void resetSwitches() {
+		for (int i = 0; i < WIDTH*HEIGHT; i++) {
+			// depthAvgs[i] = 0;
+			// validPixels[i] = -1;
+			switchCount[i] = 0;
+		}
 	}
 	public float raw_depth_to_meters(int raw_depth)
 	{

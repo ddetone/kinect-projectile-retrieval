@@ -44,10 +44,15 @@ public class PathFollower implements LCMSubscriber
 	static boolean waypoint = false;
 	*/
 
-	static double[] cXYT = new double[3];
+	//static double[] cXYT = new double[3];
 	volatile static double[] dXYT = new double[3];
 	volatile static boolean dFast = true;
 	volatile static boolean newWaypoint = false;
+
+	//volatile static boolean isFollow = false;
+	//volatile static boolean stop = false;
+	volatile static double[] cXYT = new double[3];
+
 
 	static double angleToDest;
 	static double errorDist, errorAngle;
@@ -334,7 +339,54 @@ public class PathFollower implements LCMSubscriber
 		//stop = false;
 		return;
 	}
+	/*
+	void follow()
+	{
+		if (isFollow) //if a waypoint is received
+		{
+			
+			calcErrors();
+			
+			if (errorDist < DEST_DIST)
+			{
+				isFollow = false;
+				if(verbose)System.out.println("STOP...reached waypoint\n");						
+				stop = true;
+			}
+			else if ((prev_errorDist+0.005) < errorDist)
+			{
+				isFollow = false;
+				if(verbose)System.out.println("STOP...prev_errorDist < errorDist\n");
+				if(verbose)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);						
+				stop = true;	
+			}
+			else if (Math.abs(errorAngle) > Math.abs(STRAIGHT_ANGLE))
+			{
+				if(verbose)System.out.printf("Turning...\n");
+				turnRobot();
+			}
+			else if (errorDist < SLOW_DIST)
+			{
+				if(verbose)System.out.println("Drive slow homie\n");					
+				moveRobotStraight(SLOW_SPEED);
+			}
+			else	
+			{
+				if(verbose)System.out.println("Drive fast\n");
+				moveRobotStraight(FAST_SPEED);
+			}
 
+			if(verbose)System.out.println("errorAngle:" +
+				Math.toDegrees(errorAngle) + " errorDist:" + errorDist);
+
+			prev_errorDist = errorDist;
+
+			if (stop)
+				stop();
+			
+		}
+	}
+*/
 	public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
 	{
 		try
@@ -403,15 +455,16 @@ public class PathFollower implements LCMSubscriber
 				*/
 
 			}
+
 			else if(channel.equals("6_WAYPOINT"))
 			{
-				System.out.printf("\nWaypoint RECIEVED\n");
-				if (time)System.out.printf("%d\n",System.currentTimeMillis());
-
+//				System.out.printf("Waypoint RECIEVED\n");
+				System.out.println("moving to waypoint (" + System.currentTimeMillis() + ")");
 				xyt_t dest = new xyt_t(dins);
 
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
+
 				dXYT[2] = dest.xyt[2];
 				dFast = dest.goFast;
 
@@ -421,6 +474,13 @@ public class PathFollower implements LCMSubscriber
 				//drive_straight = false;
 				//dest_rotate = false;
 				//isFollow = true;
+
+				//isFollow = true;
+				//follow();
+			}
+			else if (channel.equals("6_PARAMS")) {
+				xyt_t params = new xyt_t(dins);
+				sPIDAngle.changeParams(params.xyt);
 			}
 		}
 		catch (IOException e)
