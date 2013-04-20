@@ -16,12 +16,12 @@ public class PathStateMachine
 	boolean verbose = true;
 	boolean verbose2 = false;
 	int printcount = 0;
+	Object poseMonitor;
 
-	PathStateMachine() {}
-
-	public void addParent(PathFollower _parent)
+	PathStateMachine(PathFollower _parent, Object _poseMonitor)
 	{
-		p = _parent;		
+		p = _parent;
+		poseMonitor = _poseMonitor;
 	}
 
 	public void stateMachine()
@@ -156,6 +156,14 @@ public class PathStateMachine
 		prevState = state;
 		state = nextState;
 
+		synchronized(poseMonitor) {
+			try {
+				poseMonitor.wait();
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
 		/*
 		try {
 			Thread.sleep(10);

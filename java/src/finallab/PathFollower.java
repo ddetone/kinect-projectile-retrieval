@@ -91,7 +91,7 @@ public class PathFollower implements LCMSubscriber
 	static final double TD_PID = 38000.0;	
 
 	static final double HK_PID = 0.05;
-	static final double HI_PID = 0.2;
+	static final double HI_PID = 0.0;
 	static final double HD_PID = 30000.0;	
 	//double Kp_turn = 0.7;
 	//double Kp = 1;
@@ -111,7 +111,9 @@ public class PathFollower implements LCMSubscriber
 	PidController tPIDAngle = new PidController(tPID[0], tPID[1], tPID[2]);
 	PidController hPIDAngle = new PidController(hPID[0], hPID[1], hPID[2]);
 
-	PathFollower(PathStateMachine _psm, boolean _gs)
+	Object poseMonitor;
+
+	PathFollower(boolean _gs)
 	{
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
@@ -189,7 +191,9 @@ public class PathFollower implements LCMSubscriber
 			jf.setVisible(true);
 		}
 
-		psm = _psm;
+		poseMonitor = new Object();
+
+		psm = new PathStateMachine(this);
 
 		lcm.subscribe("6_POSE",this);
 		lcm.subscribe("6_WAYPOINT",this);
@@ -220,7 +224,7 @@ public class PathFollower implements LCMSubscriber
 
 	double calcAngleToWaypointTheta()
 	{
-		double angle = dXYT[2] - cXYT[2];
+		double angle = cXYT[2] - dXYT[2];
 		while(angle > Math.PI)angle -= 2 * Math.PI;
 		while(angle < -Math.PI)angle += 2 * Math.PI;	
 		return angle;
@@ -387,7 +391,7 @@ public class PathFollower implements LCMSubscriber
 		}
 	}
 */
-	public synchronized void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
+	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
 	{
 		try
 		{
@@ -398,7 +402,9 @@ public class PathFollower implements LCMSubscriber
 				cXYT[1] = bot_status.xyt[1];
 				cXYT[2] = bot_status.xyt[2];
 
-				psm.stateMachine();
+				synchronized(poseMonitor) {
+					poseMonitor.notify();
+				}
 
 				/*
 				if (isFollow) //if a waypoint is recieved
@@ -521,10 +527,17 @@ public class PathFollower implements LCMSubscriber
 		*/
 
 		boolean gs = true;
-		PathStateMachine psm = new PathStateMachine();
-		PathFollower pl = new PathFollower(psm, gs);
-		psm.addParent(pl);
+		PathFollower pl = new PathFollower(gs);
 
-		while(true){}
+		Object lcmMonitor = new Object();
+
+		synchronized(lcmMonitor) {
+				try {
+					lcmMonitor.wait();
+				}
+				catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
 	}
 }
