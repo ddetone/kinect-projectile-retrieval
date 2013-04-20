@@ -94,7 +94,7 @@ public class PathFollower implements LCMSubscriber
 	PidController tPIDAngle = new PidController(tPID[0], tPID[1], tPID[2]);
 	PidController hPIDAngle = new PidController(hPID[0], hPID[1], hPID[2]);
 
-	PathFollower(boolean _gs)
+	PathFollower(boolean gs)
 	{
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
@@ -107,7 +107,7 @@ public class PathFollower implements LCMSubscriber
 		errorAngle = 0;
 		prev_errorDist = 9999;
 
-		if (_gs == true)
+		if (gs == true)
 		{
 			pg = new ParameterGUI();
 			//pg.addDoubleSlider("turnRate", "Turn Rate", 0d, 1d, 0.573d);
@@ -222,7 +222,7 @@ public class PathFollower implements LCMSubscriber
 		double left = speed - pid;	
 
 		if(verbose)printError();
-		
+
 		setMotorCommand(left, right);
 	}
 
@@ -484,13 +484,14 @@ public class PathFollower implements LCMSubscriber
 			{
 //				System.out.printf("Waypoint RECIEVED\n");
 
-				System.out.println("moving to waypoint (" + System.currentTimeMillis() + ")");
 				xyt_t dest = new xyt_t(dins);
+				System.out.println("moving to waypoint (" + dest.xyt[0] + ", "  + dest.xyt[1] + ") (" + System.currentTimeMillis() + ")");
 
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
 				dXYT[2] = dest.xyt[2];
 				dFast = dest.goFast;
+				//dFast = true;
 				//newWaypoint = true;
 
 				/*
@@ -514,16 +515,16 @@ public class PathFollower implements LCMSubscriber
 
 	public static void main(String[] args) throws Exception
 	{
-		//boolean gs = false;
-		/*
+		
+		boolean gs = false;
 		for(int i = 0; i < args.length; i++)
 		{
 			if(args[i].equals("gs"))
 				gs = true;
 		}
-		*/
+		
 
-		boolean gs = true;
+		//boolean gs = true;
 		PathFollower pl = new PathFollower(gs);
 
 		/*
