@@ -83,8 +83,7 @@ public class BallDetector extends Thread
 		controlFrame.setLayout(new GridLayout(4,1));
 		controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		pg = new ParameterGUI();
-		pg.addDoubleSlider("x_param","x_param",0d,1d,1d);
-		pg.addIntSlider("y_param","y_param",1,500,100);
+		pg.addIntSlider("maxDepth", "max depth", 800, 2047, 1050);
 		pg.addIntSlider("blobThresh", "blob thresh", 1, 500, 125);
 		pg.addIntSlider("thresh", "thresh", 1, 100, 10);
 		pg.addIntSlider("frames", "frames", 1, 1000, 1);
@@ -95,6 +94,9 @@ public class BallDetector extends Thread
 				}
 				else if (name.equals("frames")) {
 					KinectDepthVideo.MAX_FRAMES = _pg.gi(name);
+				}
+				else if (name.equals("maxDepth")) {
+					KinectDepthVideo.MAX_DEPTH = _pg.gi(name);
 				}
 			}
 		});
