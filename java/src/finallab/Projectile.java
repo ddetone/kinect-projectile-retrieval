@@ -21,6 +21,11 @@ import finallab.lcmtypes.*;
 public class Projectile extends VisEventAdapter
 {
 
+	/* VIS BUFFERS
+	 * parabolas and ball points 		   | "Predicted Balls"
+	 * start robot and end robot 		   | "Robots"
+	 * ground, kinect, table, landing zone | "Ground"
+	 */
 	public enum BallStatus {
 		WAIT, RELEASED, FINISHED
 	}
@@ -48,7 +53,7 @@ public class Projectile extends VisEventAdapter
 	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean verbose = false;
 	final boolean verbose2 = false;
-	final double KINECT_HEIGHT = 0.445;
+	final double KINECT_HEIGHT = 0.48; //.77
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;
@@ -482,10 +487,12 @@ public class Projectile extends VisEventAdapter
 				
 			pballLock.readLock().lock();
 			try {
-				if (i%2 == 0)
+				if (i%2 == 0) {
 					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
-				else
+				}
+				else {
 					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
+				}
 			}
 			finally {
 				pballLock.readLock().unlock();
@@ -507,95 +514,13 @@ public class Projectile extends VisEventAdapter
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
 				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
 		}
-
-		vb.addBack(new VzAxes());
-		DrawEnvironment("Predicted Balls");
 		vb.swap();
 
 	}
 
-	public void DrawBallsWithRobot(Point3D robotLoc, double[] xyzt)
+	public void DrawRobot(Point3D robotLoc, double[] xyzt)
 	{
-
-		VisWorld.Buffer vb = vw.getBuffer("Predicted Balls");
-		double[] shift = new double[3];
-
-		for (int i=0; i<balls.size(); i++)
-		{
-			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
-			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[1],balls.get(i)[2]),ball));			
-		}
-
-
-		for (int i=0; i<num_bounces; i++)
-		{
-
-			double land_time = bounces.get(i).land_time;
-			//double starttime = bounces.get(i).starttime;
-			double[] x = bounces.get(i).parabola;
-
-			for (int j=0; j<20; j++)
-			{
-				double[] pred = new double[3];
-				double dt = (land_time/20)*j;
-				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
-				pred[1] = x[2] + (x[3] * dt);
-				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 	
-				pballLock.writeLock().lock();
-				try {
-					pballs.add(pred);	
-				}
-				finally {
-					pballLock.writeLock().unlock();
-				}
-			} 
-			
-			pballLock.readLock().lock();
-			try {
-				if (i%2 == 0)
-					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
-				else
-					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
-			}
-			finally {
-				pballLock.readLock().unlock();
-			}
-
-
-		}
-
-		
-
-		/*
-		for (int i=0; i<pballs.size(); i++)
-		{
-			VzSphere pball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
-			vb.addBack(new VisChain(LinAlg.translate(pballs.get(i)[0],pballs.get(i)[1],pballs.get(i)[2]),pball));			
-		}*/
-
-		pballLock.writeLock().lock();
-		try {
-			pballs.clear();	
-		}
-		finally {
-			pballLock.writeLock().unlock();
-		}
-
-		for (int i=0; i<num_bounces; i++)
-		{
-			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.cyan));
-			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
-				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
-			//TODO: fix the size of these
-			DecimalFormat twoPlaces = new DecimalFormat("0.00");
-			VzText coord = new VzText("<<sansserif-bold-12,blue>>(" + twoPlaces.format(bounces.get(i).pred_landing[0]) + ", " +  
-					twoPlaces.format(bounces.get(i).pred_landing[1]) + ")");
-			VisChain coordScaled = new VisChain(LinAlg.scale(.005, .005, 1), coord);
-//			vb.addBack(coord);
-			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
-					bounces.get(i).pred_landing[1], 0.05), 
-					coordScaled));
-		}
+		VisWorld.Buffer vb = vw.getBuffer("Robots");
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));
 		VzBox endBase = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.red));
@@ -621,13 +546,12 @@ public class Projectile extends VisEventAdapter
 
 		//vb.addBack(new VzAxes());
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
+		System.out.println("adding robots");
 		vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),startPandaBot));
 
 		VisChain path = new VisChain(LinAlg.translate(-xyzt[1],xyzt[0]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);//new VzBox(xyzt[0], .1, .1));
 		vb.addBack(path);
 
-		vb.addBack(new VzAxes());
-		DrawEnvironment("Predicted Balls");
 		vb.swap();
 
 	}
@@ -718,9 +642,10 @@ public class Projectile extends VisEventAdapter
 	}
 	public void reset() {
 		if (display) {
-			DrawEnvironment("Environment");
-			VisWorld.Buffer vb = vw.getBuffer("Environment");
-			vb.swap();
+			VisWorld.Buffer vbBalls = vw.getBuffer("Predicted Balls");
+			vbBalls.swap();
+			VisWorld.Buffer vbRobot = vw.getBuffer("Robots");
+			vbRobot.swap();
 		}
 		num_balls = 0;
 		bounce_index = 0;
