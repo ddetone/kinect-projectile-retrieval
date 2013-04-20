@@ -296,7 +296,7 @@ public class CatchController implements LCMSubscriber
 				started = true;
 				xyt_t spot = new xyt_t();
 				spot.utime = TimeUtil.utime();
-				spot.xyt[0] = .5d;
+				spot.xyt[0] = 1d;
 				spot.xyt[1] = 0.0d;
 				spot.xyt[2] = 0.0d;
 				spot.goFast = true;
@@ -317,6 +317,7 @@ public class CatchController implements LCMSubscriber
 			home.xyt[2] = 0.0d;
 			// go home
 			lcm.publish("6_WAYPOINT",home);
+			started = false;
 		}
 		else if (channel.equals("6_WAYPOINT")) {
 			try {

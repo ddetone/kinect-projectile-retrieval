@@ -48,7 +48,7 @@ public class Projectile extends VisEventAdapter
 	final double g = 9.806; 				//g in meters/second squared
 	final double ball_radius = 0.03; 		//must be in meters
 	final double DEFAULT_ERROR_THRESH = 0.05;
-	final double bounce_factor = 0.75; 		//% bounce is retained
+	double bounce_factor = 0.75; 		//% bounce is retained
 	final int num_bounces = 3;
 	final int num_regression = 20; //the max number of recent balls used in regression
 	final boolean DEFAULT_RESET = false;	//used in debugging
@@ -78,6 +78,7 @@ public class Projectile extends VisEventAdapter
 		pg = new ParameterGUI();
 		pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
 		pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
+		pg.addDoubleSlider("bounce", "bounce factor", .1, .9, .5);
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
 			{
@@ -85,6 +86,9 @@ public class Projectile extends VisEventAdapter
 				{
 					if(pg.gb("Reset"))
 						reset();
+				}
+				else if (name.equals("bounce")) {
+					bounce_factor = pg.gd(name);
 				}
 			}
 		});
@@ -129,6 +133,7 @@ public class Projectile extends VisEventAdapter
 
 	}
 
+	//TODO: wait for 5-8 balls before sending waypoints after bounce
 	Projectile(boolean _display)
 	{
 		if(_display)
@@ -143,6 +148,7 @@ public class Projectile extends VisEventAdapter
 			scoreBoard = new Scoreboard(false, jf,vw,vl,vc);
 			pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
 			pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
+			pg.addDoubleSlider("bounce", "bounce factor", .1, .9, .5);
 			pg.addListener(new ParameterListener() {
 				public void parameterChanged(ParameterGUI pg, String name)
 				{
@@ -151,6 +157,9 @@ public class Projectile extends VisEventAdapter
 						if(pg.gb("Reset"))
 							reset();
 					}
+					else if (name.equals("bounce")) {
+					bounce_factor = pg.gd(name);
+				}
 				}
 			});
 	
