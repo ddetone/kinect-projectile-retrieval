@@ -317,6 +317,7 @@ public class CatchController implements LCMSubscriber
 			home.xyt[2] = 0.0d;
 			// go home
 			lcm.publish("6_WAYPOINT",home);
+			predictor.robotTraj.clear();
 		}
 		else if (channel.equals("6_WAYPOINT")) {
 			try {
