@@ -147,7 +147,7 @@ public class BallDetector extends Thread
 		controlFrame.add(resetDepth, 3, 0);
 		JPanel scoreButtons = new JPanel(new GridLayout(1,3));
 		JButton addHuman = new JButton("human++");
-		resetDepth.addActionListener(new ActionListener() {
+		addHuman.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					lcm.publish("6_SCORE_HUMAN", "bish");
@@ -158,7 +158,7 @@ public class BallDetector extends Thread
 			}
 		});
 		JButton addRobot = new JButton("robot++");
-		resetDepth.addActionListener(new ActionListener() {
+		addRobot.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					lcm.publish("6_SCORE_ROBOT", "bish");
@@ -169,7 +169,7 @@ public class BallDetector extends Thread
 			}
 		});
 		JButton resetScores = new JButton("reset scores");
-		resetDepth.addActionListener(new ActionListener() {
+		resetScores.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					lcm.publish("6_SCORE_RESET", "bish");
