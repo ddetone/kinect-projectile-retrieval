@@ -59,11 +59,11 @@ public class PathFollower implements LCMSubscriber
 	static double voltageOffset = DEFAULT_VOLTAGEOFFSET;
 
 	static final double MAX_SPEED = 1.0f;
-	static final double FAST_SPEED = 0.95f;
+	static final double FAST_SPEED = 1.0f;
 	static final double MED_SPEED = 0.3f;
 	static final double SLOW_SPEED = 0.3f;
 	static final double MAX_TURNSPEED = 0.6;
-	static final double FAST_STRAIGHT_ANGLE = Math.toRadians(30);
+	static final double FAST_STRAIGHT_ANGLE = Math.toRadians(40);
 	static final double SLOW_STRAIGHT_ANGLE = Math.toRadians(2);
 
 	static final double MEDDEST_DIST = 0.08;
@@ -313,7 +313,12 @@ public class PathFollower implements LCMSubscriber
 						if(verbose)System.out.printf("ErrorDist > LEAVE_DIST\n");
 
 						if (dFast == true)
-							nextState = State.ROTATE_FAST;
+						{
+							if (Math.abs(errorAngle) < Math.abs(FAST_STRAIGHT_ANGLE))
+								nextState = State.GO_FAST;
+							else
+								nextState = State.ROTATE_FAST;
+						}
 						else
 							nextState = State.ROTATE_SLOW;
 					}
@@ -400,12 +405,19 @@ public class PathFollower implements LCMSubscriber
 					nextState = State.STOP;
 					break;
 				}
+				if (errorDist < MEDDEST_DIST)
+				{
+					if(verbose)System.out.printf("Reached FASTDEST_DIST\n");
+					nextState = State.STOP;
+					break;
+				}
+				/*
 				if (errorDist < SLOW_DOWN_DIST)
 				{
 					if(verbose)System.out.printf("Slowing Down\n");
 					nextState = State.GO_MED;
 					break;							
-				}
+				}*/
 				moveRobotStraight(FAST_SPEED);
 				break;
 		}
