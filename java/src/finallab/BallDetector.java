@@ -80,7 +80,7 @@ public class BallDetector extends Thread
 		display = _display;
 		
 		controlFrame = new JFrame("Controls");
-		controlFrame.setLayout(new GridLayout(4,1));
+		controlFrame.setLayout(new GridLayout(5,1));
 		controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		pg = new ParameterGUI();
 		pg.addIntSlider("maxDepth", "max depth", 800, 2047, 1050);
@@ -145,6 +145,44 @@ public class BallDetector extends Thread
 			}
 		});
 		controlFrame.add(resetDepth, 3, 0);
+		JPanel scoreButtons = new JPanel(new GridLayout(1,3));
+		JButton addHuman = new JButton("human++");
+		addHuman.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					lcm.publish("6_SCORE_HUMAN", "bish");
+				}
+				catch(IOException ex) {
+					System.out.println("can't publish score");
+				}
+			}
+		});
+		JButton addRobot = new JButton("robot++");
+		addRobot.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					lcm.publish("6_SCORE_ROBOT", "bish");
+				}
+				catch(IOException ex) {
+					System.out.println("can't publish score");
+				}
+			}
+		});
+		JButton resetScores = new JButton("reset scores");
+		resetScores.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					lcm.publish("6_SCORE_RESET", "bish");
+				}
+				catch(IOException ex) {
+					System.out.println("can't publish score");
+				}
+			}
+		});
+		scoreButtons.add(addHuman, 0, 0);
+		scoreButtons.add(addRobot, 0, 1);
+		scoreButtons.add(resetScores, 0, 2);
+		controlFrame.add(scoreButtons, 4, 0);
 		controlFrame.setSize(800, 600);
 		controlFrame.setVisible(true);
 

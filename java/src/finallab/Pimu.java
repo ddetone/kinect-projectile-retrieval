@@ -46,6 +46,8 @@ public class Pimu implements LCMSubscriber
 	public static double prev_time,time;
 	public static int num_calibs;
 
+	static final int NUMCALIBRATIONS = 100;
+
 	LCM lcm;
 	pimu_t gyros;
 	boolean calibrating;
@@ -120,7 +122,7 @@ public class Pimu implements LCMSubscriber
 					getSensorData();
 					System.out.printf("numcalibs:%d\n",num_calibs-1);
 					num_calibs++;
-					if (num_calibs == 52)  
+					if (num_calibs == NUMCALIBRATIONS+2)  
 					{
 						calibdone = true;
 						calibrating = false;
