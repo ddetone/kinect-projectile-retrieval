@@ -23,8 +23,8 @@ public class CatchController implements LCMSubscriber
 
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
-	final double BOT_DIST_FROM_KINECT_X = 0.0;
-	final double BOT_DIST_FROM_KINECT_Y = 1d;
+	final double BOT_DIST_FROM_KINECT_X = .92;
+	final double BOT_DIST_FROM_KINECT_Y = .61;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	LCM  lcm;
 	//LCM recieve;

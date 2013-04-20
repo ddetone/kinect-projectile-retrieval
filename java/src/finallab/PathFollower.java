@@ -35,6 +35,7 @@ public class PathFollower implements LCMSubscriber
 	LCM lcm;
 	bot_status_t bot_status;
 	Object poseMonitor;
+	Object waypointMonitor;
 	ParameterGUI pg;
 	JFrame jf;
 	//PathStateMachine psm;
@@ -172,6 +173,7 @@ public class PathFollower implements LCMSubscriber
 		}
 
 		poseMonitor = new Object();
+		waypointMonitor = new Object();
 
 		//psm = new PathStateMachine(this);
 
@@ -282,8 +284,6 @@ public class PathFollower implements LCMSubscriber
 
 	public void stateMachine()
 	{
-		if (anyWaypoint == null)
-			return;
 
 		if(verbose)printState();
 		switch(state)
@@ -466,8 +466,6 @@ public class PathFollower implements LCMSubscriber
 			else if(channel.equals("6_WAYPOINT"))
 			{
 //				System.out.printf("Waypoint RECIEVED\n");
-				if (anyWaypoint == null)
-					anyWaypoint = true;
 
 				System.out.println("moving to waypoint (" + System.currentTimeMillis() + ")");
 				xyt_t dest = new xyt_t(dins);
@@ -478,7 +476,9 @@ public class PathFollower implements LCMSubscriber
 				dXYT[2] = dest.xyt[2];
 				dFast = dest.goFast;
 
-				newWaypoint = true;
+				synchronized(waypointMonitor) {
+					waypointMonitor.notify();
+				}
 
 			}
 			else if (channel.equals("6_PARAMS")) {
@@ -506,6 +506,14 @@ public class PathFollower implements LCMSubscriber
 		boolean gs = true;
 		PathFollower pl = new PathFollower(gs);
 
+		synchronized(pl.waypointMonitor) {
+			try {
+				pl.waypointMonitor.wait();
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
 		while(true)
 		{
 			pl.stateMachine();
