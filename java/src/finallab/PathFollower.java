@@ -70,7 +70,7 @@ public class PathFollower implements LCMSubscriber
 	static final double SLOWDEST_DIST = 0.04; 
 	static final double LEAVE_DIST_BUFFER = 0.01;
 	static final double PREVDIST_BUFFER = 0.005f;
-	static final double SLOW_DOWN_DIST = 0.2f;
+	static final double SLOW_DOWN_DIST = 0.15f;
 	static final double LEAVE_DIST = MEDDEST_DIST + LEAVE_DIST_BUFFER;
 
 	static final double SK_PID = 0.36;
