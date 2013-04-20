@@ -63,14 +63,14 @@ public class PathFollower implements LCMSubscriber
 	static final double MED_SPEED = 0.3f;
 	static final double SLOW_SPEED = 0.3f;
 	static final double MAX_TURNSPEED = 0.6;
-	static final double FAST_STRAIGHT_ANGLE = Math.toRadians(13);
+	static final double FAST_STRAIGHT_ANGLE = Math.toRadians(30);
 	static final double SLOW_STRAIGHT_ANGLE = Math.toRadians(2);
 
 	static final double MEDDEST_DIST = 0.08;
 	static final double SLOWDEST_DIST = 0.04; 
 	static final double LEAVE_DIST_BUFFER = 0.01;
 	static final double PREVDIST_BUFFER = 0.005f;
-	static final double SLOW_DOWN_DIST = 0.4f;
+	static final double SLOW_DOWN_DIST = 0.2f;
 	static final double LEAVE_DIST = MEDDEST_DIST + LEAVE_DIST_BUFFER;
 
 	static final double SK_PID = 0.36;
@@ -224,16 +224,21 @@ public class PathFollower implements LCMSubscriber
 		setMotorCommand(left, right);
 	}
 
-	void turnRobot()
+	void turnRobot(boolean toAngle)
 	{
 
 		if(verbose)System.out.printf("Turning...\n");
 
 		double pid;
-		if (dFast)
-			pid = tPIDAngle.getOutput(errorAngle);
+		if (!toAngle)
+		{
+			if (dFast)
+				pid = tPIDAngle.getOutput(errorAngle);
+			else
+				pid = hPIDAngle.getOutput(errorAngle);
+		}
 		else
-			pid = hPIDAngle.getOutput(errorAngle);
+			pid = hPIDAngle.getOutput(calcAngleToWaypointTheta());
 
 
 		if (pid > 0)
@@ -296,6 +301,7 @@ public class PathFollower implements LCMSubscriber
 				{
 					if(verbose)System.out.printf("New Waypoint in StateMachine\n");
 					newWaypoint = false;
+					if(verbose)printError();
 
 					if (errorDist > LEAVE_DIST)
 					{
@@ -316,7 +322,7 @@ public class PathFollower implements LCMSubscriber
 					nextState = State.GO_SLOW;
 					break;
 				}
-				turnRobot();
+				turnRobot(false);
 				break;
 
 			case ROTATE_FAST:
@@ -326,7 +332,7 @@ public class PathFollower implements LCMSubscriber
 					nextState = State.GO_FAST;
 					break;
 				}
-				turnRobot();
+				turnRobot(false);
 				break;
 
 			case ROTATE_TO_ANGLE:
@@ -338,7 +344,7 @@ public class PathFollower implements LCMSubscriber
 					nextState = State.STOP;
 					break;
 				}
-				turnRobot();
+				turnRobot(true);
 				
 				/*try {
 					Thread.sleep(100);
@@ -416,6 +422,7 @@ public class PathFollower implements LCMSubscriber
 
 	public void printState()
 	{
+		
 		if (printcount++ > 40 && prevState != State.STOP)
 		{
 			printcount = 0;
@@ -472,14 +479,17 @@ public class PathFollower implements LCMSubscriber
 
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
-
 				dXYT[2] = dest.xyt[2];
 				dFast = dest.goFast;
+				newWaypoint = true;
 
+				/*
 				synchronized(waypointMonitor) {
 					waypointMonitor.notify();
 				}
 
+				System.out.printf("notified\n");
+				*/
 			}
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);
@@ -506,6 +516,7 @@ public class PathFollower implements LCMSubscriber
 		boolean gs = true;
 		PathFollower pl = new PathFollower(gs);
 
+		/*
 		synchronized(pl.waypointMonitor) {
 			try {
 				pl.waypointMonitor.wait();
@@ -514,6 +525,8 @@ public class PathFollower implements LCMSubscriber
 				e.printStackTrace();
 			}
 		}
+
+		System.out.printf("passed wait\n");*/
 		while(true)
 		{
 			pl.stateMachine();
