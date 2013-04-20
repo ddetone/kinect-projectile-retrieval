@@ -28,6 +28,8 @@ public class KinectDepthVideo extends KinectVideo {
 	private int [] switchCount;
 	private int numFrames;
 	public Point botLoc;
+	
+	public long latestTimestamp;
 
 	public ArrayList<Statistics> trajectory;
 
@@ -57,7 +59,8 @@ public class KinectDepthVideo extends KinectVideo {
 		
 			@Override
 			public void onFrameReceived(FrameMode fm, ByteBuffer depthBuf, int _timestamp) {
-
+				
+				latestTimestamp = System.nanoTime();
 				frameData = depthBuf;
 				timestamp = _timestamp;
 				int [] pixelInts = null;

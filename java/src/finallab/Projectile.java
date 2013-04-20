@@ -48,13 +48,13 @@ public class Projectile extends VisEventAdapter
 	final double g = 9.806; 				//g in meters/second squared
 	final double ball_radius = 0.03; 		//must be in meters
 	final double DEFAULT_ERROR_THRESH = 0.05;
-	double bounce_factor = 0.75; 		//% bounce is retained
+	double bounce_factor = 0.8; 		//% bounce is retained
 	final int num_bounces = 3;
 	final int num_regression = 20; //the max number of recent balls used in regression
 	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean verbose = false;
 	final boolean verbose2 = false;
-	final double KINECT_HEIGHT = 0.48; //.77
+	final double KINECT_HEIGHT = 0.46; //.77
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;
