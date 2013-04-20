@@ -35,6 +35,7 @@ public class Projectile extends VisEventAdapter
 	VisLayer vl;
 	VisCanvas vc;
 	ParameterGUI pg;
+	Scoreboard scoreBoard;
 
 	BallStatus state;
 	ArrayList<double[]> balls;
@@ -61,6 +62,11 @@ public class Projectile extends VisEventAdapter
 
 	int num_balls;
 	int bounce_index;
+
+	bot_status_t bot_status = new bot_status_t();
+	bot_status_t curr_bot_status = null;
+	bot_status_t last_bot_status = null;
+	ArrayList<double[]> robotTraj = new ArrayList<double[]>();
 
 	Projectile()
 	{
@@ -112,6 +118,8 @@ public class Projectile extends VisEventAdapter
 		num_balls = 0;
 		bounce_index = 0;
 
+		
+
 		/*
 		friction = new double[3]; //a factor for air/ground friction to help with better prediction
 		friction[0] = 0.02;	//subtract 2 cm per every 1 s
@@ -132,6 +140,7 @@ public class Projectile extends VisEventAdapter
 			vl = new VisLayer(vw);
 			vc = new VisCanvas(vl);
 			pg = new ParameterGUI();
+			scoreBoard = new Scoreboard(false, jf,vw,vl,vc);
 			pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
 			pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
 			pg.addListener(new ParameterListener() {
@@ -554,6 +563,64 @@ public class Projectile extends VisEventAdapter
 
 		vb.swap();
 
+	}
+
+	public void drawRobot(bot_status_t curr_bot_status, double startingX, double startingY)
+	{
+		double[]T;
+		if(last_bot_status != null) T = LinAlg.xytInvMul31(last_bot_status.xyt, curr_bot_status.xyt);
+		else T = new double[3];
+		bot_status.xyt = LinAlg.xytMultiply(bot_status.xyt, T);
+		bot_status.utime = curr_bot_status.utime;
+		bot_status.xyt_dot = curr_bot_status.xyt_dot;
+		bot_status.yaw = curr_bot_status.yaw;
+		bot_status.cov = curr_bot_status.cov;
+		bot_status.voltage = curr_bot_status.voltage;
+
+
+		double[] xyt = new double[3];
+		xyt[0] = bot_status.xyt[1] + startingX;
+		xyt[1] = -bot_status.xyt[0] + statingY;
+		xyt[2] = bot_status.xyt[2];
+
+		double wheelRadius = 0.04;
+		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.red));
+		VisObject vo_base = new VisChain(LinAlg.translate(0,0.06,0.10),base);
+
+		VzBox cameraBase = new VzBox(0.05,0.01,0.04, new VzMesh.Style(Color.white));
+		VisObject vo_cameraBase = new VisChain(LinAlg.translate(0,0,0.145),cameraBase);
+
+		VzCylinder wheels = new VzCylinder(wheelRadius,0.01, new VzMesh.Style(Color.white));
+		VisObject vo_wheels = new VisChain(LinAlg.rotateY(Math.PI/2),LinAlg.translate(-wheelRadius,0,0.09),wheels,LinAlg.translate(0,0,-0.18),wheels);
+
+		double castorRad = 0.03;
+		VzCylinder castor = new VzCylinder(castorRad,0.02, new VzMesh.Style(Color.black));
+		VisObject vo_castor = new VisChain(LinAlg.rotateY(Math.PI/2), LinAlg.translate(-castorRad,0.115,0),castor);
+
+		double rodLength = 1;
+		VzBox angleRod = new VzBox(0.01,0.01,rodLength, new VzMesh.Style(Color.black));
+		VisObject vo_rod = new VisChain(LinAlg.translate(0.0,0.0,0.145),LinAlg.rotateX(-Math.PI/2),LinAlg.translate(0.0,0.0,rodLength/2),angleRod);
+
+		VisChain pandaBot = new VisChain();
+
+		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor,vo_rod);
+
+		VisWorld.Buffer vb = vw.getBuffer("Robot");
+
+		//vb.addBack(new VzAxes());
+		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
+		vb.addBack(new VisChain(LinAlg.translate(curr_bot_status.xyt[0],curr_bot_status.xyt[1],0), LinAlg.rotateZ(xyt[2]),pandaBot));
+
+		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.BOTTOM_LEFT,new VzText(VzText.ANCHOR.BOTTOM_LEFT, "Angle = " + Math.toDegrees(xyt[2]))));
+		vb.swap();
+
+		robotTraj.add(new double[]{curr_bot_status.xyt[0],curr_bot_status.xyt[1],0.005});
+		vb = vw.getBuffer("Robot_Path");
+		//vb.addBack(new VisChain(LinAlg.translate(xyt[0], xyt[1], 0), new VzPoints()));
+		vb.addBack(new VzPoints(new VisVertexData(robotTraj), new VzPoints.Style(Color.gray,2)));
+		vb.swap();
+
+		last_bot_status = curr_bot_status;
 	}
 
 	public void update(ball_t in_ball)

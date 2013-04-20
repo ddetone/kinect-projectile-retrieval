@@ -56,6 +56,10 @@ public class CatchController implements LCMSubscriber
 		lcm.subscribe("6_RESET", this);
 		if (display) {
 			lcm.subscribe("6_WAYPOINT", this);
+			lcm.subscribe("6_POSE", this);
+			lcm.subscribe("6_SCORE_HUMAN", this);
+			lcm.subscribe("6_SCORE_ROBOT", this);
+			lcm.subscribe("6_SCORE_RESET", this);	
 		}
 	}
 
@@ -316,6 +320,30 @@ public class CatchController implements LCMSubscriber
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		else if(channel.equals("6_POSE"))
+		{
+			try
+			{
+				bot_status_t curr_bot_status = new bot_status_t(dins);
+				predictor.drawRobot(curr_bot_status);
+			}
+			catch(Exception e)
+			{
+				System.out.println("Dins coding error 6_POSE");
+			}
+		}
+		else if(channel.equals("6_SCORE_HUMAN"))
+		{
+			predictor.scoreBoard.addToHuman();
+		}
+		else if(channel.equals("6_SCORE_ROBOT"))
+		{
+			predictor.scoreBoard.addToRobot();
+		}
+		else if(channel.equals("6_SCORE_RESET"))
+		{
+			predictor.scoreBoard.clearScoreboard();	
 		}
 		
 	}

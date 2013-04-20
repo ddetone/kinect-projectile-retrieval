@@ -390,6 +390,21 @@ public class BallDetector extends Thread
 		}
 	}
 
+	public void plotProjection(ArrayList<double[]> pballs)
+	{
+		for(int i = 0; i < pballs.size(); i++)
+		{
+			double xyzt[] = pballs.get(i);
+			//switch y and z;
+			double temp = xyzt[2];
+			xyzt[2] = xyzt[1];
+			xyzt[1] = temp;
+			Point3D realWorld = new Point3D(xyzt[0],xyzt[1],xyzt[2]);
+			//Point pixCoords = depthgetPixFromWorld(realWorld);
+			//depthImg.setRGB(pixCoords.x,pixCoords.y,0xFFFFFFFF);
+		}
+	}
+
 	public static void main(String [] args) {
 //		Projectile proj = new Projectile();
 		BallDetector kv = new BallDetector(true);
