@@ -269,7 +269,7 @@ public class BallDetector extends Thread
 					e.printStackTrace();
 				}
 			}
-			ballLCM.nanoTime = System.nanoTime();
+			ballLCM.nanoTime = depthStream.latestTimestamp;
 			ArrayList<Statistics> blobs;
 			depthStream.getReadLock().lock();
 			try {
