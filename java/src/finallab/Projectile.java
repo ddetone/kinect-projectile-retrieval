@@ -527,9 +527,9 @@ public class Projectile extends VisEventAdapter
 
 	}
 
-	public void DrawRobot(Point3D robotLoc, double[] xyzt)
+	public void drawRobotEnd(Point3D robotLoc, double[] xyzt)
 	{
-		VisWorld.Buffer vb = vw.getBuffer("Robots");
+		VisWorld.Buffer vb = vw.getBuffer("Robot Positions");
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));
 		VzBox endBase = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.red));
@@ -550,12 +550,10 @@ public class Projectile extends VisEventAdapter
 		VisChain startPandaBot = new VisChain();
 		VisChain endPandaBot = new VisChain();
 
-		startPandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor);
 		endPandaBot.add(ve_base,vo_cameraBase,vo_wheels,vo_castor);
 
 		//vb.addBack(new VzAxes());
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
-		System.out.println("adding robots");
 		vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),startPandaBot));
 
 		VisChain path = new VisChain(LinAlg.translate(-xyzt[1],xyzt[0]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);//new VzBox(xyzt[0], .1, .1));
@@ -565,7 +563,7 @@ public class Projectile extends VisEventAdapter
 
 	}
 
-	public void drawRobot(bot_status_t curr_bot_status, double startingX, double startingY)
+	public void drawRobot(bot_status_t curr_bot_status)
 	{
 		double[]T;
 		if(last_bot_status != null) T = LinAlg.xytInvMul31(last_bot_status.xyt, curr_bot_status.xyt);
@@ -577,10 +575,9 @@ public class Projectile extends VisEventAdapter
 		bot_status.cov = curr_bot_status.cov;
 		bot_status.voltage = curr_bot_status.voltage;
 
-
 		double[] xyt = new double[3];
-		xyt[0] = bot_status.xyt[1] + startingX;
-		xyt[1] = -bot_status.xyt[0] + statingY;
+		xyt[0] = bot_status.xyt[0];
+		xyt[1] = bot_status.xyt[1];
 		xyt[2] = bot_status.xyt[2];
 
 		double wheelRadius = 0.04;
@@ -597,13 +594,9 @@ public class Projectile extends VisEventAdapter
 		VzCylinder castor = new VzCylinder(castorRad,0.02, new VzMesh.Style(Color.black));
 		VisObject vo_castor = new VisChain(LinAlg.rotateY(Math.PI/2), LinAlg.translate(-castorRad,0.115,0),castor);
 
-		double rodLength = 1;
-		VzBox angleRod = new VzBox(0.01,0.01,rodLength, new VzMesh.Style(Color.black));
-		VisObject vo_rod = new VisChain(LinAlg.translate(0.0,0.0,0.145),LinAlg.rotateX(-Math.PI/2),LinAlg.translate(0.0,0.0,rodLength/2),angleRod);
-
 		VisChain pandaBot = new VisChain();
 
-		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor,vo_rod);
+		pandaBot.add(vo_base,vo_cameraBase,vo_wheels,vo_castor);
 
 		VisWorld.Buffer vb = vw.getBuffer("Robot");
 

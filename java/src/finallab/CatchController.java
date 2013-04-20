@@ -166,7 +166,7 @@ public class CatchController implements LCMSubscriber
 						System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
 						
 						if (display)
-							predictor.DrawRobot(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
+							predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
 						
 //						for(int i = 0; i < bounces.size(); i++)
 //						{
@@ -316,9 +316,9 @@ public class CatchController implements LCMSubscriber
 		else if (channel.equals("6_WAYPOINT")) {
 			try {
 				xyt_t point = new xyt_t(dins);
-				predictor.DrawRobot(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
-			} catch (IOException e) {
-				e.printStackTrace();
+				predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
+			} catch (Exception e) {
+				System.out.println("6_waypoint translation error catchcontroller");
 			}
 		}
 		else if(channel.equals("6_POSE"))
@@ -326,6 +326,9 @@ public class CatchController implements LCMSubscriber
 			try
 			{
 				bot_status_t curr_bot_status = new bot_status_t(dins);
+				double _y = curr_bot_status.xyt[1];
+				curr_bot_status.xyt[1] = curr_bot_status.xyt[0] + BOT_DIST_FROM_KINECT_Y;
+				curr_bot_status.xyt[0] = -_y + BOT_DIST_FROM_KINECT_X;  
 				predictor.drawRobot(curr_bot_status);
 			}
 			catch(Exception e)
