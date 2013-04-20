@@ -50,7 +50,7 @@ public class Projectile extends VisEventAdapter
 	final double DEFAULT_ERROR_THRESH = 0.05;
 	double bounce_factor = 0.75; 		//% bounce is retained
 	final int num_bounces = 3;
-	final int num_regression = 20; //the max number of recent balls used in regression
+	final int num_regression = 5; //the max number of recent balls used in regression
 	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean verbose = false;
 	final boolean verbose2 = false;
@@ -258,22 +258,15 @@ public class Projectile extends VisEventAdapter
 	public void CalculateParabola()
 	{
 		ArrayList<double[]> data = new ArrayList<double[]>();
-		boolean is_parab = false;
-		double error;
 
-//		System.out.printf("num_balls:%d\n",num_balls);
-		//need at least three balls for release determination
-
-		// data.add(balls.get(num_balls-1));
-		// data.add(balls.get(num_balls-2));
+		//number of balls used in linear regression
 		int num_reg_balls = Math.min(num_balls - bounces.get(bounce_index).first_ball, num_regression);
-
 		if (verbose) System.out.printf("num_reg_balls:%d\n", num_reg_balls);
 
 		if (num_reg_balls < 3)
 			return;
 
-		for (int i=1; (i <= num_reg_balls); i++)
+		for (int i=1; i<=num_reg_balls; i++)
 			data.add(balls.get(num_balls-i));
 
 		solveLinReg(data);
@@ -563,7 +556,7 @@ public class Projectile extends VisEventAdapter
 
 		//vb.addBack(new VzAxes());
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
-		vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),startPandaBot));
+		//vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),startPandaBot));
 
 		VisChain path = new VisChain(LinAlg.translate(-xyzt[1],xyzt[0]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);//new VzBox(xyzt[0], .1, .1));
 		vb.addBack(path);
@@ -627,7 +620,9 @@ public class Projectile extends VisEventAdapter
 
 	public void update(ball_t in_ball)
 	{
-		in_ball.y += KINECT_HEIGHT;
+		System.out.println("Bounce index:" + bounce_index);
+		double[] p = bounces.get(1).pred_landing;
+		System.out.printf("PredLand1, X:%f, Y:%f, Z%f\n",p[0],p[1],p[2]);
 		if(display)
 			PrintState();
 		if (state == BallStatus.FINISHED)
@@ -641,12 +636,13 @@ public class Projectile extends VisEventAdapter
 		double[] xyzt = new double[4];
 		xyzt[0] = in_ball.x;
 		xyzt[1] = in_ball.z; //z is height
-		xyzt[2] = in_ball.y; //y is lateral position from camera
+		xyzt[2] = in_ball.y + KINECT_HEIGHT; //y is lateral position from camera
 		xyzt[3] = in_ball.nanoTime / nano;
 
 		//bounds checking for ball locations
-		if ((Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100))
-			return;
+		// if ((Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100) || (Math.abs(xyzt[0]) > 100))
+		// 	return;
+
 		
 		//add a ball
 		balls.add(xyzt);
@@ -660,6 +656,7 @@ public class Projectile extends VisEventAdapter
 			bounces.get(0).starttime = balls.get(0)[3];
 			bounces.get(0).balls_in_parab = 3;
 		}
+
 		if(display)
 			PrintState();
 		if (state == BallStatus.RELEASED)
@@ -690,7 +687,7 @@ public class Projectile extends VisEventAdapter
 		else
 			statestring = "UNKNOWN";
 		
-		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.BOTTOM_LEFT, new VzText(VzText.ANCHOR.BOTTOM_LEFT, 
+		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.BOTTOM_RIGHT, new VzText(VzText.ANCHOR.BOTTOM_RIGHT, 
 			"<<sansserif-bold-16,white>>" + statestring)));
 		
 		vb.swap();
