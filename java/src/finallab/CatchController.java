@@ -19,6 +19,7 @@ public class CatchController implements LCMSubscriber
 	Projectile predictor;
 	BallDetector viewer;
 	boolean display = true;
+	boolean logs = false;
 	boolean started = false;
 
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
@@ -31,10 +32,11 @@ public class CatchController implements LCMSubscriber
 	
 	Object ballLock;
 
-	CatchController(boolean _display, boolean logs)
+	CatchController(boolean _display, boolean _logs)
 	{
 		
 		display = _display;
+		logs = _logs;
 		predictor = new Projectile(_display);
 		ballLock = new Object();
 		if(!logs)
@@ -160,11 +162,13 @@ public class CatchController implements LCMSubscriber
 						spot.xyt[0] = land.y;
 						spot.xyt[1] = -land.x;
 						spot.xyt[2] = 0d;
+						spot.goFast = true;
 						newWayPoint = land.clone();
 						// go to point at bounce index
-						lcm.publish("6_WAYPOINT",spot);
-						System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
-						
+						if (!logs) {
+							lcm.publish("6_WAYPOINT",spot);
+							System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
+						}
 						if (display)
 							predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
 						
@@ -295,6 +299,7 @@ public class CatchController implements LCMSubscriber
 				spot.xyt[0] = .5d;
 				spot.xyt[1] = 0.0d;
 				spot.xyt[2] = 0.0d;
+				spot.goFast = true;
 				// go forward to save time
 				lcm.publish("6_WAYPOINT",spot);
 			}

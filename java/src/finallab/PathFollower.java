@@ -44,15 +44,15 @@ public class PathFollower implements LCMSubscriber
 	State nextState = State.STOP;
 	State prevState = State.STOP;
 
-	static double[] cXYT = new double[3];
-	static double[] dXYT = new double[3];
-	static boolean dFast = true;
-	static boolean newWaypoint = false;
-	static boolean anyWaypoint = false;
+	volatile double[] cXYT = new double[3];
+	volatile double[] dXYT = new double[3];
+	volatile boolean dFast = true;
+	//boolean newWaypoint = false;
+	//boolean anyWaypoint = false;
 
-	static double angleToDest;
-	static double errorDist, errorAngle;
-	static double prev_errorDist;
+	volatile double angleToDest;
+	volatile double errorDist, errorAngle;
+	volatile double prev_errorDist;
 
 
 	static final double DEFAULT_VOLTAGEOFFSET = 0.15;
@@ -77,7 +77,7 @@ public class PathFollower implements LCMSubscriber
 	static final double SI_PID = 0.0;
 	static final double SD_PID = 28000.0;
 
-	static final double TK_PID = 0.24;
+	static final double TK_PID = 0.20;
 	static final double TI_PID = 0.0;
 	static final double TD_PID = 38000.0;	
 
@@ -87,14 +87,14 @@ public class PathFollower implements LCMSubscriber
 
 	
 	double[] sPID = new double[]{SK_PID, SI_PID, SD_PID}; //PID for straight driving
-	double[] tPID = new double[]{TK_PID, TI_PID, TD_PID};	 //PID for turning
-	double[] hPID = new double[]{HK_PID, HI_PID, HD_PID};	//PID for rotating home
+	double[] tPID = new double[]{TK_PID, TI_PID, TD_PID};	 //PID for turning fast
+	double[] hPID = new double[]{HK_PID, HI_PID, HD_PID};	//PID for turning slow
 
 	PidController sPIDAngle = new PidController(sPID[0], sPID[1], sPID[2]);
 	PidController tPIDAngle = new PidController(tPID[0], tPID[1], tPID[2]);
 	PidController hPIDAngle = new PidController(hPID[0], hPID[1], hPID[2]);
 
-	PathFollower(boolean _gs)
+	PathFollower(boolean gs)
 	{
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
@@ -107,7 +107,7 @@ public class PathFollower implements LCMSubscriber
 		errorAngle = 0;
 		prev_errorDist = 9999;
 
-		if (_gs == true)
+		if (gs == true)
 		{
 			pg = new ParameterGUI();
 			//pg.addDoubleSlider("turnRate", "Turn Rate", 0d, 1d, 0.573d);
@@ -214,12 +214,14 @@ public class PathFollower implements LCMSubscriber
 	{
 		double pid = sPIDAngle.getOutput(errorAngle);
 
-		if(verbose)printError();
+		// if(verbose)printError();
 		if(verbose2)System.out.println("sPID:" + pid);
 				//+ "  integrator: " + pidAngle.integral);
 
 		double right = speed + pid;
 		double left = speed - pid;	
+
+		if(verbose)printError();
 
 		setMotorCommand(left, right);
 	}
@@ -251,6 +253,7 @@ public class PathFollower implements LCMSubscriber
 		double right = pid;
 		double left = -pid;
 		
+		if(verbose)printError();
 		if(verbose2)System.out.printf("pid:%f\n",pid);
 
 		setMotorCommand(left, right);
@@ -291,17 +294,19 @@ public class PathFollower implements LCMSubscriber
 	{
 
 		if(verbose)printState();
+		// if (state != prevState)
+		// 	if(verbose)printError();
 		switch(state)
 		{				
+
 			case STOP:
 				if(prevState != State.STOP)
 					stopBot();
 
-				if (newWaypoint == true)
-				{
-					if(verbose)System.out.printf("New Waypoint in StateMachine\n");
-					newWaypoint = false;
-					if(verbose)printError();
+				//if (newWaypoint == true)
+				//{
+					//if(verbose)System.out.printf("New Waypoint in StateMachine\n");
+					//newWaypoint = false;
 
 					if (errorDist > LEAVE_DIST)
 					{
@@ -312,7 +317,7 @@ public class PathFollower implements LCMSubscriber
 						else
 							nextState = State.ROTATE_SLOW;
 					}
-				}
+				//}
 				break;
 
 			case ROTATE_SLOW:
@@ -372,6 +377,12 @@ public class PathFollower implements LCMSubscriber
 					nextState = State.STOP;
 					break;
 				}
+				if (errorDist > SLOW_DOWN_DIST)
+				{
+					if(verbose)System.out.printf("Speeding up\n");
+					nextState = State.GO_FAST;
+					break;
+				}
 				if (errorDist < MEDDEST_DIST)
 				{
 					if(verbose)System.out.printf("Current Waypoint Dist < Slow Speed Destination Dist\n");
@@ -386,7 +397,7 @@ public class PathFollower implements LCMSubscriber
 				if (errorDist > (prev_errorDist+PREVDIST_BUFFER))
 				{
 					if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
-					nextState = State.GO_MED;
+					nextState = State.STOP;
 					break;
 				}
 				if (errorDist < SLOW_DOWN_DIST)
@@ -423,11 +434,10 @@ public class PathFollower implements LCMSubscriber
 	public void printState()
 	{
 		
-		if (printcount++ > 40 && prevState != State.STOP)
+		if (state != prevState)
 		{
-			printcount = 0;
 
-			if (nextState != state) System.out.printf("\n\n");
+			if (prevState != state) System.out.printf("\n");
 			String statestring;
 			if (state == State.STOP)
 				statestring = "STOP";
@@ -474,14 +484,15 @@ public class PathFollower implements LCMSubscriber
 			{
 //				System.out.printf("Waypoint RECIEVED\n");
 
-				System.out.println("moving to waypoint (" + System.currentTimeMillis() + ")");
 				xyt_t dest = new xyt_t(dins);
+				System.out.println("moving to waypoint (" + dest.xyt[0] + ", "  + dest.xyt[1] + ") (" + System.currentTimeMillis() + ")");
 
 				dXYT[0] = dest.xyt[0];
 				dXYT[1] = dest.xyt[1];
 				dXYT[2] = dest.xyt[2];
 				dFast = dest.goFast;
-				newWaypoint = true;
+				//dFast = true;
+				//newWaypoint = true;
 
 				/*
 				synchronized(waypointMonitor) {
@@ -504,16 +515,16 @@ public class PathFollower implements LCMSubscriber
 
 	public static void main(String[] args) throws Exception
 	{
-		//boolean gs = false;
-		/*
+		
+		boolean gs = false;
 		for(int i = 0; i < args.length; i++)
 		{
 			if(args[i].equals("gs"))
 				gs = true;
 		}
-		*/
+		
 
-		boolean gs = true;
+		//boolean gs = true;
 		PathFollower pl = new PathFollower(gs);
 
 		/*
