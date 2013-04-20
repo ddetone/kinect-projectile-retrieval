@@ -133,7 +133,7 @@ public class PoseGenerator implements LCMSubscriber
 		xyt_B[2] = xyt_A[2] + xyt_T[2];
 
 		//computes covarience matrix using the A,B,T matrices
-		computeCov(xyt_A, xyt_B, xyt_T);
+//		computeCov(xyt_A, xyt_B, xyt_T);
 
 		//update the LCM data type (bot) with new pose
 		bot.xyt[0] = xyt_B[0];
@@ -155,7 +155,7 @@ public class PoseGenerator implements LCMSubscriber
 		bot.xyt_dot[2] = RPY[2]; //2 is yaw
 
 		bot.utime = TimeUtil.utime();
-		bot.cov = sigmaB;
+//		bot.cov = sigmaB;
 
 		bot.voltage = battery.voltage;
 		lcm.publish("6_POSE",bot);

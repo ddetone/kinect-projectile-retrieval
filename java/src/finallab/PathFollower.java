@@ -26,7 +26,7 @@ public class PathFollower implements LCMSubscriber
 		STOP, ROTATE_FAST, ROTATE_SLOW, ROTATE_TO_ANGLE, GO_FAST, GO_MED, GO_SLOW
 	}
 
-	final boolean verbose = true;
+	final boolean verbose = false;
 	final boolean verbose2 = false;
 	static boolean time = false;
 	int printcount = 0;
@@ -66,7 +66,7 @@ public class PathFollower implements LCMSubscriber
 	static final double FAST_STRAIGHT_ANGLE = Math.toRadians(40);
 	static final double SLOW_STRAIGHT_ANGLE = Math.toRadians(2);
 
-	static final double MEDDEST_DIST = 0.08;
+	static final double MEDDEST_DIST = 0.25;
 	static final double SLOWDEST_DIST = 0.04; 
 	static final double LEAVE_DIST_BUFFER = 0.01;
 	static final double PREVDIST_BUFFER = 0.005f;
@@ -193,7 +193,7 @@ public class PathFollower implements LCMSubscriber
 		errorAngle = angleToDest-curAngle;
 
 		while(errorAngle > Math.PI)errorAngle -= 2 * Math.PI;
-		while(errorAngle < -Math.PI)errorAngle += 2 * Math.PI;	
+		while(errorAngle < -Math.PI)errorAngle += 2 * Math.PI;
 	}
 
 	void printError()
@@ -212,16 +212,18 @@ public class PathFollower implements LCMSubscriber
 
 	void moveRobotStraight(double speed)
 	{
+//		System.out.println("begin drive straight (" + System.currentTimeMillis() + ")");
 		double pid = sPIDAngle.getOutput(errorAngle);
-
+//		System.out.println("after pid calc (" + System.currentTimeMillis() + ")");
 		// if(verbose)printError();
-		if(verbose2)System.out.println("sPID:" + pid);
+//		if(verbose2)System.out.println("sPID:" + pid);
 				//+ "  integrator: " + pidAngle.integral);
 
 		double right = speed + pid;
 		double left = speed - pid;	
 
-		if(verbose)printError();
+//		if(verbose)printError();
+		
 
 		setMotorCommand(left, right);
 	}
@@ -229,7 +231,6 @@ public class PathFollower implements LCMSubscriber
 	void turnRobot(boolean toAngle)
 	{
 
-		if(verbose)System.out.printf("Turning...\n");
 
 		double pid;
 		if (!toAngle)
@@ -253,7 +254,9 @@ public class PathFollower implements LCMSubscriber
 		double right = pid;
 		double left = -pid;
 		
-		if(verbose)printError();
+		if(verbose)System.out.printf("Turning...\n");
+//		if(verbose)printError();
+		
 		if(verbose2)System.out.printf("pid:%f\n",pid);
 
 		setMotorCommand(left, right);
@@ -272,6 +275,7 @@ public class PathFollower implements LCMSubscriber
 
 	void setMotorCommand(double left, double right)
 	{
+//		System.out.println("before motorcommand (" + System.currentTimeMillis() + ")");
 		diff_drive_t motor = new diff_drive_t();
 
 		motor.left_enabled = false;
@@ -286,13 +290,12 @@ public class PathFollower implements LCMSubscriber
 		motor.right = (float)right;
 
 		//if(verbose)System.out.println();
-
+//		System.out.println("publishing motors L: " + left + ", R: " + right + "(" + System.currentTimeMillis() + ")");
 		lcm.publish("6_DIFF_DRIVE", motor);
 	}	
 
 	public void stateMachine()
 	{
-
 		if(verbose)printState();
 		// if (state != prevState)
 		// 	if(verbose)printError();
@@ -315,7 +318,11 @@ public class PathFollower implements LCMSubscriber
 						if (dFast == true)
 						{
 							if (Math.abs(errorAngle) < Math.abs(FAST_STRAIGHT_ANGLE))
+							{
 								nextState = State.GO_FAST;
+//								System.out.println("calling drive straight (" + System.currentTimeMillis() + ")");
+								moveRobotStraight(FAST_SPEED);
+							}
 							else
 								nextState = State.ROTATE_FAST;
 						}
@@ -373,38 +380,40 @@ public class PathFollower implements LCMSubscriber
 				}
 				moveRobotStraight(SLOW_SPEED);
 
-			case GO_MED:
-
-				if (errorDist > (prev_errorDist+PREVDIST_BUFFER))
-				{
-					if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
-					if(verbose2)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);
-					nextState = State.STOP;
-					break;
-				}
-				if (errorDist > SLOW_DOWN_DIST)
-				{
-					if(verbose)System.out.printf("Speeding up\n");
-					nextState = State.GO_FAST;
-					break;
-				}
-				if (errorDist < MEDDEST_DIST)
-				{
-					if(verbose)System.out.printf("Current Waypoint Dist < Slow Speed Destination Dist\n");
-					nextState = State.STOP;
-					break;
-				}
-				moveRobotStraight(MED_SPEED);
-				break;
+//			case GO_MED:
+//				
+//				//if we're driving away from the waypoint, stop
+////				if (errorDist > (prev_errorDist+PREVDIST_BUFFER))
+////				{
+////					if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
+////					if(verbose2)System.out.printf("PrevDist:%f , Dist:%f",prev_errorDist, errorDist);
+////					nextState = State.STOP;
+////					break;
+////				}
+//				if (errorDist > SLOW_DOWN_DIST)
+//				{
+//					if(verbose)System.out.printf("Speeding up\n");
+//					nextState = State.GO_FAST;
+//					break;
+//				}
+//				if (errorDist < MEDDEST_DIST)
+//				{
+//					if(verbose)System.out.printf("Current Waypoint Dist < Slow Speed Destination Dist\n");
+//					nextState = State.STOP;
+//					break;
+//				}
+//				moveRobotStraight(MED_SPEED);
+//				break;
 
 			case GO_FAST:
 
-				if (errorDist > (prev_errorDist+PREVDIST_BUFFER))
-				{
-					if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
-					nextState = State.STOP;
-					break;
-				}
+				//if we're driving away from the waypoint, stop
+//				if (errorDist > (prev_errorDist+PREVDIST_BUFFER))
+//				{
+//					if(verbose)System.out.printf("Current Waypoint Dist > Prev Dist to Waypoint + BufVal\n");
+//					nextState = State.STOP;
+//					break;
+//				}
 				if (errorDist < MEDDEST_DIST)
 				{
 					if(verbose)System.out.printf("Reached FASTDEST_DIST\n");
@@ -434,6 +443,7 @@ public class PathFollower implements LCMSubscriber
 				e.printStackTrace();
 			}
 		}
+//		System.out.println("wake up (" + System.currentTimeMillis() + ")");
 		/*
 		try {
 			Thread.sleep(10);
@@ -468,8 +478,8 @@ public class PathFollower implements LCMSubscriber
 			else
 				statestring = "UNKNOWN";
 			System.out.println("Current State is: " + statestring);
-			System.out.printf("Error Angle: %f, PreviousError Distance: %f, Error Distance: %f\n", errorAngle, prev_errorDist, errorDist);
-			System.out.printf("Current position, X:%f, Y:%f, T:%f\n",cXYT[0],cXYT[1],cXYT[2]);
+//			System.out.printf("Error Angle: %f, PreviousError Distance: %f, Error Distance: %f\n", errorAngle, prev_errorDist, errorDist);
+//			System.out.printf("Current position, X:%f, Y:%f, T:%f\n",cXYT[0],cXYT[1],cXYT[2]);
 		}
 	}
 
@@ -477,7 +487,31 @@ public class PathFollower implements LCMSubscriber
 	{
 		try
 		{
-			if(channel.equals("6_POSE"))
+			if(channel.equals("6_WAYPOINT"))
+			{
+//				System.out.printf("Waypoint RECIEVED\n");
+
+				xyt_t dest = new xyt_t(dins);
+//				System.out.println("moving to waypoint (" + dest.xyt[0] + ", "  + dest.xyt[1] + ") (" + System.currentTimeMillis() + ")");
+
+				dXYT[0] = dest.xyt[0];
+				dXYT[1] = dest.xyt[1];
+				dXYT[2] = dest.xyt[2];
+				dFast = dest.goFast;
+				//dFast = true;
+				//newWaypoint = true;
+				calcErrors();
+				
+				synchronized(poseMonitor) {
+					poseMonitor.notify();
+				}
+
+//				System.out.println("done waypoint received (" + System.currentTimeMillis() + ")");
+//				System.out.printf("notified\n");
+
+				
+			}
+			else if(channel.equals("6_POSE"))
 			{
 				bot_status = new bot_status_t(dins);
 				cXYT[0] = bot_status.xyt[0];
@@ -489,31 +523,11 @@ public class PathFollower implements LCMSubscriber
 				synchronized(poseMonitor) {
 					poseMonitor.notify();
 				}
+					
 
 			}
 
-			else if(channel.equals("6_WAYPOINT"))
-			{
-//				System.out.printf("Waypoint RECIEVED\n");
 
-				xyt_t dest = new xyt_t(dins);
-				System.out.println("moving to waypoint (" + dest.xyt[0] + ", "  + dest.xyt[1] + ") (" + System.currentTimeMillis() + ")");
-
-				dXYT[0] = dest.xyt[0];
-				dXYT[1] = dest.xyt[1];
-				dXYT[2] = dest.xyt[2];
-				dFast = dest.goFast;
-				//dFast = true;
-				//newWaypoint = true;
-
-				/*
-				synchronized(waypointMonitor) {
-					waypointMonitor.notify();
-				}
-
-				System.out.printf("notified\n");
-				*/
-			}
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);
 				sPIDAngle.changeParams(params.xyt);

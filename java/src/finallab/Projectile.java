@@ -711,7 +711,7 @@ public class Projectile extends VisEventAdapter
 	}
 	public void reset() {
 		if (display) {
-			predictor.robotTraj.clear();
+			robotTraj.clear();
 			VisWorld.Buffer vbBalls = vw.getBuffer("Predicted Balls");
 			vbBalls.swap();
 			VisWorld.Buffer vbRobot = vw.getBuffer("Robots");
