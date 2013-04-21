@@ -104,7 +104,7 @@ public class CatchController implements LCMSubscriber
 			Parabola curr = bounces.get(i);
 			double [] land = curr.pred_landing;
 			if (land[0] > TARGET_MAX_X || land[0] < TARGET_MIN_X || land[1] > TARGET_MAX_Y || land[1] < TARGET_MIN_Y) {
-				System.out.println("bounce ind " + i + " oob");
+//				System.out.println("bounce ind " + i + " oob");
 				continue;
 			}
 			double dist = Math.hypot(curr.pred_landing[0] - TARGET_DIST_FROM_KINECT_X, curr.pred_landing[1] - TARGET_DIST_FROM_KINECT_Y); 
@@ -112,7 +112,7 @@ public class CatchController implements LCMSubscriber
 				bestParab = curr;
 				best = i;
 				bestDist = dist;
-				System.out.println("best dist: " + bestDist);
+//				System.out.println("best dist: " + bestDist);
 			}
 	//		System.out.println("Points x y z :" + point[0] + " " + point[1] + " "
 	//				+ point[2]);
@@ -122,14 +122,14 @@ public class CatchController implements LCMSubscriber
 		if (bestParab == null) {
 			return null;
 		}
-		System.out.println("best ind: " + best);
+//		System.out.println("best ind: " + best);
 		// convert from points of kinect to points in front of robot
-		Point3D landing = convertToPointRobotNonMat(bestParab.pred_botlanding);
+		Point3D landing = convertToPointRobotNonMat(bestParab.pred_landing);
 		//if there's a bounce, wait for 5 balls before we start sending waypoints again
 		if (bestParab.balls_in_parab == 0 || bestParab.balls_in_parab > (BALLS_TO_WAIT_ON - 1))
 			return landing;
 		else {
-			System.out.println("waiting for better bounce prediction");
+//			System.out.println("waiting for better bounce prediction");
 			return null;
 		}
 
@@ -145,14 +145,14 @@ public class CatchController implements LCMSubscriber
 		int nextState = 0;
 		ball_t ball;
 		Point3D newWayPoint = new Point3D(0.0,0.0,0.0);
-		System.out.println("waiting for landing point");
+//		System.out.println("waiting for landing point");
 		do {
 			
 			bounces = predictor.getParabolas();
 		}
 		
 		while(bounces == null || bounces.size() == 0 || !bounces.get(0).valid);
-		System.out.println("done waiting for bounces");
+//		System.out.println("done waiting for bounces");
 		double[][] startingBounces = new double[2][bounces.size()];
 		for(int i = 0; i < bounces.size(); i++)
 		{
@@ -192,7 +192,7 @@ public class CatchController implements LCMSubscriber
 						// go to point at bounce index
 						if (!logs) {
 							lcm.publish("6_WAYPOINT",spot);
-							System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
+//							System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
 						}
 						
 //						for(int i = 0; i < bounces.size(); i++)
@@ -204,7 +204,7 @@ public class CatchController implements LCMSubscriber
 //						}
 					}
 					else {
-						System.out.println("waypoints are the same");
+//						System.out.println("waypoints are the same");
 					}
 					//to continuously send waypoints of updated position of bounce index 0
 					 nextState = 0;
@@ -242,7 +242,7 @@ public class CatchController implements LCMSubscriber
 
 			}
 			state = nextState;
-			System.out.println("waiting for ball");
+//			System.out.println("waiting for ball");
 			synchronized(ballLock) {
 				try {
 					ballLock.wait();
@@ -306,7 +306,7 @@ public class CatchController implements LCMSubscriber
 	@Override
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins) {
 		if (channel.equals("6_BALL")) {
-			System.out.println("got ball from detector (" + System.currentTimeMillis() + ")");
+//			System.out.println("got ball from detector (" + System.currentTimeMillis() + ")");
 			ball_t ball = null;
 			try {
 				ball = new ball_t(dins);
@@ -324,7 +324,7 @@ public class CatchController implements LCMSubscriber
 				spot.xyt[2] = 0.0d;
 				spot.goFast = true;
 				// go forward to save time
-				System.out.println("sending go straight waypoint");
+//				System.out.println("sending go straight waypoint");
 				lcm.publish("6_WAYPOINT",spot);
 			}
 			predictor.update(ball);
@@ -343,7 +343,7 @@ public class CatchController implements LCMSubscriber
 				if (display)
 					predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
 			} catch (Exception e) {
-				System.out.println("6_waypoint translation error catchcontroller");
+//				System.out.println("6_waypoint translation error catchcontroller");
 			}
 		}
 		else if(channel.equals("6_POSE"))

@@ -72,11 +72,13 @@ public class PathFollower2 implements LCMSubscriber
 	static final double PREVDIST_BUFFER = 0.005f;
 	static final double SLOW_DOWN_DIST = 0.15f;
 	static final double LEAVE_DIST = 0.15;
-	static final double STOP_DIST = 0.05;
+	static final double STOP_DIST = 0.10;
 
 	static final double SK_PID = 0.8;
+//	static final double SI_PID = 0.00000005;
 	static final double SI_PID = 0.0;
-	static final double SD_PID = 32000.0;
+	static final double SD_PID = 31100;
+	static final double SI_CLAMP = 12000000;
 
 	static final double TK_PID = 0.20;
 	static final double TI_PID = 0.0;
@@ -86,7 +88,7 @@ public class PathFollower2 implements LCMSubscriber
 	static final double HI_PID = 0.0;
 	static final double HD_PID = 30000.0;
 	
-	static double SPEED_SCALE = 1.15;
+	static double SPEED_SCALE = 0.43;
 
 	
 	double[] sPID = new double[]{SK_PID, SI_PID, SD_PID}; //PID for straight driving
@@ -105,7 +107,7 @@ public class PathFollower2 implements LCMSubscriber
 		catch(IOException e){
 			lcm = LCM.getSingleton();
 		}
-		//sPIDAngle.setIntegratorClamp(10);
+//		sPIDAngle.setIntegratorClamp(SI_CLAMP);
 		
 		errorAngle = 0;
 		prev_errorDist = 9999;
@@ -120,7 +122,7 @@ public class PathFollower2 implements LCMSubscriber
 			//pg.addDoubleSlider("slowstopangle", "slowstopangle", 0d, 90d, Math.toDegrees(SLOW_STRAIGHT_ANGLE));
 
 			pg.addDoubleSlider("skp", "skp", 0d, 1d, SK_PID);
-			pg.addDoubleSlider("ski", "ski", 0d, 1d, SI_PID);
+			pg.addDoubleSlider("ski", "ski", 0d, 0.0000002d, SI_PID);
 			pg.addDoubleSlider("skd", "skd", 0d, 80000d, SD_PID);
 
 			pg.addDoubleSlider("tkp", "tkp", 0d, 1d, TK_PID);
@@ -237,7 +239,7 @@ public class PathFollower2 implements LCMSubscriber
 //			}
 		}
 		
-		double scaleFactor = (Math.sqrt(Math.abs(errorDist)) * SPEED_SCALE);
+		double scaleFactor = (Math.log(20*Math.abs(errorDist) + 1) * SPEED_SCALE);
 		right *= scaleFactor;
 		left *= scaleFactor;
 
