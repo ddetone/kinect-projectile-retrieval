@@ -36,6 +36,8 @@ public class CatchController implements LCMSubscriber
 	final static double TARGET_MAX_X = TARGET_DIST_FROM_KINECT_X + TARGET_WIDTH/2;
 	final static double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	final static int BALLS_TO_WAIT_ON = 5;
+	final static double HUMAN_LOC_Y = TARGET_DIST_FROM_KINECT_Y;
+	final static double HUMAN_LOC_X = .3;
 	LCM  lcm;
 	
 	Object ballLock;
@@ -192,8 +194,6 @@ public class CatchController implements LCMSubscriber
 							lcm.publish("6_WAYPOINT",spot);
 							System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
 						}
-						if (display)
-							predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
 						
 //						for(int i = 0; i < bounces.size(); i++)
 //						{
@@ -334,20 +334,14 @@ public class CatchController implements LCMSubscriber
 		}
 		else if (channel.equals("6_RESET")) {
 			predictor.reset();
-			xyt_t home = new xyt_t();
-			home.utime = TimeUtil.utime();
-			home.xyt[0] = 0.0d;
-			home.xyt[1] = 0.0d;
-			home.xyt[2] = 0.0d;
 			// go home
-			if (!logs)
-				lcm.publish("6_WAYPOINT",home);
 			started = false;
 		}
 		else if (channel.equals("6_WAYPOINT")) {
 			try {
 				xyt_t point = new xyt_t(dins);
-				predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
+				if (display)
+					predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
 			} catch (Exception e) {
 				System.out.println("6_waypoint translation error catchcontroller");
 			}
@@ -369,14 +363,35 @@ public class CatchController implements LCMSubscriber
 		}
 		else if(channel.equals("6_SCORE_HUMAN"))
 		{
+			xyt_t home = new xyt_t();
+			home.utime = TimeUtil.utime();
+			home.xyt[0] = 0.0d;
+			home.xyt[1] = 0.0d;
+			home.xyt[2] = 0.0d;
+			if (!logs)
+				lcm.publish("6_WAYPOINT",home);
 			predictor.scoreBoard.addToHuman();
 		}
 		else if(channel.equals("6_SCORE_ROBOT"))
 		{
+			xyt_t human = new xyt_t();
+			human.utime = TimeUtil.utime();
+			human.xyt[0] = HUMAN_LOC_Y;
+			human.xyt[1] = -HUMAN_LOC_X;
+			human.xyt[2] = 0.0d;
+			if (!logs)
+				lcm.publish("6_WAYPOINT",human);
 			predictor.scoreBoard.addToRobot();
 		}
 		else if(channel.equals("6_SCORE_RESET"))
 		{
+			xyt_t home = new xyt_t();
+			home.utime = TimeUtil.utime();
+			home.xyt[0] = 0.0d;
+			home.xyt[1] = 0.0d;
+			home.xyt[2] = 0.0d;
+			if (!logs)
+				lcm.publish("6_WAYPOINT",home);
 			predictor.scoreBoard.clearScoreboard();	
 		}
 		
