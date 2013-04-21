@@ -16,12 +16,14 @@ public class Parabola
 	double starttime;
 	double land_time;
 	double[] pred_landing;
+	double[] pred_botlanding;
 	double[] parabola; //6x1 matrix with projectile parameters
 
 	Parabola()
 	{
 		parabola = new double[6];
 		pred_landing = new double[3];
+		pred_botlanding = new double[3];
 		valid = false;
 		first_ball = 0;
 		balls_in_parab = 0;
@@ -49,7 +51,10 @@ public class Parabola
 		System.out.printf("starttime:%f\n",starttime);
 		System.out.printf("land_time:%f\n",land_time);
 		for (int i=0; i<3; i++)
-			System.out.printf("landing%d: %f\n",i,pred_landing[i]);
+		{
+			System.out.printf("Pred landing%d: %f\n",i,pred_landing[i]);
+			System.out.printf("Pred bot landing%d: %f\n",i,pred_botlanding[i]);
+		}
 
 	}
 

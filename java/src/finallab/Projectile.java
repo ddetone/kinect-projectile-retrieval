@@ -46,7 +46,7 @@ public class Projectile extends VisEventAdapter
 
 	final double nano = 1000000000;
 	final double g = 9.806; 				//g in meters/second squared
-	final double ball_radius = 0.03; 		//must be in meters
+	final double ball_radius = 0.032; 		//must be in meters
 	final double DEFAULT_ERROR_THRESH = 0.05;
 	double bounce_factor = 0.8; 		//% bounce is retained
 	final int num_bounces = 3;
@@ -55,6 +55,7 @@ public class Projectile extends VisEventAdapter
 	final boolean verbose = false;
 	final boolean verbose2 = false;
 	final double KINECT_HEIGHT = 0.46; //.77
+	final double BASKET_HEIGHT = 0.28;
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;
@@ -392,99 +393,99 @@ public class Projectile extends VisEventAdapter
 	{
 		Parabola currentBounce = bounces.get(bindex);
 		double a = -0.5*g;
-			double b = currentBounce.parabola[5]; //z_vel
-			double c = currentBounce.parabola[4] - ball_radius; //z_not - ball_radius
+		double b = currentBounce.parabola[5]; //z_vel
+		double c = currentBounce.parabola[4]; //z_not
 
-			b = b / a;
-			c = c / a;
+		double ball_land_time = SolveQuad(a,b,c - ball_radius);
+		double basket_land_time = SolveQuad(a,b,c - BASKET_HEIGHT);
 
-			double discriminant = b*b - 4.0*c;
-			double sqroot =  Math.sqrt(discriminant);
+		double[] ball_landing = new double[3];
+		ball_landing[0] = currentBounce.parabola[1]*ball_land_time + currentBounce.parabola[0];
+		ball_landing[1] = currentBounce.parabola[3]*ball_land_time + currentBounce.parabola[2];
+		ball_landing[2] = ball_radius;
 
-			double root1 = (-b + sqroot) / 2.0;
-			double root2 = (-b - sqroot) / 2.0;
-			double nextroot = 0;
-			double prevroot = 0;
+		double[] basket_landing = new double[3];
+		basket_landing[0] = currentBounce.parabola[1]*basket_land_time + currentBounce.parabola[0];
+		basket_landing[1] = currentBounce.parabola[3]*basket_land_time + currentBounce.parabola[2];
+		basket_landing[2] = BASKET_HEIGHT;
 
-			if (root1 > root2)
-			{
-				nextroot = root1;
-				prevroot = root2;
-			}
-			else
-			{
-				nextroot = root2;
-				prevroot = root1;
-			}
 
-			double land_time;
-			land_time = nextroot;
+		// if (verbose2) 
+		// {
+		// 	System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
+		// 	System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
+		// 	System.out.printf("root1:%f root2:%f land_time:%f\n", root1, root2, ball_land_time);
+		// 	System.out.printf("cur_landingX:%f, cur_landingY:%f cur_landingZ:%f\n\n", ball_landing[0],
+		// 		ball_landing[1], ball_landing[2]);
+		// }
 
-			double[] cur_landing = new double[3];
-			cur_landing[0] = currentBounce.parabola[1]*land_time + currentBounce.parabola[0];
-			cur_landing[1] = currentBounce.parabola[3]*land_time + currentBounce.parabola[2];
-			cur_landing[2] = ball_radius;
+		currentBounce.land_time = ball_land_time;
+		currentBounce.pred_landing = ball_landing;
+		currentBounce.pred_botlanding = basket_landing;
+		currentBounce.valid = true;        							
 
-			if (verbose2) 
-			{
-				System.out.printf("a:%f, b:%f, c:%f\n",a,b,c);
-				System.out.printf("discriminant:%f, sqroot:%f\n",discriminant,sqroot);
-				System.out.printf("root1:%f root2:%f land_time:%f\n", root1, root2, land_time);
-				System.out.printf("cur_landingX:%f, cur_landingY:%f cur_landingZ:%f\n\n", cur_landing[0],
-					cur_landing[1], cur_landing[2]);
-			}
+	}
 
-			currentBounce.land_time = land_time;
-			currentBounce.pred_landing = cur_landing;
-			currentBounce.valid = true;        							
+	public double SolveQuad(double a, double b, double c) //returns largest root
+	{
+		b = b / a;
+		c = c / a;
+		double discriminant = b*b - 4.0*c;
+		double sqroot =  Math.sqrt(discriminant);
+		double root1 = (-b + sqroot) / 2.0;
+		double root2 = (-b - sqroot) / 2.0;		
+		if (root1 > root2)
+			return(root1);
+		else
+			return(root2);
+	}
 
+	public void DrawEnvironment(String buffer)
+	{
+		VisWorld.Buffer vb = vw.getBuffer(buffer);
+		VzBox kinectHead = new VzBox(.275,.055,.07, new VzMesh.Style(Color.black));
+		VzCylinder kinectCylBase = new VzCylinder(.01,.005, new VzMesh.Style(Color.black));
+		VzBox kinectSquareBase = new VzBox(.07,.07,.015, new VzMesh.Style(Color.black));
+		VisChain kinect = new VisChain(LinAlg.translate(0,0,KINECT_HEIGHT),kinectHead,LinAlg.translate(0,0,-.055/2),LinAlg.translate(0,0,-.005),kinectCylBase,LinAlg.translate(0,0,-.01),kinectSquareBase);
+		vb.addBack(kinect);
+		VzBox kinectTable = new VzBox(.4,.3,KINECT_HEIGHT-.07,new VzMesh.Style(Color.white));
+		VisChain table = new VisChain(LinAlg.translate(0,0,(KINECT_HEIGHT-.07)/2.0),kinectTable);
+		vb.addBack(table);
+		VzBox targetZone = new VzBox(0.91, 0.91, 0.001, new VzMesh.Style(Color.green));
+		//TODO: hard-coded target
+		VisChain target = new VisChain(LinAlg.translate(-.91, 1.67, 0.0001), targetZone);
+		vb.addBack(target);
+	}
+
+
+	public void DrawBalls()
+	{
+
+		VisWorld.Buffer vb = vw.getBuffer("Predicted Balls");
+		double[] shift = new double[3];
+
+		for (int i=0; i<balls.size(); i++)
+		{
+			VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
+			vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[1],balls.get(i)[2]),ball));			
 		}
 
-		public void DrawEnvironment(String buffer)
-		{
-			VisWorld.Buffer vb = vw.getBuffer(buffer);
-			VzBox kinectHead = new VzBox(.275,.055,.07, new VzMesh.Style(Color.black));
-			VzCylinder kinectCylBase = new VzCylinder(.01,.005, new VzMesh.Style(Color.black));
-			VzBox kinectSquareBase = new VzBox(.07,.07,.015, new VzMesh.Style(Color.black));
-			VisChain kinect = new VisChain(LinAlg.translate(0,0,KINECT_HEIGHT),kinectHead,LinAlg.translate(0,0,-.055/2),LinAlg.translate(0,0,-.005),kinectCylBase,LinAlg.translate(0,0,-.01),kinectSquareBase);
-			vb.addBack(kinect);
-			VzBox kinectTable = new VzBox(.4,.3,KINECT_HEIGHT-.07,new VzMesh.Style(Color.white));
-			VisChain table = new VisChain(LinAlg.translate(0,0,(KINECT_HEIGHT-.07)/2.0),kinectTable);
-			vb.addBack(table);
-			VzBox targetZone = new VzBox(0.91, 0.91, 0.001, new VzMesh.Style(Color.green));
-			//TODO: hard-coded target
-			VisChain target = new VisChain(LinAlg.translate(-.91, 1.67, 0.0001), targetZone);
-			vb.addBack(target);
-		}
 
-
-		public void DrawBalls()
+		for (int i=0; i<num_bounces; i++)
 		{
 
-			VisWorld.Buffer vb = vw.getBuffer("Predicted Balls");
-			double[] shift = new double[3];
+			double land_time = bounces.get(i).land_time;
+		//double starttime = bounces.get(i).starttime;
+			double[] x = bounces.get(i).parabola;
 
-			for (int i=0; i<balls.size(); i++)
+			for (int j=0; j<20; j++)
 			{
-				VzSphere ball = new VzSphere(ball_radius, new VzMesh.Style(Color.green));
-				vb.addBack(new VisChain(LinAlg.translate(balls.get(i)[0],balls.get(i)[1],balls.get(i)[2]),ball));			
-			}
-
-
-			for (int i=0; i<num_bounces; i++)
-			{
-
-				double land_time = bounces.get(i).land_time;
-			//double starttime = bounces.get(i).starttime;
-				double[] x = bounces.get(i).parabola;
-
-				for (int j=0; j<20; j++)
-				{
-					double[] pred = new double[3];
-					double dt = (land_time/20)*j;
+				double[] pred = new double[3];
+				double dt = (land_time/20)*j;
 				pred[0] = x[0] + (x[1] * dt); //deltaX = Vo,x * dt
 				pred[1] = x[2] + (x[3] * dt);
 				pred[2] = x[4] + (x[5] * dt) - 0.5*g*dt*dt; 
+
 				if (pballLock == null)
 					System.out.println("pballLock is null");
 				pballLock.writeLock().lock();
@@ -494,20 +495,20 @@ public class Projectile extends VisEventAdapter
 				finally {
 					pballLock.writeLock().unlock();
 				}
-			} 
-				
-			pballLock.readLock().lock();
-			try {
-				if (i%2 == 0) {
-					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
-				}
-				else {
-					vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
-				}
+		} 
+			
+		pballLock.readLock().lock();
+		try {
+			if (i%2 == 0) {
+				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.BLUE, 2)));
 			}
-			finally {
-				pballLock.readLock().unlock();
+			else {
+				vb.addBack(new VzLines(new VisVertexData(pballs), 1, new VzLines.Style(Color.RED, 2)));
 			}
+		}
+		finally {
+			pballLock.readLock().unlock();
+		}
 
 		}
 			
@@ -521,9 +522,12 @@ public class Projectile extends VisEventAdapter
 
 		for (int i=0; i<num_bounces; i++)
 		{
-			VzCylinder land1 = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.cyan));
+			VzCylinder land_ball = new VzCylinder(0.15, 0.01, new VzMesh.Style(Color.cyan));
 			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_landing[0],
-				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land1));
+				bounces.get(i).pred_landing[1], bounces.get(i).pred_landing[2]), land_ball));
+			VzCylinder land_basket = new VzCylinder(0.05, 0.01, new VzMesh.Style(Color.black));
+			vb.addBack(new VisChain(LinAlg.translate(bounces.get(i).pred_botlanding[0],
+				bounces.get(i).pred_botlanding[1], bounces.get(i).pred_botlanding[2]), land_basket));			
 		}
 		vb.swap();
 
