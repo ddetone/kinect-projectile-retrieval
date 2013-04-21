@@ -24,9 +24,9 @@ public class CatchController implements LCMSubscriber
 
 	final static long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final static long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
-	final static double BOT_DIST_FROM_KINECT_X = -1.81;
+	final static double BOT_DIST_FROM_KINECT_X = -1.51;
 	final static double BOT_DIST_FROM_KINECT_Y = 1.21;
-	final static double TARGET_DIST_FROM_KINECT_X = -1.81;
+	final static double TARGET_DIST_FROM_KINECT_X = -1.51;
 	final static double TARGET_DIST_FROM_KINECT_Y = 1.99;
 	final static double TARGET_WIDTH = 1.23;
 	final static double TARGET_HEIGHT = .92;
@@ -319,7 +319,7 @@ public class CatchController implements LCMSubscriber
 				started = true;
 				xyt_t spot = new xyt_t();
 				spot.utime = TimeUtil.utime();
-				spot.xyt[0] = 1d;
+				spot.xyt[0] = 0.5d;
 				spot.xyt[1] = 0.0d;
 				spot.xyt[2] = 0.0d;
 				spot.goFast = true;
