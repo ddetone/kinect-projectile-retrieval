@@ -64,8 +64,7 @@ public class PoseGenerator implements LCMSubscriber
 		}
 		lcm.subscribe("6_MOTOR_FEEDBACK", this);
 		lcm.subscribe("6_BATTERY", this);
-		
-	
+		lcm.subscribe("6_RESET",this);
 	}
 
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
@@ -86,6 +85,10 @@ public class PoseGenerator implements LCMSubscriber
 			}
 			else if(channel.equals("6_BATTERY")){
 				battery = new battery_t(dins);
+			}
+			else if(channel.equals("6_RESET")){
+				pimu = new Pimu(false);
+				pimu.calibrate();
 			}
 		}
 		catch (IOException e)
