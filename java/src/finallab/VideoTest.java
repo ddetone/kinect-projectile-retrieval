@@ -11,12 +11,15 @@ import java.awt.event.WindowListener;
 import java.awt.event.WindowEvent;
 import java.io.*;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 import org.openkinect.freenect.Context;
 import org.openkinect.freenect.Device;
 import org.openkinect.freenect.Freenect;
 
 import april.util.JImage;
+import april.util.ParameterGUI;
+import april.util.ParameterListener;
 
 import finallab.CalibrateCam.WindowClose;
 import finallab.lcmtypes.ball_t;
@@ -36,6 +39,8 @@ public class VideoTest {
 	boolean newImage = false;
 	Statistics BALL;
 	
+	Point3D calPoint;
+	
 	public VideoTest() {
 		ctx = Freenect.createContext();
 		if (ctx.numDevices() > 0) {
@@ -43,18 +48,18 @@ public class VideoTest {
 		} else {
 			System.err.println("WARNING: No kinects detected");
 		}
-		
+		calPoint = new Point3D();
 		
 		windowRGB = new JFrame("RGB camera");
 		windowRGB.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		rgbVideo = new KinectRGBVideo(kinect,null, true);
+		rgbVideo = new KinectRGBVideo(kinect, new Object(), true);
 		windowRGB.setSize(640, 480);
 		windowRGB.setContentPane(rgbVideo);
 		windowRGB.setVisible(true);
 		
 		windowDepth = new JFrame("Depth camera");
 		windowDepth.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		depthVideo = new KinectDepthVideo(kinect, null, true);
+		depthVideo = new KinectDepthVideo(kinect, new Object(), true);
 		windowDepth.setSize(640, 480);
 		windowDepth.setContentPane(depthVideo);
 		windowDepth.setVisible(true);
@@ -64,8 +69,10 @@ public class VideoTest {
 	}
 	public static void main(String[] args) {
 		final VideoTest vt = new VideoTest();
+		depthImageCalTest(vt);
 		// depthUnionFindTest(vt);
-		RGBtoDepthTest(vt);
+//		RGBtoDepthTest(vt);
+		
 		
 
 	}
@@ -186,5 +193,38 @@ public class VideoTest {
 		vt.rgbVideo.addMouseListener(ml);
 
 	}
+	public static void depthImageCalTest(final VideoTest vt) {
+		JFrame camSliders = new JFrame("param sliders");
+		ParameterGUI pg = new ParameterGUI();
+		pg.addIntSlider("cx", "cx", 0, 50, 0);
+		pg.addIntSlider("cy", "cy", 0, 50, 0);
+		pg.addDoubleSlider("f", "f", 200, 1000, 585.124);
+		pg.addDoubleSlider("calX", "point x", -3d, 3d, 0d);
+		pg.addDoubleSlider("calY", "point y", 0d, 4d, 0d);
+		pg.addDoubleSlider("calZ", "point z", 0d, 4d, 0d);
+		
+		camSliders.setSize(800, 600);
+		camSliders.add(pg);
+		camSliders.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		camSliders.setVisible(true);
+		pg.addListener(new ParameterListener() {
+			@Override
+			public void parameterChanged(ParameterGUI _pg, String name) {
+				vt.depthVideo.setParams(_pg.gi("cx"), _pg.gi("cy"), _pg.gd("f"));
+				vt.depthVideo.balls.clear();
+				vt.depthVideo.balls.add(vt.depthVideo.getPixFromWorld(vt.calPoint));
+				
+				vt.calPoint.x = _pg.gd("calX");
+				vt.calPoint.y = _pg.gd("calY");
+				vt.calPoint.z = _pg.gd("calZ");
+				
+				vt.depthVideo.balls.clear();
+				vt.depthVideo.balls.add(vt.depthVideo.getPixFromWorld(vt.calPoint));
+				
+			}
+		});
+		
+	}
+	
 
 }

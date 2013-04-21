@@ -232,7 +232,7 @@ public class BallDetector extends Thread
 				botStart = depthStream.getWorldCoords(botPix);	
 				botStart.z += 0.08;
 				System.out.println("botStart: " + botStart.toString());
-				depthStream.showSubtraction();	
+//				depthStream.showSubtraction();	
 				depthStream.botLoc = botPix;
 			}
 		});

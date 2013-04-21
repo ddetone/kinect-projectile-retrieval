@@ -5,6 +5,7 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.concurrent.locks.*;
 
 import javax.swing.JPanel;
@@ -27,14 +28,19 @@ public abstract class KinectVideo extends JPanel {
 	protected Object imgMonitor;
 
 	protected ReadWriteLock frameLock;
+	
+	ArrayList<Point> balls;
 
 	//calibration params
 	protected double f;
+	protected int cx;
+	protected int cy;
 	
 	public KinectVideo(Device kinect, Object _imgMonitor, boolean _display) {
 		setPreferredSize(new Dimension(WIDTH, HEIGHT));
 		display = _display;
 		imgMonitor = _imgMonitor;
+		balls = new ArrayList<Point>();
 		if (display)
 			frame = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
 		frameLock = new ReentrantReadWriteLock();
@@ -43,6 +49,17 @@ public abstract class KinectVideo extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        for (Point ball : balls) {
+        	for (int y = ball.y - 3; y < ball.y + 3; y++) {
+				for (int x = ball.x - 3; x < ball.x + 3; x++) {
+					try {
+						frame.setRGB(x, y, 0xFFFF0000);
+					} catch (Exception e) {
+						// System.out.println(x + " " + y);
+					};
+				}
+			}
+        }
         g.drawImage(frame, 0, 0, null);           
     }
     
@@ -56,16 +73,21 @@ public abstract class KinectVideo extends JPanel {
     public Point3D getWorldCoords(Point p, double depth) {
     	Point3D world = new Point3D();
 		world.z = depth;
-		world.x = (p.x) * (world.z / f);
-		world.y = (p.y) * (world.z / f);
+		world.x = (p.x + cx) * (world.z / f);
+		world.y = (p.y + cy) * (world.z / f);
 		return world;
     }
 	public Point getPixFromWorld(Point3D world) {
 		// world.x += RGB_DEPTH_DIST;
 		Point pix = new Point();
-		pix.x = (int)(f * world.x / world.z);
-		pix.y = (int)(f * world.y / world.z);
+		pix.x = (int)(f * world.x / world.z) - cx;
+		pix.y = (int)(f * world.y / world.z) - cy;
 		return pix;
+	}
+	public void setParams(int _cx, int _cy, double _f) {
+		cx = _cx;
+		cy = _cy;
+		f = _f;
 	}
     public void pause() {
     	display = false;

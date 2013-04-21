@@ -55,7 +55,7 @@ public class Projectile extends VisEventAdapter
 	final boolean verbose = false;
 	final boolean verbose2 = false;
 	final double BASKET_HEIGHT = 0.28;
-	final double KINECT_HEIGHT = 0.79; //.77
+	final double KINECT_HEIGHT = 0.785; //.77
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	
 	boolean display = true;

@@ -42,6 +42,8 @@ public class CatchController implements LCMSubscriber
 	
 	Object ballLock;
 
+	// x=-2.07
+	// y = 2.11
 	CatchController(boolean _display, boolean _logs)
 	{
 		
