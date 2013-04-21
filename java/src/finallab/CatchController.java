@@ -24,10 +24,16 @@ public class CatchController implements LCMSubscriber
 
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
-	final double BOT_DIST_FROM_KINECT_X = -1.21;
+	final double BOT_DIST_FROM_KINECT_X = -1.81;
 	final double BOT_DIST_FROM_KINECT_Y = 1.21;
-	final double TARGET_DIST_FROM_KINECT_X = -1.21;
+	final double TARGET_DIST_FROM_KINECT_X = -1.81;
 	final double TARGET_DIST_FROM_KINECT_Y = 1.99;
+	final double TARGET_WIDTH = 1.23;
+	final double TARGET_HEIGHT = .92;
+	final double TARGET_MIN_Y = TARGET_DIST_FROM_KINECT_Y - TARGET_HEIGHT/2;
+	final double TARGET_MAX_Y = TARGET_DIST_FROM_KINECT_Y + TARGET_HEIGHT/2;
+	final double TARGET_MIN_X = TARGET_DIST_FROM_KINECT_X - TARGET_WIDTH/2;
+	final double TARGET_MAX_X = TARGET_DIST_FROM_KINECT_X + TARGET_WIDTH/2;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	final int BALLS_TO_WAIT_ON = 5;
 	LCM  lcm;
@@ -86,23 +92,37 @@ public class CatchController implements LCMSubscriber
 		if ((bounces == null) || (bounces.size() == 0))
 			return null;
 
-		Parabola bestParab = bounces.get(0);
-		double bestDist = Math.hypot(bestParab.pred_landing[0] - TARGET_DIST_FROM_KINECT_X, bestParab.pred_landing[1] - TARGET_DIST_FROM_KINECT_Y);
-		for (int i = 1; i < bounces.size(); i++) {
+		Parabola bestParab = null;
+		double bestDist = 999999d;
+		int best = -1;
+		for (int i = 0; i < bounces.size(); i++) {
 			if (bounces.get(i) == null) {
 				continue;
 			}
 			Parabola curr = bounces.get(i);
-			double dist = Math.hypot(curr.pred_landing[0] - 1.21, curr.pred_landing[1] - 1.35); 
+			double [] land = curr.pred_landing;
+			if (land[0] > TARGET_MAX_X || land[0] < TARGET_MIN_X || land[1] > TARGET_MAX_Y || land[1] < TARGET_MIN_Y) {
+				System.out.println("bounce ind " + i + " oob");
+				continue;
+			}
+			double dist = Math.hypot(curr.pred_landing[0] - TARGET_DIST_FROM_KINECT_X, curr.pred_landing[1] - TARGET_DIST_FROM_KINECT_Y); 
 			if (dist < bestDist) {
 				bestParab = curr;
+				best = i;
+				bestDist = dist;
+				System.out.println("best dist: " + bestDist);
 			}
 	//		System.out.println("Points x y z :" + point[0] + " " + point[1] + " "
 	//				+ point[2]);
 	
 		}
+		
+		if (bestParab == null) {
+			return null;
+		}
+		System.out.println("best ind: " + best);
 		// convert from points of kinect to points in front of robot
-		Point3D landing = convertToPointRobotNonMat(bestParab.pred_landing);
+		Point3D landing = convertToPointRobotNonMat(bestParab.pred_botlanding);
 		//if there's a bounce, wait for 5 balls before we start sending waypoints again
 		if (bestParab.balls_in_parab == 0 || bestParab.balls_in_parab > (BALLS_TO_WAIT_ON - 1))
 			return landing;
