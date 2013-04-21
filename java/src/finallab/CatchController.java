@@ -24,8 +24,10 @@ public class CatchController implements LCMSubscriber
 
 	final long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
-	final double BOT_DIST_FROM_KINECT_X = -1.215;
-	final double BOT_DIST_FROM_KINECT_Y = .61;
+	final double BOT_DIST_FROM_KINECT_X = -1.21;
+	final double BOT_DIST_FROM_KINECT_Y = 1.21;
+	final double TARGET_DIST_FROM_KINECT_X = -1.21;
+	final double TARGET_DIST_FROM_KINECT_Y = 1.99;
 	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	final int BALLS_TO_WAIT_ON = 5;
 	LCM  lcm;
@@ -85,7 +87,7 @@ public class CatchController implements LCMSubscriber
 			return null;
 
 		Parabola bestParab = bounces.get(0);
-		double bestDist = Math.hypot(bestParab.pred_landing[0] - 1.21, bestParab.pred_landing[1] - 1.35);
+		double bestDist = Math.hypot(bestParab.pred_landing[0] - TARGET_DIST_FROM_KINECT_X, bestParab.pred_landing[1] - TARGET_DIST_FROM_KINECT_Y);
 		for (int i = 1; i < bounces.size(); i++) {
 			if (bounces.get(i) == null) {
 				continue;
@@ -166,10 +168,10 @@ public class CatchController implements LCMSubscriber
 						spot.goFast = true;
 						newWayPoint = land.clone();
 						// go to point at bounce index
-//						if (!logs) {
+						if (!logs) {
 							lcm.publish("6_WAYPOINT",spot);
 							System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
-//						}
+						}
 						if (display)
 							predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X,BOT_DIST_FROM_KINECT_Y,0.0),spot.xyt);
 						
@@ -292,7 +294,7 @@ public class CatchController implements LCMSubscriber
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			if(!started/* && !logs*/)
+			if(!started)
 			{
 				started = true;
 				xyt_t spot = new xyt_t();
@@ -318,7 +320,8 @@ public class CatchController implements LCMSubscriber
 			home.xyt[1] = 0.0d;
 			home.xyt[2] = 0.0d;
 			// go home
-			lcm.publish("6_WAYPOINT",home);
+			if (!logs)
+				lcm.publish("6_WAYPOINT",home);
 			started = false;
 		}
 		else if (channel.equals("6_WAYPOINT")) {
