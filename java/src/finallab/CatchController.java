@@ -24,8 +24,9 @@ public class CatchController implements LCMSubscriber
 
 	final static long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final static long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
+	final static double BOX_Y = .1;
 	final static double BOT_DIST_FROM_KINECT_X = -1.52;
-	final static double BOT_DIST_FROM_KINECT_Y = 1.22;
+	final static double BOT_DIST_FROM_KINECT_Y = 1.22 + BOX_Y;
 	final static double TARGET_DIST_FROM_KINECT_X = -1.52;
 	final static double TARGET_DIST_FROM_KINECT_Y = 2.29;
 	final static double TARGET_WIDTH = 1.22;

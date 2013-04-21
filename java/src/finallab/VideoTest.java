@@ -199,8 +199,8 @@ public class VideoTest {
 		pg.addIntSlider("cx", "cx", 0, 50, 0);
 		pg.addIntSlider("cy", "cy", 0, 50, 0);
 		pg.addDoubleSlider("f", "f", 200, 1000, 585.124);
-		pg.addDoubleSlider("calX", "point x", -3d, 3d, 0d);
-		pg.addDoubleSlider("calY", "point y", 0d, 4d, 0d);
+		pg.addDoubleSlider("calX", "point x", -2d, 2d, 0d);
+		pg.addDoubleSlider("calY", "point y", -1d, 3d, 0d);
 		pg.addDoubleSlider("calZ", "point z", 0d, 4d, 0d);
 		
 		camSliders.setSize(800, 600);
@@ -219,7 +219,11 @@ public class VideoTest {
 				vt.calPoint.z = _pg.gd("calZ");
 				
 				vt.depthVideo.balls.clear();
-				vt.depthVideo.balls.add(vt.depthVideo.getPixFromWorld(vt.calPoint));
+				Point pixCoord = vt.depthVideo.getPixFromWorld(vt.calPoint);
+				Point pix = new Point();
+				pix.x = pixCoord.x + KinectVideo.C_X;
+				pix.y = KinectVideo.C_Y - pixCoord.y;
+				vt.depthVideo.balls.add(pix);
 				
 			}
 		});

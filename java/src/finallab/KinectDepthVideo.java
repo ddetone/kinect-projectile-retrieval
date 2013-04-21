@@ -51,7 +51,9 @@ public class KinectDepthVideo extends KinectVideo {
 		}
 		
 
-		f = 585.124;
+		f = 580;
+		cx = 5;
+		cy = 17;
 
 		kinect.setDepthFormat(DepthFormat.D11BIT);
 		kinect.startDepth(new DepthHandler() {
