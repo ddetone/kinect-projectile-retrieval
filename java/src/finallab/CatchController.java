@@ -22,20 +22,20 @@ public class CatchController implements LCMSubscriber
 	boolean logs = false;
 	boolean started = false;
 
-	final long TURNINGSCALE = (long)((.2)*1000000000.0);
-	final long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
-	final double BOT_DIST_FROM_KINECT_X = -1.81;
-	final double BOT_DIST_FROM_KINECT_Y = 1.21;
-	final double TARGET_DIST_FROM_KINECT_X = -1.81;
-	final double TARGET_DIST_FROM_KINECT_Y = 1.99;
-	final double TARGET_WIDTH = 1.23;
-	final double TARGET_HEIGHT = .92;
-	final double TARGET_MIN_Y = TARGET_DIST_FROM_KINECT_Y - TARGET_HEIGHT/2;
-	final double TARGET_MAX_Y = TARGET_DIST_FROM_KINECT_Y + TARGET_HEIGHT/2;
-	final double TARGET_MIN_X = TARGET_DIST_FROM_KINECT_X - TARGET_WIDTH/2;
-	final double TARGET_MAX_X = TARGET_DIST_FROM_KINECT_X + TARGET_WIDTH/2;
-	final double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
-	final int BALLS_TO_WAIT_ON = 5;
+	final static long TURNINGSCALE = (long)((.2)*1000000000.0);
+	final static long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
+	final static double BOT_DIST_FROM_KINECT_X = -1.81;
+	final static double BOT_DIST_FROM_KINECT_Y = 1.21;
+	final static double TARGET_DIST_FROM_KINECT_X = -1.81;
+	final static double TARGET_DIST_FROM_KINECT_Y = 1.99;
+	final static double TARGET_WIDTH = 1.23;
+	final static double TARGET_HEIGHT = .92;
+	final static double TARGET_MIN_Y = TARGET_DIST_FROM_KINECT_Y - TARGET_HEIGHT/2;
+	final static double TARGET_MAX_Y = TARGET_DIST_FROM_KINECT_Y + TARGET_HEIGHT/2;
+	final static double TARGET_MIN_X = TARGET_DIST_FROM_KINECT_X - TARGET_WIDTH/2;
+	final static double TARGET_MAX_X = TARGET_DIST_FROM_KINECT_X + TARGET_WIDTH/2;
+	final static double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
+	final static int BALLS_TO_WAIT_ON = 5;
 	LCM  lcm;
 	
 	Object ballLock;

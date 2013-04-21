@@ -451,9 +451,9 @@ public class Projectile extends VisEventAdapter
 		VzBox kinectTable = new VzBox(.4,.3,KINECT_HEIGHT-.07,new VzMesh.Style(Color.white));
 		VisChain table = new VisChain(LinAlg.translate(0,0,(KINECT_HEIGHT-.07)/2.0),kinectTable);
 		vb.addBack(table);
-		VzBox targetZone = new VzBox(0.91, 0.91, 0.001, new VzMesh.Style(Color.green));
+		VzBox targetZone = new VzBox(CatchController.TARGET_WIDTH, CatchController.TARGET_HEIGHT, 0.001, new VzMesh.Style(Color.green));
 		//TODO: hard-coded target
-		VisChain target = new VisChain(LinAlg.translate(-.91, 1.67, 0.0001), targetZone);
+		VisChain target = new VisChain(LinAlg.translate(CatchController.TARGET_DIST_FROM_KINECT_X, CatchController.TARGET_DIST_FROM_KINECT_Y, 0.0001), targetZone);
 		vb.addBack(target);
 	}
 
