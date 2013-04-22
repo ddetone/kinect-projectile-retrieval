@@ -726,6 +726,14 @@ public class Projectile extends VisEventAdapter
 		
 		vb.swap();
 	}
+
+	public void PrintBattery(double voltage)
+	{
+		VisWorld.Buffer vb = vw.getBuffer("Battery");
+		vb.addBack(new VisPixCoords(VisPixCoords.ORIGIN.TOP_RIGHT, new VzText(VzText.ANCHOR.TOP_RIGHT, 
+									"<<sansserif-bold-16,white>>BATTERY VOLTAGE:" + String.format("%.4g%n", voltage))));
+		vb.swap();
+	}
 	
 	/*
 	//prints point coords when user clicks

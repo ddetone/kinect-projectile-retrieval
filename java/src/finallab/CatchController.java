@@ -75,6 +75,7 @@ public class CatchController implements LCMSubscriber
 		if (display) {
 			lcm.subscribe("6_WAYPOINT", this);
 			lcm.subscribe("6_POSE", this);
+			lcm.subscribe("6_BATTERY", this);
 		}
 	}
 
@@ -344,15 +345,6 @@ public class CatchController implements LCMSubscriber
 				started = false;
 			}
 		}
-		else if (channel.equals("6_WAYPOINT")) {
-			try {
-				xyt_t point = new xyt_t(dins);
-				if (display)
-					predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
-			} catch (Exception e) {
-//				System.out.println("6_waypoint translation error catchcontroller");
-			}
-		}
 		else if(channel.equals("6_POSE"))
 		{
 			try
@@ -405,6 +397,34 @@ public class CatchController implements LCMSubscriber
 			else
 				predictor.scoreBoard.clearScoreboard();	
 		}
+
+		if (display)
+		{
+			if (channel.equals("6_WAYPOINT")) {
+				try
+				{
+					xyt_t point = new xyt_t(dins);
+					predictor.drawRobotEnd(new Point3D(BOT_DIST_FROM_KINECT_X, BOT_DIST_FROM_KINECT_Y, 0), point.xyt);
+				}
+				catch(Exception e)
+				{
+					System.out.println("Dins coding error 6_WAYPOINT");
+				}
+			}
+			else if (channel.equals("6_BATTERY")) {
+				try
+				{
+					battery_t battery = new battery_t(dins);
+					predictor.PrintBattery(battery.voltage);
+				}
+				catch(Exception e)
+				{
+					System.out.println("Dins coding error 6_BATTERY");
+				}
+			}
+		}
+
+		
 		
 	}
 		
