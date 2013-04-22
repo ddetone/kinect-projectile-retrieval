@@ -94,8 +94,9 @@ public class CatchController implements LCMSubscriber
 	}
 
 	Point3D determineBounceCatch(ArrayList<Parabola> bounces) {
-		if ((bounces == null) || (bounces.size() == 0))
+		if ((bounces == null) || (bounces.size() == 0)) {
 			return null;
+		}
 
 		Parabola bestParab = null;
 		double bestDist = 999999d;
@@ -123,7 +124,6 @@ public class CatchController implements LCMSubscriber
 		}
 		
 		if (bestParab == null) {
-			System.out.println("no waypoints in target zone");
 			return null;
 		}
 //		System.out.println("best ind: " + best);
@@ -133,7 +133,6 @@ public class CatchController implements LCMSubscriber
 		if (bestParab.balls_in_parab == 0 || bestParab.balls_in_parab > (BALLS_TO_WAIT_ON - 1))
 			return landing;
 		else {
-			System.out.println("waiting for better bounce prediction");
 			return null;
 		}
 
@@ -149,7 +148,7 @@ public class CatchController implements LCMSubscriber
 		int nextState = 0;
 		ball_t ball;
 		Point3D newWayPoint = new Point3D(0.0,0.0,0.0);
-//		System.out.println("waiting for landing point");
+		System.out.println("waiting for landing point");
 		do {
 			
 			
@@ -159,7 +158,8 @@ public class CatchController implements LCMSubscriber
 			}
 		}
 		while(bounces == null || bounces.size() == 0 || !bounces.get(0).valid);
-//		System.out.println("done waiting for bounces");
+		
+		System.out.println("done waiting for bounces");
 		double[][] startingBounces = new double[2][bounces.size()];
 		for(int i = 0; i < bounces.size(); i++)
 		{
@@ -200,7 +200,7 @@ public class CatchController implements LCMSubscriber
 						// go to point at bounce index
 						if (!logs) {
 							lcm.publish("6_WAYPOINT",spot);
-//							System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
+							System.out.println("sending waypoint - LX: " + spot.xyt[0] + ", LY: " + spot.xyt[1] + "  (" + System.currentTimeMillis() + ")");
 						}
 						
 //						for(int i = 0; i < bounces.size(); i++)
@@ -380,7 +380,9 @@ public class CatchController implements LCMSubscriber
 			home.xyt[2] = 0.0d;
 			if (!logs)
 				lcm.publish("6_WAYPOINT",home);
-			predictor.scoreBoard.addToHuman();
+			else
+				predictor.scoreBoard.addToHuman();
+
 		}
 		else if(channel.equals("6_SCORE_ROBOT"))
 		{
@@ -391,7 +393,8 @@ public class CatchController implements LCMSubscriber
 			human.xyt[2] = 0.0d;
 			if (!logs)
 				lcm.publish("6_WAYPOINT",human);
-			predictor.scoreBoard.addToRobot();
+			else
+				predictor.scoreBoard.addToRobot();
 		}
 		else if(channel.equals("6_SCORE_RESET"))
 		{
@@ -402,7 +405,8 @@ public class CatchController implements LCMSubscriber
 			home.xyt[2] = 0.0d;
 			if (!logs)
 				lcm.publish("6_WAYPOINT",home);
-			predictor.scoreBoard.clearScoreboard();	
+			else
+				predictor.scoreBoard.clearScoreboard();	
 		}
 		
 	}

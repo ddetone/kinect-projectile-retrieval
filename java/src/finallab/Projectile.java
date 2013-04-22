@@ -49,8 +49,8 @@ public class Projectile extends VisEventAdapter
 	final double ball_radius = 0.032; 		//must be in meters
 	final double DEFAULT_ERROR_THRESH = 0.05;
 	double bounce_factor = 0.8; 		//% bounce is retained
-	final int num_bounces = 3;
-	final int num_regression = 8; //the max number of recent balls used in regression
+	final int num_bounces = 5;
+	final int num_regression = 20; //the max number of recent balls used in regression
 	final boolean DEFAULT_RESET = false;	//used in debugging
 	final boolean verbose = false;
 	final boolean verbose2 = false;
@@ -125,7 +125,6 @@ public class Projectile extends VisEventAdapter
 		bounce_index = 0;
 	}
 
-	//TODO: wait for 5-8 balls before sending waypoints after bounce
 	Projectile(boolean _display)
 	{
 		if(_display)

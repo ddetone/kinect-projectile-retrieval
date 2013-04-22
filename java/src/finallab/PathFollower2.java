@@ -104,7 +104,6 @@ public class PathFollower2 implements LCMSubscriber
 	PathFollower2(boolean gs)
 	{
 		poseGen = new PoseGenerator();
-		poseGen.start();
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
 		}
@@ -190,6 +189,7 @@ public class PathFollower2 implements LCMSubscriber
 		lcm.subscribe("6_POSE",this);
 		lcm.subscribe("6_WAYPOINT",this);
 		lcm.subscribe("6_PARAMS", this);
+		lcm.subscribe("6_RESET", this);
 
 	}
 
@@ -222,7 +222,6 @@ public class PathFollower2 implements LCMSubscriber
 
 	void moveRobotForward()
 	{
-//		double pid = sPIDAngle.getOutput(errorAngle);
 		double right = 0;
 		double left = 0;
 		double turnSpeed = Math.abs(sPIDAngle.getOutput(errorAngle));
@@ -231,19 +230,13 @@ public class PathFollower2 implements LCMSubscriber
 		if (errorAngle > 0) {
 			right = MAX_SPEED;
 			left = MAX_SPEED - turnSpeed;
-//			if (left < 0) {
-//				left = 0;
-//			}
 		}
 		else {
 			left = MAX_SPEED;
 			right = MAX_SPEED - turnSpeed;
-//			if (right < 0) {
-//				right = 0;
-//			}
 		}
 		
-		double scaleFactor = (Math.log(20*Math.abs(errorDist) + 3) * SPEED_SCALE);
+		double scaleFactor = (Math.log(20*Math.abs(errorDist) + 5) * SPEED_SCALE);
 		right *= scaleFactor;
 		left *= scaleFactor;
 
@@ -478,8 +471,9 @@ public class PathFollower2 implements LCMSubscriber
 				sPIDAngle.changeParams(params.xyt);
 			}
 			else if (channel.equals("6_RESET")) {
-				poseGen = new PoseGenerator();
-				poseGen.start();
+				poseGen.bot.xyt[0] = 0;
+				poseGen.bot.xyt[1] = 0;
+				poseGen.pimu.recalibrate();
 			}
 		}
 		catch (IOException e)
