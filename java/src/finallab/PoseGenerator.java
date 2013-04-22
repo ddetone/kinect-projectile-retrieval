@@ -25,38 +25,35 @@ public class PoseGenerator extends Thread implements LCMSubscriber
 	LCM lcm;
 	motor_feedback_t motors;
 
-	public static int[] encoder_curr = new int[2];
-	public static int[] encoder_prev = new int[2];
+	public int[] encoder_curr;
+	public int[] encoder_prev;
 
 	//pose global
 	//public static double poseG[] = new double[3];
-	public static bot_status_t bot = new bot_status_t();
-	public battery_t battery = new battery_t();
+	public bot_status_t bot;
+	public battery_t battery;
 
 	//Determined emperically
 	static final double metersPerTick = 0.000194;
 	static final double base = 18.8/100.0;
 
-	static boolean first = true;
-
-	//covariance
-	double[][] sigmaB = new double[3][3];
-	double[][] sigmaA = new double[3][3];
-	double[][] sigmaT = new double[3][3];
+	boolean first;
 
 	Pimu pimu;
+	volatile boolean running;
 	
-	double yawsum=0;
 
-	PoseGenerator()
+	PoseGenerator() 
 	{
+		encoder_curr = new int[2];
+		encoder_prev = new int[2];
+		bot = new bot_status_t();
+		battery = new battery_t();
+		first = true;
+		running = true;
 		pimu = new Pimu(false);
 		pimu.calibrate();
 
-		//initial uncertainty
-		sigmaA = new double[][]{{0.00001,0,0},
-					{0,0.00001,0},
-					{0,0,0.00001}};
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
 		}catch(IOException e){
@@ -166,55 +163,23 @@ public class PoseGenerator extends Thread implements LCMSubscriber
 		*/
 
 	}
-
-
-	public void computeCov(double[] xyt_A, double[] xyt_B, double[] xyt_T)
+	
+	public void stopThread()
 	{
-		double alpha 	= 0.1;	//uncertainty of X direction, based on X
-		double bravo  	= 0.01; //uncertainty of Y direction, based on X (assume no lateral movement)
-		double charlie 	= 0.1;  //uncertainty of Theta, based on Theta
-
-		double sigmaT_xx = (alpha*xyt_T[0])*(alpha*xyt_T[0]);
-		double sigmaT_yy = (bravo *xyt_T[0])*(bravo *xyt_T[0]);
-		double sigmaT_tt = (charlie*xyt_T[2])*(charlie*xyt_T[2]);
-
-		sigmaT = new double[][]{{sigmaT_xx, 0, 0},
-								{0, sigmaT_yy, 0},
-								{0, 0, sigmaT_tt}};
-
-		double sa = Math.sin(xyt_A[2]);
-		double ca = Math.cos(xyt_A[2]);
-		double xt = xyt_T[0];
-		double yt = xyt_T[1];
-
-		double[][] Ja = new double[][]{	{1, 0,-xt*sa-yt*ca },
-						{0, 1, xt*ca-yt*sa },
-						{0, 0, 1}};
-
-		double[][] Jt = new double[][]{	{ca,-sa, 0 },
-						{sa, ca, 0 },
-						{0 , 0 , 1 }};
-
-		double[][] Jt_T = LinAlg.transpose(Jt);
-		double[][] Ja_T = LinAlg.transpose(Ja);
-
-		sigmaB = LinAlg.add(LinAlg.matrixABC(Ja,sigmaA,Ja_T) , LinAlg.matrixABC(Jt,sigmaT,Jt_T));
-		sigmaA = LinAlg.copy(sigmaB);
-
+		running = false;
 	}
-
+	
 	public void run()
 	{
-		/* Subscribe to 6_POSE */
-		while(true){
+		while (running) {
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 			}
 			catch(Exception e) {
 				e.printStackTrace();
 			}
 		}
+		System.out.println("done running");
+		
 	}
-
-
 }

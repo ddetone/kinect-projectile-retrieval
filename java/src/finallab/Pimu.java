@@ -28,23 +28,23 @@ public class Pimu implements LCMSubscriber
 	static JFrame jf;  
 	  
 	//Gyro and Accelerometer values
-	public static double[] RPYdot = new double[8]; 	
-	public static double[] XYZdot = new double[3];
-	public static double yaw;
+	public double[] RPYdot; 	
+	public double[] XYZdot;
+	public double yaw;
 	
-	public static int[] prev_integrator = new int[8];	
-	public static int[] integrator = new int[8];
-	public static int[] prev_accel = new int[3];	
-	public static int[] accel = new int[3];	
+	public int[] prev_integrator;	
+	public int[] integrator;
+	public int[] prev_accel;	
+	public int[] accel;	
 	
-	public static double[] sum_angvel = new double[8];
-	public static double[] sum_accel = new double[8];
+	public double[] sum_angvel;
+	public double[] sum_accel;
 
-	public static double[] RPYdiff = new double[8]; 	
-	public static double[] XYZdiff = new double[3];
+	public double[] RPYdiff; 	
+	public double[] XYZdiff;
 		
-	public static double prev_time,time;
-	public static int num_calibs;
+	public double prev_time,time;
+	public int num_calibs;
 
 	static final int NUMCALIBRATIONS = 100;
 
@@ -56,6 +56,16 @@ public class Pimu implements LCMSubscriber
 	
 	Pimu(boolean DisplayGUI)
 	{
+		RPYdot = new double[8]; 
+		XYZdot = new double[3];
+		prev_integrator = new int[8];
+		integrator = new int[8];
+		prev_accel = new int[3];
+		accel = new int[3];
+		sum_angvel = new double[8];
+		sum_accel = new double[8];
+		RPYdiff = new double[8];
+		XYZdiff = new double[3];	
 	
 		if (DisplayGUI)
 		{	
@@ -105,9 +115,29 @@ public class Pimu implements LCMSubscriber
 	
 	public void calibrate()
 	{
-		calibrating = true;
+		calibrating=true;
 	}
 
+	public void recalibrate()
+	{
+		num_calibs = 0;
+		prev_time=0;
+		calibrating=true;
+		calibdone=false;
+		for (int i=0; i<8; i++)
+		{
+			if (i<3)
+			{	
+				prev_accel[i] = 0;
+				sum_accel[i] = 0;
+				XYZdot[i] = 0;
+			}
+			prev_integrator[i] = 0;
+			sum_angvel[i] = 0;
+			RPYdot[i] = 0;
+		}
+	}
+	
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
 	{
 	
