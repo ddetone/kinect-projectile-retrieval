@@ -25,10 +25,10 @@ public class CatchController implements LCMSubscriber
 	final static long TURNINGSCALE = (long)((.2)*1000000000.0);
 	final static long MOVEMENTSCALE = (long)((1.0)*1000000000.0);
 	final static double BOX_Y = .1;
-	final static double BOT_DIST_FROM_KINECT_X = -1.52;
-	final static double BOT_DIST_FROM_KINECT_Y = 1.22 + BOX_Y;
-	final static double TARGET_DIST_FROM_KINECT_X = -1.52;
-	final static double TARGET_DIST_FROM_KINECT_Y = 2.29;
+	final static double BOT_DIST_FROM_KINECT_X = -1.505;
+	final static double BOT_DIST_FROM_KINECT_Y = 0.91;
+	final static double TARGET_DIST_FROM_KINECT_X = -1.505;
+	final static double TARGET_DIST_FROM_KINECT_Y = 1.67;
 	final static double TARGET_WIDTH = 1.22;
 	final static double TARGET_HEIGHT = .91;
 	final static double TARGET_MIN_Y = TARGET_DIST_FROM_KINECT_Y - TARGET_HEIGHT/2;
@@ -38,7 +38,7 @@ public class CatchController implements LCMSubscriber
 	final static double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	final static int BALLS_TO_WAIT_ON = 5;
 	final static double HUMAN_LOC_Y = TARGET_DIST_FROM_KINECT_Y;
-	final static double HUMAN_LOC_X = .3;
+	final static double HUMAN_LOC_X = 2.0;
 	LCM  lcm;
 	
 	Object ballLock;
@@ -69,12 +69,12 @@ public class CatchController implements LCMSubscriber
 		//receive = lcm;
 		lcm.subscribe("6_BALL", this);	
 		lcm.subscribe("6_RESET", this);
+		lcm.subscribe("6_SCORE_HUMAN", this);
+		lcm.subscribe("6_SCORE_ROBOT", this);
+		lcm.subscribe("6_SCORE_RESET", this);	
 		if (display) {
 			lcm.subscribe("6_WAYPOINT", this);
 			lcm.subscribe("6_POSE", this);
-			lcm.subscribe("6_SCORE_HUMAN", this);
-			lcm.subscribe("6_SCORE_ROBOT", this);
-			lcm.subscribe("6_SCORE_RESET", this);	
 		}
 	}
 

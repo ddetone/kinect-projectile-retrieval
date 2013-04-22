@@ -18,9 +18,9 @@ import finallab.lcmtypes.*;
 
 import lcm.lcm.*;
 
-public class PoseGenerator implements LCMSubscriber
+public class PoseGenerator extends Thread implements LCMSubscriber
 {
-	//This class would publish pose messages periadically
+	//This class would publish pose messages periodically
 
 	LCM lcm;
 	motor_feedback_t motors;
@@ -64,7 +64,6 @@ public class PoseGenerator implements LCMSubscriber
 		}
 		lcm.subscribe("6_MOTOR_FEEDBACK", this);
 		lcm.subscribe("6_BATTERY", this);
-		lcm.subscribe("6_RESET",this);
 	}
 
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
@@ -85,10 +84,6 @@ public class PoseGenerator implements LCMSubscriber
 			}
 			else if(channel.equals("6_BATTERY")){
 				battery = new battery_t(dins);
-			}
-			else if(channel.equals("6_RESET")){
-				pimu = new Pimu(false);
-				pimu.calibrate();
 			}
 		}
 		catch (IOException e)
@@ -208,13 +203,16 @@ public class PoseGenerator implements LCMSubscriber
 
 	}
 
-	public static void main(String[] args) throws Exception
+	public void run()
 	{
-		PoseGenerator pg = new PoseGenerator();
-
 		/* Subscribe to 6_POSE */
 		while(true){
-			Thread.sleep(1000);
+			try {
+				Thread.sleep(1000);
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

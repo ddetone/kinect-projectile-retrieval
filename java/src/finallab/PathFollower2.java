@@ -89,6 +89,8 @@ public class PathFollower2 implements LCMSubscriber
 	static final double HD_PID = 30000.0;
 	
 	static double SPEED_SCALE = 0.43;
+	
+	private PoseGenerator poseGen;
 
 	
 	double[] sPID = new double[]{SK_PID, SI_PID, SD_PID}; //PID for straight driving
@@ -101,6 +103,8 @@ public class PathFollower2 implements LCMSubscriber
 
 	PathFollower2(boolean gs)
 	{
+		poseGen = new PoseGenerator();
+		poseGen.start();
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
 		}
@@ -469,11 +473,13 @@ public class PathFollower2 implements LCMSubscriber
 					
 
 			}
-
-
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);
 				sPIDAngle.changeParams(params.xyt);
+			}
+			else if (channel.equals("6_RESET")) {
+				poseGen = new PoseGenerator();
+				poseGen.start();
 			}
 		}
 		catch (IOException e)

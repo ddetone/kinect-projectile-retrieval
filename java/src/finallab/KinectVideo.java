@@ -25,6 +25,7 @@ public abstract class KinectVideo extends JPanel {
 	protected ByteBuffer frameData;
 	protected int timestamp;
 	protected volatile boolean display;
+	
 	protected Object imgMonitor;
 
 	protected ReadWriteLock frameLock;
