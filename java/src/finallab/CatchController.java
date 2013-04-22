@@ -36,7 +36,7 @@ public class CatchController implements LCMSubscriber
 	final static double TARGET_MIN_X = TARGET_DIST_FROM_KINECT_X - TARGET_WIDTH/2;
 	final static double TARGET_MAX_X = TARGET_DIST_FROM_KINECT_X + TARGET_WIDTH/2;
 	final static double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
-	final static int BALLS_TO_WAIT_ON = 5;
+	final static int BALLS_TO_WAIT_ON = 8;
 	final static double HUMAN_LOC_Y = TARGET_DIST_FROM_KINECT_Y;
 	final static double HUMAN_LOC_X = 2.0;
 	LCM  lcm;
@@ -99,7 +99,7 @@ public class CatchController implements LCMSubscriber
 		}
 
 		Parabola bestParab = null;
-		double bestDist = 999999d;
+		double bestX = 999999d;
 		int best = -1;
 		for (int i = 0; i < bounces.size(); i++) {
 			if (bounces.get(i) == null) {
@@ -111,11 +111,11 @@ public class CatchController implements LCMSubscriber
 //				System.out.println("bounce ind " + i + " oob");
 				continue;
 			}
-			double dist = Math.hypot(curr.pred_landing[0] - TARGET_DIST_FROM_KINECT_X, curr.pred_landing[1] - TARGET_DIST_FROM_KINECT_Y); 
-			if (dist < bestDist) {
+//			double dist = Math.hypot(curr.pred_landing[0] - TARGET_DIST_FROM_KINECT_X, curr.pred_landing[1] - TARGET_DIST_FROM_KINECT_Y); 
+			if (land[0] < bestX) {
 				bestParab = curr;
 				best = i;
-				bestDist = dist;
+				bestX = land[0];
 //				System.out.println("best dist: " + bestDist);
 			}
 	//		System.out.println("Points x y z :" + point[0] + " " + point[1] + " "
@@ -128,7 +128,7 @@ public class CatchController implements LCMSubscriber
 		}
 //		System.out.println("best ind: " + best);
 		// convert from points of kinect to points in front of robot
-		Point3D landing = convertToPointRobotNonMat(bestParab.pred_landing);
+		Point3D landing = convertToPointRobotNonMat(bestParab.pred_botlanding);
 		//if there's a bounce, wait for 5 balls before we start sending waypoints again
 		if (bestParab.balls_in_parab == 0 || bestParab.balls_in_parab > (BALLS_TO_WAIT_ON - 1))
 			return landing;
@@ -153,9 +153,6 @@ public class CatchController implements LCMSubscriber
 			
 			
 			bounces = predictor.getParabolas();
-			while (bounces.get(0) == null) {
-				System.out.println("what the fuck");
-			}
 		}
 		while(bounces == null || bounces.size() == 0 || !bounces.get(0).valid);
 		
