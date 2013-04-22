@@ -370,10 +370,10 @@ public class BallDetector extends Thread
 						ballLCM.z = coord.z;
 						// if(tracking)
 						System.out.println("updating new ball (" + System.currentTimeMillis() + ")");
-						if (ballLCM.x > CatchController.TARGET_MAX_X)
+//						if (ballLCM.x > CatchController.TARGET_MAX_X)
 							lcm.publish("6_BALL", ballLCM);
-						else 
-							System.out.println("ball past target zone");
+//						else 
+//							System.out.println("ball past target zone");
 					}
 				}
 

@@ -35,6 +35,7 @@ public class CatchController implements LCMSubscriber
 	final static double TARGET_MAX_Y = TARGET_DIST_FROM_KINECT_Y + TARGET_HEIGHT/2;
 	final static double TARGET_MIN_X = TARGET_DIST_FROM_KINECT_X - TARGET_WIDTH/2;
 	final static double TARGET_MAX_X = TARGET_DIST_FROM_KINECT_X + TARGET_WIDTH/2;
+	final static double TARGET_PADDING = 0.3;
 	final static double BOT_THETA = Math.PI/2;//Math.atan2(BOT_DIST_FROM_KINECT_Y,BOT_DIST_FROM_KINECT_X);
 	final static int BALLS_TO_WAIT_ON = 8;
 	final static double HUMAN_LOC_Y = TARGET_DIST_FROM_KINECT_Y;
@@ -107,7 +108,8 @@ public class CatchController implements LCMSubscriber
 			}
 			Parabola curr = bounces.get(i);
 			double [] land = curr.pred_landing;
-			if (land[0] > TARGET_MAX_X || land[0] < TARGET_MIN_X || land[1] > TARGET_MAX_Y || land[1] < TARGET_MIN_Y) {
+			if (land[0] > TARGET_MAX_X || land[0] < (TARGET_MIN_X) || 
+				land[1] > (TARGET_MAX_Y + TARGET_PADDING) || land[1] < (TARGET_MIN_Y)) {
 //				System.out.println("bounce ind " + i + " oob");
 				continue;
 			}
@@ -124,6 +126,7 @@ public class CatchController implements LCMSubscriber
 		}
 		
 		if (bestParab == null) {
+			System.out.println("no balls in target zone");
 			return null;
 		}
 //		System.out.println("best ind: " + best);
@@ -133,6 +136,7 @@ public class CatchController implements LCMSubscriber
 		if (bestParab.balls_in_parab == 0 || bestParab.balls_in_parab > (BALLS_TO_WAIT_ON - 1))
 			return landing;
 		else {
+			System.out.println("waiting for better estimate");
 			return null;
 		}
 
@@ -180,7 +184,7 @@ public class CatchController implements LCMSubscriber
 					land = determineBounceCatch(bounces);
 					if(land == null)
 					{
-						System.out.println("land is null");
+				
 						nextState = 0;
 						break;
 					}
@@ -319,19 +323,19 @@ public class CatchController implements LCMSubscriber
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			if(!started)
-			{
-				started = true;
-				xyt_t spot = new xyt_t();
-				spot.utime = TimeUtil.utime();
-				spot.xyt[0] = 0.5d;
-				spot.xyt[1] = 0.0d;
-				spot.xyt[2] = 0.0d;
-				spot.goFast = true;
-				// go forward to save time
-//				System.out.println("sending go straight waypoint");
-				lcm.publish("6_WAYPOINT",spot);
-			}
+//			if(!started)
+//			{
+//				started = true;
+//				xyt_t spot = new xyt_t();
+//				spot.utime = TimeUtil.utime();
+//				spot.xyt[0] = 0.5d;
+//				spot.xyt[1] = 0.0d;
+//				spot.xyt[2] = 0.0d;
+//				spot.goFast = true;
+//				// go forward to save time
+////				System.out.println("sending go straight waypoint");
+//				lcm.publish("6_WAYPOINT",spot);
+//			}
 			predictor.update(ball);
 			synchronized (ballLock) {
 				ballLock.notify();
@@ -375,18 +379,23 @@ public class CatchController implements LCMSubscriber
 			home.xyt[0] = 0.0d;
 			home.xyt[1] = 0.0d;
 			home.xyt[2] = 0.0d;
-			if (!logs)
+			
+			if (!logs) {
 				lcm.publish("6_WAYPOINT",home);
-			else
+				System.out.println("logs is false");
+			}
+			else {
 				predictor.scoreBoard.addToHuman();
+				System.out.println("logs is true");
+			}
 
 		}
 		else if(channel.equals("6_SCORE_ROBOT"))
 		{
 			xyt_t human = new xyt_t();
 			human.utime = TimeUtil.utime();
-			human.xyt[0] = HUMAN_LOC_Y;
-			human.xyt[1] = -HUMAN_LOC_X;
+			human.xyt[0] = 0.0d;
+			human.xyt[1] = 0.0d;
 			human.xyt[2] = 0.0d;
 			if (!logs)
 				lcm.publish("6_WAYPOINT",human);

@@ -54,9 +54,9 @@ public class PidController
 		else
 			dt = currUtime - prevUtime;
 
-		integral += error*dt;
-		//integral += error;
-		System.out.println("integrator: " + integral);
+//		integral += error*dt;
+//		//integral += error;
+//		System.out.println("integrator: " + integral);
 
         if(isClampIntegrator){
             integral = LinAlg.clamp(integral, -clamp, clamp);

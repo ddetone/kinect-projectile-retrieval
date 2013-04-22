@@ -60,7 +60,8 @@ public class PoseGenerator extends Thread implements LCMSubscriber
 			this.lcm = LCM.getSingleton();
 		}
 		lcm.subscribe("6_MOTOR_FEEDBACK", this);
-		lcm.subscribe("6_BATTERY", this);
+//		lcm.subscribe("6_BATTERY", this);
+		lcm.subscribe("6_RESET", this);
 	}
 
 	public void messageReceived(LCM lcm, String channel, LCMDataInputStream dins)
@@ -81,6 +82,13 @@ public class PoseGenerator extends Thread implements LCMSubscriber
 			}
 			else if(channel.equals("6_BATTERY")){
 				battery = new battery_t(dins);
+				lcm.publish("6_BATTERY", battery);
+			}
+			else if (channel.equals("6_RESET")) {
+				bot.xyt[0] = 0;
+				bot.xyt[1] = 0;
+				bot.xyt[2] = 0;
+				pimu.recalibrate();
 			}
 		}
 		catch (IOException e)
@@ -164,22 +172,18 @@ public class PoseGenerator extends Thread implements LCMSubscriber
 
 	}
 	
-	public void stopThread()
-	{
-		running = false;
-	}
+
 	
-	public void run()
-	{
-		while (running) {
+	public static void main(String [] args) {
+		PoseGenerator pose = new PoseGenerator();
+		while (true) {
 			try {
-				Thread.sleep(100);
+				Thread.sleep(1000);
 			}
 			catch(Exception e) {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("done running");
 		
 	}
 }

@@ -77,7 +77,7 @@ public class PathFollower2 implements LCMSubscriber
 	static final double SK_PID = 0.8;
 //	static final double SI_PID = 0.00000005;
 	static final double SI_PID = 0.0;
-	static final double SD_PID = 31100;
+	static final double SD_PID = 40700;
 	static final double SI_CLAMP = 12000000;
 
 	static final double TK_PID = 0.20;
@@ -88,9 +88,9 @@ public class PathFollower2 implements LCMSubscriber
 	static final double HI_PID = 0.0;
 	static final double HD_PID = 30000.0;
 	
-	static double SPEED_SCALE = 0.7;
-	
-	private PoseGenerator poseGen;
+	static double SPEED_SCALE = 0.5;
+	static int LOG_OFFSET = 5;
+	static int LOG_SCALE = 10;
 
 	
 	double[] sPID = new double[]{SK_PID, SI_PID, SD_PID}; //PID for straight driving
@@ -103,7 +103,6 @@ public class PathFollower2 implements LCMSubscriber
 
 	PathFollower2(boolean gs)
 	{
-		poseGen = new PoseGenerator();
 		try{
 			this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
 		}
@@ -128,15 +127,17 @@ public class PathFollower2 implements LCMSubscriber
 			pg.addDoubleSlider("ski", "ski", 0d, 0.0000002d, SI_PID);
 			pg.addDoubleSlider("skd", "skd", 0d, 80000d, SD_PID);
 
-			pg.addDoubleSlider("tkp", "tkp", 0d, 1d, TK_PID);
-			pg.addDoubleSlider("tki", "tki", 0d, 1d, TI_PID);
-			pg.addDoubleSlider("tkd", "tkd", 0d, 80000d, TD_PID);
+//			pg.addDoubleSlider("tkp", "tkp", 0d, 1d, TK_PID);
+//			pg.addDoubleSlider("tki", "tki", 0d, 1d, TI_PID);
+//			pg.addDoubleSlider("tkd", "tkd", 0d, 80000d, TD_PID);
 
-			pg.addDoubleSlider("hkp", "hkp", 0d, 1d, HK_PID);
-			pg.addDoubleSlider("hki", "hki", 0d, 1d, HI_PID);
-			pg.addDoubleSlider("hkd", "hkd", 0d, 80000d, HD_PID);
+//			pg.addDoubleSlider("hkp", "hkp", 0d, 1d, HK_PID);
+//			pg.addDoubleSlider("hki", "hki", 0d, 1d, HI_PID);
+//			pg.addDoubleSlider("hkd", "hkd", 0d, 80000d, HD_PID);
 			
 			pg.addDoubleSlider("ss", "speed scale", 0.1, 2, SPEED_SCALE);
+			pg.addIntSlider("logOffset", "log offset", 1, 8, LOG_OFFSET);
+			pg.addIntSlider("logScale", "log scale", 1, 50, LOG_SCALE);
 
 			pg.addListener(new ParameterListener() {
 				public void parameterChanged(ParameterGUI pg, String name) {
@@ -169,6 +170,12 @@ public class PathFollower2 implements LCMSubscriber
 					else if (name.equals("ss")) {
 						SPEED_SCALE = pg.gd("ss");
 					}
+					else if (name.equals("logOffset")) {
+						LOG_OFFSET = pg.gi("logOffset");
+					}
+					else if (name.equals("logScale")) {
+						LOG_SCALE = pg.gi("logScale");
+					}
 
 				}
 			});
@@ -189,7 +196,7 @@ public class PathFollower2 implements LCMSubscriber
 		lcm.subscribe("6_POSE",this);
 		lcm.subscribe("6_WAYPOINT",this);
 		lcm.subscribe("6_PARAMS", this);
-		lcm.subscribe("6_RESET", this);
+//		lcm.subscribe("6_RESET", this);
 
 	}
 
@@ -236,7 +243,7 @@ public class PathFollower2 implements LCMSubscriber
 			right = MAX_SPEED - turnSpeed;
 		}
 		
-		double scaleFactor = (Math.log(20*Math.abs(errorDist) + 5) * SPEED_SCALE);
+		double scaleFactor = (Math.log(LOG_SCALE*Math.abs(errorDist) + LOG_OFFSET) * SPEED_SCALE);
 		right *= scaleFactor;
 		left *= scaleFactor;
 
@@ -469,11 +476,6 @@ public class PathFollower2 implements LCMSubscriber
 			else if (channel.equals("6_PARAMS")) {
 				xyt_t params = new xyt_t(dins);
 				sPIDAngle.changeParams(params.xyt);
-			}
-			else if (channel.equals("6_RESET")) {
-				poseGen.bot.xyt[0] = 0;
-				poseGen.bot.xyt[1] = 0;
-				poseGen.pimu.recalibrate();
 			}
 		}
 		catch (IOException e)
