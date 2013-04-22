@@ -63,6 +63,7 @@ public class Projectile extends VisEventAdapter
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	final double DEFAULT_FRICTION_RATIO = 0.98;
 	final boolean DEFAULT_SEND_WAYPOINT = false;
+	double FRICTION_RATIO = 0.98;
 
 	boolean display = true;
 	boolean sendWayPoint = DEFAULT_SEND_WAYPOINT;
@@ -151,7 +152,7 @@ public class Projectile extends VisEventAdapter
 			pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
 			pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
 			pg.addDoubleSlider("bounce", "bounce factor", .1, .9, .5);
-			pg.addDoubleSlider("friction", "friction ratio", 0.7, 1.0, DEFAULT_FRICTION_RATIO);
+			pg.addDoubleSlider("friction", "friction ratio", 0.7, 1.0, FRICTION_RATIO);
 			pg.addListener(new ParameterListener() {
 				public void parameterChanged(ParameterGUI pg, String name)
 				{
@@ -160,11 +161,14 @@ public class Projectile extends VisEventAdapter
 						if(pg.gb("Reset"))
 							reset();
 					}
-					else if (name.equals("bounce")) 
-						bounce_factor = pg.gd(name);
 					else if(name == "sendWayPoint")
 						sendWayPoint = pg.gb("sendWayPoint");
-				
+					else if (name.equals("bounce")) {
+						bounce_factor = pg.gd(name);
+					}
+					else if (name.equals("friction")) {
+						FRICTION_RATIO = pg.gd(name);
+					}
 				}
 			});
 	
@@ -370,9 +374,9 @@ public class Projectile extends VisEventAdapter
 
 			double[] newx = new double[6];
 			newx[0] = prevBounce.parabola[0] + prevBounce.parabola[1]*lt;
-			newx[1] = prevBounce.parabola[1]*pg.gd("friction");
+			newx[1] = prevBounce.parabola[1]*FRICTION_RATIO;
 			newx[2] = prevBounce.parabola[2] + prevBounce.parabola[3]*lt;
-			newx[3] = prevBounce.parabola[3]*pg.gd("friction");
+			newx[3] = prevBounce.parabola[3]*FRICTION_RATIO;
 			newx[4] = ball_radius;
 			newx[5] = (prevBounce.parabola[5] - g*lt)*(-1*bounce_factor);
 			bounces.get(i).updateParams(newx);
