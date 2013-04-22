@@ -57,6 +57,7 @@ public class Projectile extends VisEventAdapter
 	final double BASKET_HEIGHT = 0.28;
 	final double KINECT_HEIGHT = 0.785; //.77
 	final double GLOBAL_ERROR_THRESH = 0.05;
+	final double DEFAULT_FRICTION_RATIO = 0.98;
 	
 	boolean display = true;
 
@@ -122,16 +123,6 @@ public class Projectile extends VisEventAdapter
 		state = BallStatus.WAIT;	
 		num_balls = 0;
 		bounce_index = 0;
-
-		
-
-		/*
-		friction = new double[3]; //a factor for air/ground friction to help with better prediction
-		friction[0] = 0.02;	//subtract 2 cm per every 1 s
-		friction[1] = 0.02;
-		friction[2] = 0.02;
-		*/
-
 	}
 
 	//TODO: wait for 5-8 balls before sending waypoints after bounce
@@ -150,6 +141,7 @@ public class Projectile extends VisEventAdapter
 			pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
 			pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
 			pg.addDoubleSlider("bounce", "bounce factor", .1, .9, .5);
+			pg.addDoubleSlider("friction", "friction ratio", 0.7, 1.0, DEFAULT_FRICTION_RATIO);
 			pg.addListener(new ParameterListener() {
 				public void parameterChanged(ParameterGUI pg, String name)
 				{
@@ -198,13 +190,6 @@ public class Projectile extends VisEventAdapter
 		state = BallStatus.WAIT;	
 		num_balls = 0;
 		bounce_index = 0;
-
-		/*
-		friction = new double[3]; //a factor for air/ground friction to help with better prediction
-		friction[0] = 0.02;	//subtract 2 cm per every 1 s
-		friction[1] = 0.02;
-		friction[2] = 0.02;
-		*/
 
 	}
 	
@@ -374,9 +359,9 @@ public class Projectile extends VisEventAdapter
 
 			double[] newx = new double[6];
 			newx[0] = prevBounce.parabola[0] + prevBounce.parabola[1]*lt;
-			newx[1] = prevBounce.parabola[1];
+			newx[1] = prevBounce.parabola[1]*pg.gd("friction");
 			newx[2] = prevBounce.parabola[2] + prevBounce.parabola[3]*lt;
-			newx[3] = prevBounce.parabola[3];
+			newx[3] = prevBounce.parabola[3]*pg.gd("friction");
 			newx[4] = ball_radius;
 			newx[5] = (prevBounce.parabola[5] - g*lt)*(-1*bounce_factor);
 			bounces.get(i).updateParams(newx);
@@ -538,7 +523,7 @@ public class Projectile extends VisEventAdapter
 		VisWorld.Buffer vb = vw.getBuffer("Robot Positions");
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));
-		VzBox endBase = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.red));
+		VzBox endBase = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.darkGray));
 
 		VisObject vo_base = new VisChain(LinAlg.translate(0,0.06,0.10),base);
 		VisObject ve_base = new VisChain(LinAlg.translate(0,0.06,0.10),endBase);
