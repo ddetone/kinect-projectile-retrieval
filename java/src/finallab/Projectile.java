@@ -16,6 +16,8 @@ import april.jmat.geom.GRay3D;
 import april.vis.*;
 import april.image.*;
 
+import lcm.lcm.*;
+
 import finallab.lcmtypes.*;
 
 public class Projectile extends VisEventAdapter
@@ -29,6 +31,8 @@ public class Projectile extends VisEventAdapter
 	public enum BallStatus {
 		WAIT, RELEASED, FINISHED
 	}
+
+	LCM lcm;
 
 	JFrame jf;
 	VisWorld vw;
@@ -58,9 +62,10 @@ public class Projectile extends VisEventAdapter
 	final double KINECT_HEIGHT = 0.785; //.77
 	final double GLOBAL_ERROR_THRESH = 0.05;
 	final double DEFAULT_FRICTION_RATIO = 0.98;
-	
-	boolean display = true;
+	final boolean DEFAULT_SEND_WAYPOINT = false;
 
+	boolean display = true;
+	boolean sendWayPoint = DEFAULT_SEND_WAYPOINT;
 
 	int num_balls;
 	int bounce_index;
@@ -72,15 +77,13 @@ public class Projectile extends VisEventAdapter
 
 	Projectile()
 	{
+
 		//vis initializations
 		jf = new JFrame("Projectile");
 		vw = new VisWorld();
 		vl = new VisLayer(vw);
 		vc = new VisCanvas(vl);
 		pg = new ParameterGUI();
-		pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
-		pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
-		pg.addDoubleSlider("bounce", "bounce factor", .1, .9, .5);
 		pg.addListener(new ParameterListener() {
 			public void parameterChanged(ParameterGUI pg, String name)
 			{
@@ -129,6 +132,13 @@ public class Projectile extends VisEventAdapter
 	{
 		if(_display)
 		{
+			//LCM
+			try{
+				this.lcm = new LCM("udpm://239.255.76.67:7667?ttl=1");
+			}catch(IOException e){
+				this.lcm = LCM.getSingleton();
+			}
+
 			pballLock = new ReentrantReadWriteLock();
 			//vis initializations
 			jf = new JFrame("Projectile");
@@ -137,6 +147,7 @@ public class Projectile extends VisEventAdapter
 			vc = new VisCanvas(vl);
 			pg = new ParameterGUI();
 			scoreBoard = new Scoreboard(false, jf,vw,vl,vc);
+			pg.addCheckBoxes("sendWayPoint", "Send Waypoint", DEFAULT_SEND_WAYPOINT);
 			pg.addCheckBoxes("Reset", "Reset? (double click the box)", DEFAULT_RESET);
 			pg.addDoubleSlider("error_thresh","Error Threshold for Bounce Detection",0,0.1,DEFAULT_ERROR_THRESH);
 			pg.addDoubleSlider("bounce", "bounce factor", .1, .9, .5);
@@ -149,9 +160,11 @@ public class Projectile extends VisEventAdapter
 						if(pg.gb("Reset"))
 							reset();
 					}
-					else if (name.equals("bounce")) {
-					bounce_factor = pg.gd(name);
-				}
+					else if (name.equals("bounce")) 
+						bounce_factor = pg.gd(name);
+					else if(name == "sendWayPoint")
+						sendWayPoint = pg.gb("sendWayPoint");
+				
 				}
 			});
 	
@@ -191,7 +204,6 @@ public class Projectile extends VisEventAdapter
 		bounce_index = 0;
 
 	}
-	
 	
 	public void CheckBounce()
 	{
@@ -542,6 +554,8 @@ public class Projectile extends VisEventAdapter
 	public void drawRobotEnd(Point3D robotLoc, double[] xyzt)
 	{
 		VisWorld.Buffer vb = vw.getBuffer("Robot Positions");
+		
+		/*
 		double wheelRadius = 0.04;
 		VzBox base = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.green));
 		VzBox endBase = new VzBox(0.155,0.166,0.07, new VzMesh.Style(Color.darkGray));
@@ -567,8 +581,11 @@ public class Projectile extends VisEventAdapter
 		//vb.addBack(new VzAxes());
 		//vb.addBack(new VisChain(LinAlg.translate(xyt[0],xyt[1],0), LinAlg.rotateZ(xyt[2]-Math.PI/2),new VzTriangle(0.25,0.4,0.4,new VzMesh.Style(Color.GREEN))));
 		//vb.addBack(new VisChain(LinAlg.translate(robotLoc.x,robotLoc.y,0),startPandaBot));
+*/
+		VzCircle pointBox = new VzCircle(.04, new VzMesh.Style(Color.yellow));
 
-		VisChain path = new VisChain(LinAlg.translate(-xyzt[1],xyzt[0]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);//new VzBox(xyzt[0], .1, .1));
+		VisChain path = new VisChain(LinAlg.translate(-xyzt[1],xyzt[0], 0.002),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), pointBox);
+		//VisChain path = new VisChain(LinAlg.translate(-xyzt[1],xyzt[0]),LinAlg.rotateZ(xyzt[2]),LinAlg.translate(robotLoc.x,robotLoc.y), endPandaBot);
 		vb.addBack(path);
 
 		vb.swap();
@@ -706,6 +723,7 @@ public class Projectile extends VisEventAdapter
 		vb.swap();
 	}
 	
+	/*
 	//prints point coords when user clicks
 	public boolean mouseReleased(VisCanvas vc, VisLayer vl,
 			VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e) {	
@@ -713,6 +731,33 @@ public class Projectile extends VisEventAdapter
 		System.out.println("click@ (" + temp[0] + ", " + temp[1] + ", " + temp[2] + ")");
 
 		return true;
+	}*/
+
+	public boolean mouseReleased(VisCanvas vc, VisLayer vl, VisCanvas.RenderInfo rinfo, GRay3D ray, MouseEvent e)
+	{
+		if(sendWayPoint){
+			xyt_t wayPoint = new xyt_t();
+			double temp[] = ray.intersectPlaneXY();
+			double[] way = new double[2];
+			way[0] = temp[0] - CatchController.BOT_DIST_FROM_KINECT_X;
+			way[1] = temp[1] - CatchController.BOT_DIST_FROM_KINECT_Y;
+			wayPoint.utime = TimeUtil.utime();
+			wayPoint.xyt = new double[]{way[1], -way[0], 0};
+
+			System.out.printf("%d\n",System.currentTimeMillis());
+			
+			lcm.publish("6_WAYPOINT", wayPoint);
+			System.out.println("click@ (" + temp[0] + ", " + temp[1] + ", " + temp[2] + ")");
+
+			//pg.sb("sendWayPoint",false);
+			return true;
+		}
+		else 
+		{
+			double temp[] = ray.intersectPlaneXY();
+			System.out.println("click@ (" + temp[0] + ", " + temp[1] + ", " + temp[2] + ")");
+			return false;
+		}
 	}
 
 	public ArrayList<Parabola> getParabolas()
