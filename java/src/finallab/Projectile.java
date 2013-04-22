@@ -438,7 +438,29 @@ public class Projectile extends VisEventAdapter
 		VzBox kinectTable = new VzBox(.4,.3,KINECT_HEIGHT-.07,new VzMesh.Style(Color.white));
 		VisChain table = new VisChain(LinAlg.translate(0,0,(KINECT_HEIGHT-.07)/2.0),kinectTable);
 		vb.addBack(table);
-		VzBox targetZone = new VzBox(CatchController.TARGET_WIDTH, CatchController.TARGET_HEIGHT, 0.001, new VzMesh.Style(Color.green));
+
+		double tw = CatchController.TARGET_WIDTH;
+		double th = CatchController.TARGET_HEIGHT;
+		double dx = CatchController.TARGET_DIST_FROM_KINECT_X;
+		double dy = CatchController.TARGET_DIST_FROM_KINECT_Y;
+		
+		VzBox target1 = new VzBox(tw, 0.05, 0.001, new VzMesh.Style(Color.blue));
+		VzBox target2 = new VzBox(tw, 0.05, 0.001, new VzMesh.Style(Color.blue));
+		VzBox target3 = new VzBox(0.05, th, 0.001, new VzMesh.Style(Color.blue));
+		VzBox target4 = new VzBox(0.05, th, 0.001, new VzMesh.Style(Color.blue));
+
+		VisChain t1 = new VisChain(LinAlg.translate(dx, dy+(th/2), 0.001), target1);
+		VisChain t2 = new VisChain(LinAlg.translate(dx, dy-(th/2), 0.001), target2);
+		VisChain t3 = new VisChain(LinAlg.translate(dx+(tw/2), dy, 0.001), target3);
+		VisChain t4 = new VisChain(LinAlg.translate(dx-(tw/2), dy, 0.001), target4);
+
+		vb.addBack(t1);
+		vb.addBack(t2);
+		vb.addBack(t3);
+		vb.addBack(t4);
+
+		VzBox targetZone = new VzBox(CatchController.TARGET_WIDTH, CatchController.TARGET_HEIGHT, 0.001, new VzMesh.Style(Color.gray));
+			//new VzMesh.Style(ColorUtil.fromAARRGGBB(5a3764)));
 		//TODO: hard-coded target
 		VisChain target = new VisChain(LinAlg.translate(CatchController.TARGET_DIST_FROM_KINECT_X, CatchController.TARGET_DIST_FROM_KINECT_Y, 0.0001), targetZone);
 		vb.addBack(target);
@@ -558,6 +580,7 @@ public class Projectile extends VisEventAdapter
 
 	public void drawRobot(bot_status_t curr_bot_status)
 	{
+		/*
 		double[]T;
 		if(last_bot_status != null) T = LinAlg.xytInvMul31(last_bot_status.xyt, curr_bot_status.xyt);
 		else T = new double[3];
@@ -567,6 +590,8 @@ public class Projectile extends VisEventAdapter
 		bot_status.yaw = curr_bot_status.yaw;
 		bot_status.cov = curr_bot_status.cov;
 		bot_status.voltage = curr_bot_status.voltage;
+*/
+		bot_status = curr_bot_status;
 
 		double[] xyt = new double[3];
 		xyt[0] = bot_status.xyt[0];
