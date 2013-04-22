@@ -88,7 +88,7 @@ public class PathFollower2 implements LCMSubscriber
 	static final double HI_PID = 0.0;
 	static final double HD_PID = 30000.0;
 	
-	static double SPEED_SCALE = 0.43;
+	static double SPEED_SCALE = 0.7;
 	
 	private PoseGenerator poseGen;
 
@@ -243,7 +243,7 @@ public class PathFollower2 implements LCMSubscriber
 //			}
 		}
 		
-		double scaleFactor = (Math.log(20*Math.abs(errorDist) + 1) * SPEED_SCALE);
+		double scaleFactor = (Math.log(20*Math.abs(errorDist) + 3) * SPEED_SCALE);
 		right *= scaleFactor;
 		left *= scaleFactor;
 

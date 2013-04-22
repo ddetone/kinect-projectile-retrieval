@@ -221,6 +221,7 @@ public class PathFollower implements LCMSubscriber
 
 		double right = speed + pid;
 		double left = speed - pid;	
+		System.out.println("right: " + right + ", left: " + left);
 
 //		if(verbose)printError();
 		

@@ -123,6 +123,7 @@ public class CatchController implements LCMSubscriber
 		}
 		
 		if (bestParab == null) {
+			System.out.println("no waypoints in target zone");
 			return null;
 		}
 //		System.out.println("best ind: " + best);
@@ -132,7 +133,7 @@ public class CatchController implements LCMSubscriber
 		if (bestParab.balls_in_parab == 0 || bestParab.balls_in_parab > (BALLS_TO_WAIT_ON - 1))
 			return landing;
 		else {
-//			System.out.println("waiting for better bounce prediction");
+			System.out.println("waiting for better bounce prediction");
 			return null;
 		}
 
@@ -151,9 +152,12 @@ public class CatchController implements LCMSubscriber
 //		System.out.println("waiting for landing point");
 		do {
 			
+			
 			bounces = predictor.getParabolas();
+			while (bounces.get(0) == null) {
+				System.out.println("what the fuck");
+			}
 		}
-		
 		while(bounces == null || bounces.size() == 0 || !bounces.get(0).valid);
 //		System.out.println("done waiting for bounces");
 		double[][] startingBounces = new double[2][bounces.size()];
@@ -179,6 +183,7 @@ public class CatchController implements LCMSubscriber
 					land = determineBounceCatch(bounces);
 					if(land == null)
 					{
+						System.out.println("land is null");
 						nextState = 0;
 						break;
 					}
@@ -207,7 +212,7 @@ public class CatchController implements LCMSubscriber
 //						}
 					}
 					else {
-//						System.out.println("waypoints are the same");
+						System.out.println("waypoints are the same");
 					}
 					//to continuously send waypoints of updated position of bounce index 0
 					 nextState = 0;
@@ -336,9 +341,11 @@ public class CatchController implements LCMSubscriber
 			}
 		}
 		else if (channel.equals("6_RESET")) {
-			predictor.reset();
-			// go home
-			started = false;
+			if (started) {
+				predictor.reset();
+				// go home
+				started = false;
+			}
 		}
 		else if (channel.equals("6_WAYPOINT")) {
 			try {
